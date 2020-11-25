@@ -45,15 +45,6 @@ type GridCell struct {
 	Style CustomStyle
 }
 
-type EventType int
-
-const (
-	EventKeyDown EventType = iota
-	EventMouseDown
-	EventMouseMove
-	EventInterrupt
-)
-
 type MouseButton int
 
 const (
@@ -62,13 +53,56 @@ const (
 	ButtonSecondary                    // right button
 )
 
-// Event represents information from user input.
-type Event struct {
-	Type     EventType   // any of the Event* constants
-	Button   MouseButton // mouse button number in EventMouseDown event
-	Key      string      // name of the key in EventKeyDown event
-	MousePos Position    // mouse position in EventMouseDown or EventMouseMove event
-	Shift    bool        // whether shift key was pressed during input
+// Event is an interface for passing events around.
+type Event interface {
+	// When reports the time when the event was generated.
+	When() time.Time
+}
+
+// EventKeyDown represents a key press.
+type EventKeyDown struct {
+	Key   string // name of the key in EventKeyDown event
+	Shift bool   // whether shift key was pressed during input
+	Time  time.Time
+}
+
+// When returns the time when this event was generated.
+func (ev EventKeyDown) When() time.Time {
+	return ev.Time
+}
+
+// EventMouseDown represents a mouse click.
+type EventMouseDown struct {
+	Button   MouseButton // which button was pressed
+	MousePos Position    // mouse position in the grid
+	Time     time.Time
+}
+
+// When returns the time when this event was generated.
+func (ev EventMouseDown) When() time.Time {
+	return ev.Time
+}
+
+// EventMouseMove represents a mouse motion.
+type EventMouseMove struct {
+	MousePos Position // mouse position in the grid
+	Time     time.Time
+}
+
+// When returns the time when this event was generated.
+func (ev EventMouseMove) When() time.Time {
+	return ev.Time
+}
+
+// EventInterrupt represents a wakeup. It can be used to end prematurely a
+// PollEvent call, for example to signal the end of an animation.
+type EventInterrupt struct {
+	Time time.Time
+}
+
+// When returns the time when this event was generated.
+func (ev EventInterrupt) When() time.Time {
+	return ev.Time
 }
 
 type Grid struct {
