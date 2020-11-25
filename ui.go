@@ -177,7 +177,10 @@ func (gd *Grid) Frame() Frame {
 	return gd.frame
 }
 
-func (gd *Grid) ComputeNextFrame() {
+// Draw draws computes next frame changes and sends them to the Driver for
+// immediate display. If recording is activated the frame changes are recorded,
+// and can be retrieved by calling Frames().
+func (gd *Grid) Draw() {
 	if len(gd.cellBackBuffer) != len(gd.cellBuffer) {
 		gd.cellBackBuffer = make([]GridCell, len(gd.cellBuffer))
 	}
@@ -195,12 +198,13 @@ func (gd *Grid) ComputeNextFrame() {
 	if gd.recording {
 		gd.frames = append(gd.frames, gd.frame)
 	}
+	gd.driver.Flush(gd)
 }
 
-// Frames returns a chronological recording of frames, if recording was enabled
-// for the grid. The frame recording can be used to watch a replay of the game.
-// Note that each frame contains only cells that changed since the previous
-// one.
+// Frames returns a recording of frames as produced by successive Draw() call,
+// if recording was enabled for the grid. The frame recording can be used to
+// watch a replay of the game.  Note that each frame contains only cells that
+// changed since the previous one.
 func (gd *Grid) Frames() []Frame {
 	return gd.frames
 }
