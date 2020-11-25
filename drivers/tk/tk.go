@@ -123,12 +123,12 @@ type rectangle struct {
 	xmin, xmax, ymin, ymax int
 }
 
-func (tk *Driver) Flush(gd gorltk.GridDrawer) {
+func (tk *Driver) Flush(gd *gorltk.Grid) {
 	w, h := gd.Size()
 	rects := []rectangle{}
 	r := rectangle{w - 1, 0, h - 1, 0}
 	n := 0
-	for _, cdraw := range gd.FrameCells() {
+	for _, cdraw := range gd.Frame().Cells {
 		cs := cdraw.Cell
 		x, y := cdraw.Pos.X, cdraw.Pos.Y
 		tk.draw(gd, cs, x, y)

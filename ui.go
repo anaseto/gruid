@@ -4,17 +4,10 @@ import (
 	"time"
 )
 
-type GridDrawer interface {
-	// FrameCells returns drawing instructions for next frame.
-	FrameCells() []FrameCell
-	// Size returns the (width, height) of the grid in cells.
-	Size() (int, int)
-}
-
 type Driver interface {
 	Init() error // XXX keep it in the interface ?
-	// Flush draws sends current drawing frame to the driver.
-	Flush(GridDrawer)
+	// Flush sends last frame grid changes to the driver.
+	Flush(*Grid)
 	// PollEvent waits for user input and returns it.
 	PollEvent() Event
 	// Interrupt sends an EventInterrupt event.
@@ -41,7 +34,7 @@ type Color uint
 type GridCell struct {
 	Fg    Color
 	Bg    Color
-	R     rune
+	Rune  rune
 	Style CustomStyle
 }
 
@@ -105,12 +98,24 @@ func (ev EventInterrupt) When() time.Time {
 	return ev.Time
 }
 
+// Grid represents the game grid that is used to draw to the screen.
 type Grid struct {
-	Width          int        // XXX maybe unexport?
-	Height         int        // XXX maybe unexport?
-	CellBuffer     []GridCell // TODO: do not export
+	driver         Driver
+	width          int        // XXX maybe unexport?
+	height         int        // XXX maybe unexport?
+	cellBuffer     []GridCell // TODO: do not export
 	cellBackBuffer []GridCell
-	FrameLog       []Frame
+	frame          Frame
+	frames         []Frame
+	recording      bool
+}
+
+// GridCfg is used to configure a new Grid with NewGrid.
+type GridCfg struct {
+	Driver    Driver // drawing instructions Driver
+	Width     int    // width in cells
+	Height    int    // height in cells
+	Recording bool   // whether to record frames to enable replay
 }
 
 type Frame struct {
@@ -123,57 +128,81 @@ type FrameCell struct {
 	Pos  Position
 }
 
+func NewGrid(cfg GridCfg) *Grid {
+	gd := &Grid{}
+	if cfg.Driver == nil {
+		panic("cfg.Driver is nil")
+	}
+	gd.driver = cfg.Driver
+	if cfg.Height <= 0 {
+		panic("cfg.Height must be positive")
+	}
+	if cfg.Width <= 0 {
+		panic("cfg.Width must be positive")
+	}
+	gd.resize(cfg.Width, cfg.Height)
+	gd.recording = cfg.Recording
+	return gd
+}
+
 func (gd *Grid) Size() (int, int) {
-	return gd.Width, gd.Height
+	return gd.width, gd.height
+}
+
+func (gd *Grid) resize(w, h int) {
+	gd.width = w
+	gd.height = h
+	if len(gd.cellBuffer) != gd.height*gd.width {
+		gd.cellBuffer = make([]GridCell, gd.height*gd.width)
+	}
 }
 
 func (gd *Grid) SetGenCell(fc FrameCell) {
 	i := gd.GetIndex(fc.Pos)
-	if i >= gd.Height*gd.Width {
+	if i >= gd.height*gd.width {
 		return
 	}
-	gd.CellBuffer[i] = fc.Cell
+	gd.cellBuffer[i] = fc.Cell
 }
 
 func (gd *Grid) GetIndex(pos Position) int {
-	return pos.Y*gd.Width + pos.X
+	return pos.Y*gd.width + pos.X
 }
 
 func (gd *Grid) GetPos(i int) Position {
-	return Position{X: i - (i/gd.Width)*gd.Width, Y: i / gd.Width}
+	return Position{X: i - (i/gd.width)*gd.width, Y: i / gd.width}
 }
 
-func (gd *Grid) FrameCells() []FrameCell {
-	if len(gd.FrameLog) <= 0 {
-		return nil
-	}
-	return gd.FrameLog[len(gd.FrameLog)-1].Cells
+func (gd *Grid) Frame() Frame {
+	return gd.frame
 }
 
 func (gd *Grid) ComputeNextFrame() {
-	if len(gd.cellBackBuffer) != len(gd.CellBuffer) {
-		gd.cellBackBuffer = make([]GridCell, len(gd.CellBuffer))
+	if len(gd.cellBackBuffer) != len(gd.cellBuffer) {
+		gd.cellBackBuffer = make([]GridCell, len(gd.cellBuffer))
 	}
-	gd.FrameLog = append(gd.FrameLog, Frame{Time: time.Now()})
-	for i := 0; i < len(gd.CellBuffer); i++ {
-		if gd.CellBuffer[i] == gd.cellBackBuffer[i] {
+	gd.frame = Frame{Time: time.Now()}
+	for i := 0; i < len(gd.cellBuffer); i++ {
+		if gd.cellBuffer[i] == gd.cellBackBuffer[i] {
 			continue
 		}
-		c := gd.CellBuffer[i]
+		c := gd.cellBuffer[i]
 		pos := gd.GetPos(i)
 		cdraw := FrameCell{Cell: c, Pos: pos}
-		last := len(gd.FrameLog) - 1
-		gd.FrameLog[last].Cells = append(gd.FrameLog[last].Cells, cdraw)
+		gd.frame.Cells = append(gd.frame.Cells, cdraw)
 		gd.cellBackBuffer[i] = c
+	}
+	if gd.recording {
+		gd.frames = append(gd.frames, gd.frame)
 	}
 }
 
-func (gd *Grid) Init() {
-	if len(gd.CellBuffer) == 0 {
-		gd.CellBuffer = make([]GridCell, gd.Height*gd.Width)
-	} else if len(gd.CellBuffer) != gd.Height*gd.Width {
-		gd.CellBuffer = make([]GridCell, gd.Height*gd.Width)
-	}
+// Frames returns a chronological recording of frames, if recording was enabled
+// for the grid. The frame recording can be used to watch a replay of the game.
+// Note that each frame contains only cells that changed since the previous
+// one.
+func (gd *Grid) Frames() []Frame {
+	return gd.frames
 }
 
 func (gd *Grid) ClearCache() {

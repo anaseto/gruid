@@ -37,11 +37,11 @@ func (t *Driver) Close() {
 	t.screen.Fini()
 }
 
-func (t *Driver) Flush(gd gorltk.GridDrawer) {
-	for _, cdraw := range gd.FrameCells() {
+func (t *Driver) Flush(gd *gorltk.Grid) {
+	for _, cdraw := range gd.Frame().Cells {
 		c := cdraw.Cell
 		st := t.StyleManager.GetStyle(c)
-		t.screen.SetContent(cdraw.Pos.X, cdraw.Pos.Y, c.R, nil, st)
+		t.screen.SetContent(cdraw.Pos.X, cdraw.Pos.Y, c.Rune, nil, st)
 	}
 	//ui.g.Printf("%d %d %d", ui.g.DrawFrame, ui.g.DrawFrameStart, len(ui.g.DrawLog))
 	t.screen.Show()
