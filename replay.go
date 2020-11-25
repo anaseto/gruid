@@ -85,7 +85,7 @@ func (rep *Replay) drawFrame() {
 		//dr.Cell.Fg = ui.Map256ColorTo16(dr.Cell.Fg)
 		//}
 		rep.undo[j] = append(rep.undo[j], FrameCell{Cell: c, Pos: dr.Pos})
-		rep.Grid.SetGenCell(dr)
+		rep.Grid.SetCell(dr.Pos, dr.Cell)
 	}
 	rep.Driver.Flush(rep.Grid)
 	rep.Grid.frames = nil
@@ -94,7 +94,7 @@ func (rep *Replay) drawFrame() {
 func (rep *Replay) undoFrame() {
 	df := rep.undo[len(rep.undo)-1]
 	for _, dr := range df {
-		rep.Grid.SetGenCell(dr)
+		rep.Grid.SetCell(dr.Pos, dr.Cell)
 	}
 	rep.undo = rep.undo[:len(rep.undo)-1]
 	rep.Driver.Flush(rep.Grid)

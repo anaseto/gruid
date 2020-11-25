@@ -157,12 +157,12 @@ func (gd *Grid) resize(w, h int) {
 	}
 }
 
-func (gd *Grid) SetGenCell(fc FrameCell) {
-	i := gd.GetIndex(fc.Pos)
+func (gd *Grid) SetCell(pos Position, gc GridCell) {
+	i := gd.GetIndex(pos)
 	if i >= gd.height*gd.width {
 		return
 	}
-	gd.cellBuffer[i] = fc.Cell
+	gd.cellBuffer[i] = gc
 }
 
 func (gd *Grid) GetIndex(pos Position) int {
