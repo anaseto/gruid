@@ -58,34 +58,37 @@ func (t *Driver) PollEvent() gorltk.Event {
 			ev := gorltk.EventKeyDown{}
 			ev.Time = tev.When()
 			switch tev.Key() {
-			case tcell.KeyEsc:
-				ev.Key = " "
-			case tcell.KeyLeft:
-				// TODO: will not work if user changes keybindings
-				ev.Key = "4"
 			case tcell.KeyDown:
-				ev.Key = "2"
-			case tcell.KeyUp:
-				ev.Key = "8"
+				ev.Key = gorltk.KeyArrowDown
+			case tcell.KeyLeft:
+				ev.Key = gorltk.KeyArrowLeft
 			case tcell.KeyRight:
-				ev.Key = "6"
-			case tcell.KeyPgUp:
-				ev.Key = "u"
-			case tcell.KeyPgDn:
-				ev.Key = "d"
+				ev.Key = gorltk.KeyArrowRight
+			case tcell.KeyUp:
+				ev.Key = gorltk.KeyArrowUp
+			case tcell.KeyBackspace:
+				ev.Key = gorltk.KeyBackspace
 			case tcell.KeyDelete:
-				ev.Key = "5"
-			case tcell.KeyCtrlW:
-				ev.Key = "W"
-			case tcell.KeyCtrlQ:
-				ev.Key = "Q"
-			case tcell.KeyCtrlP:
-				ev.Key = "m"
+				ev.Key = gorltk.KeyDelete
+			case tcell.KeyEnd:
+				ev.Key = gorltk.KeyEnd
+			case tcell.KeyEscape:
+				ev.Key = gorltk.KeyEscape
 			case tcell.KeyEnter:
-				ev.Key = "."
+				ev.Key = gorltk.KeyEnter
+			case tcell.KeyHome:
+				ev.Key = gorltk.KeyHome
+			case tcell.KeyInsert:
+				ev.Key = gorltk.KeyInsert
+			case tcell.KeyPgUp:
+				ev.Key = gorltk.KeyPageUp
+			case tcell.KeyPgDn:
+				ev.Key = gorltk.KeyPageDown
+			case tcell.KeyTab:
+				ev.Key = gorltk.KeyTab
 			}
 			if tev.Rune() != 0 && ev.Key == "" {
-				ev.Key = string(tev.Rune())
+				ev.Key = gorltk.Key(tev.Rune())
 			}
 			return ev
 		case *tcell.EventMouse:

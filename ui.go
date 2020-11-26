@@ -116,14 +116,20 @@ type Event interface {
 
 // EventKeyDown represents a key press.
 type EventKeyDown struct {
-	Key   string // name of the key in EventKeyDown event
-	Shift bool   // whether shift key was pressed during input
+	Key   Key  // name of the key in EventKeyDown event
+	shift bool //
 	Time  time.Time
 }
 
 // When returns the time when this event was generated.
 func (ev EventKeyDown) When() time.Time {
 	return ev.Time
+}
+
+// ShiftKey indicates if the shift key was pressed when the event occured. This
+// may be not supported equally well accross all platforms.
+func (ev EventKeyDown) ShiftKey() bool {
+	return ev.shift
 }
 
 // EventMouseDown represents a mouse click.

@@ -55,7 +55,7 @@ $can create image 0 0 -anchor nw -image gamescreen
 			s = keysym
 		}
 		if len(eventCh) < cap(eventCh) {
-			eventCh <- gorltk.EventKeyDown{Key: s, Time: time.Now()}
+			eventCh <- gorltk.EventKeyDown{Key: gorltk.Key(s), Time: time.Now()}
 		}
 	})
 	tk.ir.RegisterCommand("MouseDown", func(x, y, n int) {
@@ -189,32 +189,49 @@ func (tk *Driver) ClearCache() {
 }
 
 func (tk *Driver) PollEvent() (ev gorltk.Event) {
-	ev = <-eventCh
-	switch ev := ev.(type) {
-	case gorltk.EventKeyDown:
-		switch ev.Key {
-		case "KP_Enter", "Return", "\r", "\n":
-			ev.Key = "."
-		case "Left", "KP_Left":
-			ev.Key = "4"
-		case "Right", "KP_Right":
-			ev.Key = "6"
-		case "Up", "KP_Up", "BackSpace":
-			ev.Key = "8"
-		case "Down", "KP_Down":
-			ev.Key = "2"
-		case "KP_Prior", "Prior":
-			ev.Key = "u"
-		case "KP_Next", "Next":
-			ev.Key = "d"
-		case "KP_Begin", "KP_Delete":
-			ev.Key = "5"
-		default:
-			if utf8.RuneCountInString(ev.Key) != 1 {
-				ev.Key = ""
+again:
+	for {
+		ev = <-eventCh
+		switch ev := ev.(type) {
+		case gorltk.EventKeyDown:
+			switch ev.Key {
+			case "Down", "KP_2":
+				ev.Key = gorltk.KeyArrowDown
+			case "Left", "KP_4":
+				ev.Key = gorltk.KeyArrowLeft
+			case "Right", "KP_6":
+				ev.Key = gorltk.KeyArrowRight
+			case "Up", "KP_8":
+				ev.Key = gorltk.KeyArrowUp
+			case "BackSpace":
+				ev.Key = gorltk.KeyBackspace
+			case "Delete", "KP_7":
+				ev.Key = gorltk.KeyDelete
+			case "End", "KP_1":
+				ev.Key = gorltk.KeyEnd
+			case "KP_Enter", "Return", "KP_5":
+				ev.Key = gorltk.KeyEnter
+			case "Escape":
+				ev.Key = gorltk.KeyEscape
+			case "Home":
+				ev.Key = gorltk.KeyHome
+			case "Insert":
+				ev.Key = gorltk.KeyInsert
+			case "KP_9", "Prior":
+				ev.Key = gorltk.KeyPageUp
+			case "KP_3", "Next":
+				ev.Key = gorltk.KeyPageDown
+			case "space":
+				ev.Key = gorltk.KeySpace
+			case "Tab":
+				ev.Key = gorltk.KeyTab
+			default:
+				if utf8.RuneCountInString(string(ev.Key)) != 1 {
+					continue again
+				}
 			}
+			return ev
 		}
 		return ev
 	}
-	return ev
 }
