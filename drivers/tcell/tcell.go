@@ -51,11 +51,11 @@ func (t *Driver) Interrupt() {
 	t.screen.PostEvent(tcell.NewEventInterrupt(nil))
 }
 
-func (t *Driver) PollEvent() gorltk.Event {
+func (t *Driver) PollMsg() gorltk.Msg {
 	for {
 		switch tev := t.screen.PollEvent().(type) {
 		case *tcell.EventKey:
-			ev := gorltk.EventKeyDown{}
+			ev := gorltk.MsgKeyDown{}
 			ev.Time = tev.When()
 			switch tev.Key() {
 			case tcell.KeyDown:
@@ -95,31 +95,31 @@ func (t *Driver) PollEvent() gorltk.Event {
 			x, y := tev.Position()
 			switch tev.Buttons() {
 			case tcell.Button1:
-				ev := gorltk.EventMouseDown{}
+				ev := gorltk.MsgMouseDown{}
 				ev.Time = tev.When()
 				ev.MousePos = gorltk.Position{X: x, Y: y}
 				ev.Button = gorltk.ButtonMain
 				return ev
 			case tcell.Button3:
-				ev := gorltk.EventMouseDown{}
+				ev := gorltk.MsgMouseDown{}
 				ev.Time = tev.When()
 				ev.MousePos = gorltk.Position{X: x, Y: y}
 				ev.Button = gorltk.ButtonAuxiliary
 				return ev
 			case tcell.Button2:
-				ev := gorltk.EventMouseDown{}
+				ev := gorltk.MsgMouseDown{}
 				ev.Time = tev.When()
 				ev.MousePos = gorltk.Position{X: x, Y: y}
 				ev.Button = gorltk.ButtonSecondary
 				return ev
 			case tcell.ButtonNone:
-				ev := gorltk.EventMouseMove{}
+				ev := gorltk.MsgMouseMove{}
 				ev.Time = tev.When()
 				ev.MousePos = gorltk.Position{X: x, Y: y}
 				return ev
 			}
 		case *tcell.EventInterrupt:
-			ev := gorltk.EventInterrupt{}
+			ev := gorltk.MsgInterrupt{}
 			ev.Time = tev.When()
 			return ev
 		}

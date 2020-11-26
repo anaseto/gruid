@@ -55,12 +55,12 @@ $can create image 0 0 -anchor nw -image gamescreen
 			s = keysym
 		}
 		if len(eventCh) < cap(eventCh) {
-			eventCh <- gorltk.EventKeyDown{Key: gorltk.Key(s), Time: time.Now()}
+			eventCh <- gorltk.MsgKeyDown{Key: gorltk.Key(s), Time: time.Now()}
 		}
 	})
 	tk.ir.RegisterCommand("MouseDown", func(x, y, n int) {
 		if len(eventCh) < cap(eventCh) {
-			eventCh <- gorltk.EventMouseDown{MousePos: gorltk.Position{X: (x - 1) / tk.width, Y: (y - 1) / tk.height}, Button: gorltk.MouseButton(n - 1), Time: time.Now()}
+			eventCh <- gorltk.MsgMouseDown{MousePos: gorltk.Position{X: (x - 1) / tk.width, Y: (y - 1) / tk.height}, Button: gorltk.MouseButton(n - 1), Time: time.Now()}
 		}
 	})
 	tk.ir.RegisterCommand("MouseMotion", func(x, y int) {
@@ -70,14 +70,14 @@ $can create image 0 0 -anchor nw -image gamescreen
 			if len(eventCh) < cap(eventCh) {
 				tk.mousepos.X = nx
 				tk.mousepos.Y = ny
-				eventCh <- gorltk.EventMouseMove{MousePos: gorltk.Position{X: nx, Y: ny}, Time: time.Now()}
+				eventCh <- gorltk.MsgMouseMove{MousePos: gorltk.Position{X: nx, Y: ny}, Time: time.Now()}
 			}
 		}
 	})
 	tk.ir.RegisterCommand("OnClosing", func() {
 		if len(eventCh) < cap(eventCh) {
 			// TODO: make it not depend on a default string and normal mode
-			eventCh <- gorltk.EventKeyDown{Key: "S", Time: time.Now()}
+			eventCh <- gorltk.MsgKeyDown{Key: "S", Time: time.Now()}
 		}
 	})
 	tk.ir.Eval(`
@@ -106,14 +106,14 @@ func (tk *Driver) initElements() error {
 	return nil
 }
 
-var eventCh chan gorltk.Event
+var eventCh chan gorltk.Msg
 
 func init() {
-	eventCh = make(chan gorltk.Event, 5)
+	eventCh = make(chan gorltk.Msg, 5)
 }
 
 func (tk *Driver) Interrupt() {
-	eventCh <- gorltk.EventInterrupt{Time: time.Now()}
+	eventCh <- gorltk.MsgInterrupt{Time: time.Now()}
 }
 
 func (tk *Driver) Close() {
@@ -188,12 +188,12 @@ func (tk *Driver) ClearCache() {
 	}
 }
 
-func (tk *Driver) PollEvent() (ev gorltk.Event) {
+func (tk *Driver) PollMsg() (ev gorltk.Msg) {
 again:
 	for {
 		ev = <-eventCh
 		switch ev := ev.(type) {
-		case gorltk.EventKeyDown:
+		case gorltk.MsgKeyDown:
 			switch ev.Key {
 			case "Down", "KP_2":
 				ev.Key = gorltk.KeyArrowDown

@@ -131,28 +131,28 @@ func (rep *Replay) pollEvent() (in repEvent) {
 
 func (rep *Replay) pollKeyboardEvents() {
 	for {
-		ev := rep.Driver.PollEvent()
+		ev := rep.Driver.PollMsg()
 		switch ev := ev.(type) {
-		case EventInterrupt:
+		case MsgInterrupt:
 			rep.evch <- ReplayNext
 			continue
-		case EventKeyDown:
+		case MsgKeyDown:
 			switch ev.Key {
-			case "Q", "q", "\x1b":
+			case "Q", "q", KeyEscape:
 				rep.evch <- ReplayQuit
 				return
-			case "p", "P", " ":
+			case "p", "P", KeySpace:
 				rep.evch <- ReplayTogglePause
 			case "+", ">":
 				rep.evch <- ReplaySpeedMore
 			case "-", "<":
 				rep.evch <- ReplaySpeedLess
-			case ".", "6", "j", "n", "f":
+			case KeyArrowRight, KeyArrowDown, "j", "n", "f":
 				rep.evch <- ReplayNext
-			case "4", "k", "N", "b":
+			case KeyArrowLeft, KeyArrowUp, "k", "N", "b":
 				rep.evch <- ReplayPrevious
 			}
-		case EventMouseDown:
+		case MsgMouseDown:
 			switch ev.Button {
 			case ButtonMain:
 				rep.evch <- ReplayNext
