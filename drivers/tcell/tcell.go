@@ -89,21 +89,34 @@ func (t *Driver) PollEvent() gorltk.Event {
 			}
 			return ev
 		case *tcell.EventMouse:
-			ev := gorltk.EventMouseDown{}
-			ev.Time = tev.When()
 			x, y := tev.Position()
-			ev.MousePos = gorltk.Position{X: x, Y: y}
 			switch tev.Buttons() {
 			case tcell.Button1:
+				ev := gorltk.EventMouseDown{}
+				ev.Time = tev.When()
+				ev.MousePos = gorltk.Position{X: x, Y: y}
 				ev.Button = gorltk.ButtonMain
-			case tcell.Button2:
-				ev.Button = gorltk.ButtonAuxiliary
+				return ev
 			case tcell.Button3:
+				ev := gorltk.EventMouseDown{}
+				ev.Time = tev.When()
+				ev.MousePos = gorltk.Position{X: x, Y: y}
+				ev.Button = gorltk.ButtonAuxiliary
+				return ev
+			case tcell.Button2:
+				ev := gorltk.EventMouseDown{}
+				ev.Time = tev.When()
+				ev.MousePos = gorltk.Position{X: x, Y: y}
 				ev.Button = gorltk.ButtonSecondary
+				return ev
+			case tcell.ButtonNone:
+				ev := gorltk.EventMouseMove{}
+				ev.Time = tev.When()
+				ev.MousePos = gorltk.Position{X: x, Y: y}
+				return ev
 			}
-			return ev
 		case *tcell.EventInterrupt:
-			ev := gorltk.EventMouseMove{}
+			ev := gorltk.EventInterrupt{}
 			ev.Time = tev.When()
 			return ev
 		}

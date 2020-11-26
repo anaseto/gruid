@@ -169,7 +169,7 @@ func (tk *Driver) UpdateRectangle(xmin, ymin, xmax, ymax int) {
 		xmin*16, ymin*24, (xmax+1)*16, (ymax+1)*24) // TODO: optimize this more
 }
 
-func (tk *Driver) draw(gd gorltk.GridDrawer, cs gorltk.GridCell, x, y int) {
+func (tk *Driver) draw(gd *gorltk.Grid, cs gorltk.GridCell, x, y int) {
 	var img *image.RGBA
 	if im, ok := tk.cache[cs]; ok {
 		img = im
