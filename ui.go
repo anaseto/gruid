@@ -88,6 +88,7 @@ func (g *Game) Start() error {
 		}
 		cmd := g.model.Update(msg)
 		cmds <- cmd
+		g.model.Draw(g.grid)
 		g.grid.Draw()
 		g.driver.Flush(g.grid)
 	}
