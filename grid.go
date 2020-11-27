@@ -100,9 +100,8 @@ func (gd *Grid) Frame() Frame {
 	return gd.frame
 }
 
-// Draw draws computes next frame changes and sends them to the Driver for
-// immediate display. If recording is activated the frame changes are recorded,
-// and can be retrieved by calling Frames().
+// Draw draws computes next frame changes. If recording is activated the frame
+// changes are recorded, and can be retrieved later by calling Frames().
 func (gd *Grid) Draw() {
 	if len(gd.cellBackBuffer) != len(gd.cellBuffer) {
 		gd.cellBackBuffer = make([]GridCell, len(gd.cellBuffer))

@@ -87,8 +87,9 @@ func (rep *Replay) drawFrame() {
 		rep.undo[j] = append(rep.undo[j], FrameCell{Cell: c, Pos: dr.Pos})
 		rep.Grid.SetCell(dr.Pos, dr.Cell)
 	}
+	rep.Grid.Draw()
 	rep.Driver.Flush(rep.Grid)
-	rep.Grid.frames = nil
+	//rep.Grid.frame = nil
 }
 
 func (rep *Replay) undoFrame() {
@@ -97,8 +98,9 @@ func (rep *Replay) undoFrame() {
 		rep.Grid.SetCell(dr.Pos, dr.Cell)
 	}
 	rep.undo = rep.undo[:len(rep.undo)-1]
+	rep.Grid.Draw()
 	rep.Driver.Flush(rep.Grid)
-	rep.Grid.frames = nil
+	//rep.Grid.frame = nil
 }
 
 func (rep *Replay) pollEvent() (in repEvent) {

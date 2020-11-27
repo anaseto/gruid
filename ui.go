@@ -4,9 +4,9 @@
 // (driver/tcell), native graphical apps (driver/tk) and browser apps
 // (driver/js).
 //
-// The package uses an architecture of message passing inspired from the
-// bubbletea module for building terminal apps, which in turn is based on the
-// Elm Architecture.
+// The package uses an architecture of updating a model in response to messages
+// inspired from the bubbletea module for building terminal apps, which in turn
+// is based on the Elm Architecture.
 package gorltk
 
 // Game is the game user interface.
