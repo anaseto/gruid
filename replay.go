@@ -25,7 +25,7 @@ const (
 	ReplaySpeedLess
 )
 
-type msgTick time.Time
+type msgTick int // frame number
 
 func (rep *Replay) Init() Cmd {
 	rep.auto = true
@@ -66,7 +66,7 @@ func (rep *Replay) Update(msg Msg) Cmd {
 			rep.auto = false
 		}
 	case msgTick:
-		if rep.auto {
+		if rep.auto && rep.frame == int(msg) {
 			rep.action = ReplayNext
 		}
 	}
@@ -143,9 +143,10 @@ func (rep *Replay) tick() Cmd {
 	if d <= 5*time.Millisecond {
 		d = 5 * time.Millisecond
 	}
+	n := rep.frame
 	return func() Msg {
 		t := time.NewTimer(d)
 		<-t.C
-		return msgTick{}
+		return msgTick(n)
 	}
 }
