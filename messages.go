@@ -64,7 +64,7 @@ type MsgInterrupt struct {
 
 type msgQuit struct{}
 
-// Quit is a special command that signals to game to exit.
+// Quit is a special command that signals the game to exit.
 func Quit() Msg {
 	return msgQuit{}
 }
