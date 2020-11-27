@@ -32,10 +32,65 @@ func NewGame(cfg GameConfig) *Game {
 	}
 }
 
-// TODO
+// Start initializes the program and runs the main game loop.
 func (g *Game) Start() error {
-	// TODO
-	return nil
+	var (
+		cmds = make(chan Cmd)
+		msgs = make(chan Msg)
+	)
+
+	// TODO: Catch panics ?
+
+	// driver initialization
+	err := g.driver.Init()
+	if err != nil {
+		return err
+	}
+	defer g.driver.Close()
+
+	// model initialization
+	initCmd := g.model.Init()
+	if initCmd != nil {
+		go func() {
+			cmds <- initCmd
+		}()
+	}
+
+	// first drawing
+	g.grid.Draw()
+	g.driver.Flush(g.grid)
+
+	// input messages queueing
+	go func() {
+		for {
+			msgs <- g.driver.PollMsg()
+		}
+	}()
+
+	// command processing
+	go func() {
+		for {
+			// TODO: force clean end when we are done?
+			cmd := <-cmds
+			if cmd != nil {
+				go func() {
+					msgs <- cmd()
+				}()
+			}
+		}
+	}()
+
+	// main loop
+	for {
+		msg := <-msgs
+		if _, ok := msg.(msgQuit); ok {
+			return nil
+		}
+		cmd := g.model.Update(msg)
+		cmds <- cmd
+		g.grid.Draw()
+		g.driver.Flush(g.grid)
+	}
 }
 
 // Msg represents an action and triggers the Update function of the model.

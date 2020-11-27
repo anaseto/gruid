@@ -80,7 +80,7 @@ func (gd *Grid) resize(w, h int) {
 
 func (gd *Grid) SetCell(pos Position, gc GridCell) {
 	i := gd.GetIndex(pos)
-	if i >= gd.height*gd.width {
+	if i >= len(gd.cellBuffer) || i < 0 {
 		return
 	}
 	gd.cellBuffer[i] = gc

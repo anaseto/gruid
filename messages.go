@@ -61,3 +61,9 @@ type MsgMouseMove struct {
 type MsgInterrupt struct {
 	Time time.Time // time when the event was generated
 }
+
+type msgQuit struct{}
+
+func Quit() Msg {
+	return msgQuit{}
+}
