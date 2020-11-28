@@ -149,19 +149,25 @@ type Model interface {
 	Draw(*Grid)
 }
 
-// Driver handles both user input and rendering. When using the message
-// architecture you will not have to call those methods directly.
+// Driver handles both user input and rendering. When creating a Game and using
+// the Start main loop, you will not have to call those methods directly.
 type Driver interface {
 	Init() error
+
 	// Flush sends last frame grid changes to the driver.
 	Flush(*Grid)
+
 	// PollMsg waits for user input. It returns (msg, true) on user input,
 	// and (nil, false) if the waiting is terminated by calling Interrupt.
 	PollMsg() (Msg, bool)
+
 	// Interrupt terminates prematurely a PollMsg call.
 	Interrupt()
-	// Close executes optional code before closing the UI.
+
+	// Close may execute needed code to finalize the screen and release
+	// resources.
 	Close()
+
 	// ClearCache clears the cache from cell styles to tiles, if any.
 	ClearCache()
 }

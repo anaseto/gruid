@@ -38,8 +38,8 @@ type Grid struct {
 
 // GridConfig is used to configure a new Grid with NewGrid.
 type GridConfig struct {
-	Width     int  // width in cells: default is 80
-	Height    int  // height in cells: default is 24
+	Width     int  // width in cells (default is 80)
+	Height    int  // height in cells (default is 24)
 	Recording bool // whether to record frames to enable replay
 }
 
@@ -52,11 +52,17 @@ type Frame struct {
 	Height int         // height of the grid when the frame was produced
 }
 
-// FrameCell represents a drawing instructions of cell at a specific position
-// in the grid.
+// FrameCell represents a cell drawing instruction at a specific position in
+// the grid.
 type FrameCell struct {
 	Cell Cell
 	Pos  Position
+}
+
+// Position represents an (X,Y) position in a grid.
+type Position struct {
+	X int
+	Y int
 }
 
 // NewGrid returns a new grid.
