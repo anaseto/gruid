@@ -2,6 +2,7 @@ package gorltk
 
 import "fmt"
 
+// Position represents an (X,Y) position in a grid.
 type Position struct {
 	X int
 	Y int

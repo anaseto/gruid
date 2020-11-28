@@ -2,9 +2,13 @@ package gorltk
 
 import "time"
 
-// Replay is an implementation of Model that replays a game from a list of
-// frames.
-type Replay struct {
+// NewReplay returns a Model that runs a replay of a game with the given
+// recorded frames.
+func NewReplay(frames []Frame) Model {
+	return &replay{Frames: frames}
+}
+
+type replay struct {
 	Frames []Frame
 	undo   [][]FrameCell
 	frame  int
@@ -16,87 +20,87 @@ type Replay struct {
 type repAction int
 
 const (
-	ReplayNone repAction = iota
-	ReplayNext
-	ReplayPrevious
-	ReplayTogglePause
-	ReplayQuit
-	ReplaySpeedMore
-	ReplaySpeedLess
+	replayNone repAction = iota
+	replayNext
+	replayPrevious
+	replayTogglePause
+	replayQuit
+	replaySpeedMore
+	replaySpeedLess
 )
 
 type msgTick int // frame number
 
-func (rep *Replay) Init() Cmd {
+func (rep *replay) Init() Cmd {
 	rep.auto = true
 	rep.speed = 1
 	rep.undo = [][]FrameCell{}
 	return rep.tick()
 }
 
-func (rep *Replay) Update(msg Msg) Cmd {
+func (rep *replay) Update(msg Msg) Cmd {
 	switch msg := msg.(type) {
 	case MsgKeyDown:
 		switch msg.Key {
 		case "Q", "q", KeyEscape:
-			rep.action = ReplayQuit
+			rep.action = replayQuit
 		case "p", "P", KeySpace:
-			rep.action = ReplayTogglePause
+			rep.action = replayTogglePause
 		case "+", ">":
-			rep.action = ReplaySpeedMore
+			rep.action = replaySpeedMore
 		case "-", "<":
-			rep.action = ReplaySpeedLess
+			rep.action = replaySpeedLess
 		case KeyArrowRight, KeyArrowDown, KeyEnter, "j", "n", "f":
-			rep.action = ReplayNext
+			rep.action = replayNext
 			rep.auto = false
 		case KeyArrowLeft, KeyArrowUp, KeyBackspace, "k", "N", "b":
-			rep.action = ReplayPrevious
+			rep.action = replayPrevious
 			rep.auto = false
 		}
 	case MsgMouseDown:
 		switch msg.Button {
 		case ButtonMain:
-			rep.action = ReplayTogglePause
+			rep.action = replayTogglePause
 		case ButtonAuxiliary:
-			rep.action = ReplayNext
-			rep.action = ReplayTogglePause
+			rep.action = replayNext
+			rep.action = replayTogglePause
 			rep.auto = false
 		case ButtonSecondary:
-			rep.action = ReplayPrevious
+			rep.action = replayPrevious
 			rep.auto = false
 		}
 	case msgTick:
 		if rep.auto && rep.frame == int(msg) {
-			rep.action = ReplayNext
+			rep.action = replayNext
 		}
 	}
 	switch rep.action {
-	case ReplayNext:
+	case replayNext:
 		if rep.frame >= len(rep.Frames) {
-			rep.action = ReplayNone
+			rep.action = replayNone
 			break
 		} else if rep.frame < 0 {
 			rep.frame = 0
 		}
 		rep.frame++
-	case ReplayPrevious:
+	case replayPrevious:
 		if rep.frame <= 1 {
-			rep.action = ReplayNone
+			rep.action = replayNone
 			break
 		} else if rep.frame >= len(rep.Frames) {
 			rep.frame = len(rep.Frames)
 		}
 		rep.frame--
-	case ReplayQuit:
+	case replayQuit:
 		return Quit
-	case ReplayTogglePause:
+	case replayTogglePause:
 		rep.auto = !rep.auto
-	case ReplaySpeedMore:
+	case replaySpeedMore:
 		rep.speed *= 2
 		if rep.speed > 16 {
 			rep.speed = 16
 		}
-	case ReplaySpeedLess:
+	case replaySpeedLess:
 		rep.speed /= 2
 		if rep.speed < 1 {
 			rep.speed = 1
@@ -105,9 +109,9 @@ func (rep *Replay) Update(msg Msg) Cmd {
 	return rep.tick()
 }
 
-func (rep *Replay) Draw(gd *Grid) {
+func (rep *replay) Draw(gd *Grid) {
 	switch rep.action {
-	case ReplayNext:
+	case replayNext:
 		df := rep.Frames[rep.frame-1]
 		rep.undo = append(rep.undo, []FrameCell{})
 		j := len(rep.undo) - 1
@@ -117,7 +121,7 @@ func (rep *Replay) Draw(gd *Grid) {
 			rep.undo[j] = append(rep.undo[j], FrameCell{Cell: c, Pos: dr.Pos})
 			gd.SetCell(dr.Pos, dr.Cell)
 		}
-	case ReplayPrevious:
+	case replayPrevious:
 		df := rep.undo[len(rep.undo)-1]
 		for _, dr := range df {
 			gd.SetCell(dr.Pos, dr.Cell)
@@ -126,7 +130,7 @@ func (rep *Replay) Draw(gd *Grid) {
 	}
 }
 
-func (rep *Replay) tick() Cmd {
+func (rep *replay) tick() Cmd {
 	if !rep.auto || rep.frame > len(rep.Frames)-1 || rep.frame < 0 {
 		return nil
 	}

@@ -192,7 +192,7 @@ func (tk *Driver) ClearCache() {
 	}
 }
 
-func (tk *Driver) getMsgKeyDown(s string) (gorltk.Msg, bool) {
+func getMsgKeyDown(s string) (gorltk.Msg, bool) {
 	var key gorltk.Key
 	switch s {
 	case "Down", "KP_2":
@@ -229,9 +229,9 @@ func (tk *Driver) getMsgKeyDown(s string) (gorltk.Msg, bool) {
 		if utf8.RuneCountInString(s) != 1 {
 			return "", false
 		}
-		key = Key(s)
+		key = gorltk.Key(s)
 	}
-	return gorltk.MsgKeyDown{Key: key, Time: time.Now()}
+	return gorltk.MsgKeyDown{Key: key, Time: time.Now()}, true
 }
 
 func (tk *Driver) PollMsg() (gorltk.Msg, bool) {

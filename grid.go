@@ -43,6 +43,8 @@ type GridConfig struct {
 	Recording bool // whether to record frames to enable replay
 }
 
+// Frame contains the necessary information to draw the frame changes from a
+// frame to the next.
 type Frame struct {
 	Cells  []FrameCell // cells that changed from previous frame
 	Time   time.Time   // time of frame drawing: used for replay
@@ -50,11 +52,14 @@ type Frame struct {
 	Height int         // height of the grid when the frame was produced
 }
 
+// FrameCell represents a drawing instructions of cell at a specific position
+// in the grid.
 type FrameCell struct {
 	Cell Cell
 	Pos  Position
 }
 
+// NewGrid returns a new grid.
 func NewGrid(cfg GridConfig) *Grid {
 	gd := &Grid{}
 	if cfg.Height <= 0 {
@@ -68,6 +73,7 @@ func NewGrid(cfg GridConfig) *Grid {
 	return gd
 }
 
+// Size returns the (width, height) of the grid in cells.
 func (gd *Grid) Size() (int, int) {
 	return gd.width, gd.height
 }
@@ -145,6 +151,11 @@ func (gd *Grid) Frames() []Frame {
 	return gd.frames
 }
 
+// ClearCache clears internal cache buffers, forcing a complete redraw of the
+// screen with next the Draw call, even for cells that did not change. This can
+// be used in the case the physical display and the internal model are not in
+// sync: for example after a resize, or after a change of the GetImage function
+// of the driver (on the fly change of the tileset).
 func (gd *Grid) ClearCache() {
 	for i := 0; i < len(gd.cellBackBuffer); i++ {
 		gd.cellBackBuffer[i] = Cell{}

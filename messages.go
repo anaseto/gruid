@@ -2,8 +2,10 @@ package gorltk
 
 import "time"
 
+// Key represents the name of a key press.
 type Key string
 
+// This is the list of the supported non single-character named keys.
 const (
 	KeyArrowDown  Key = "ArrowDown"
 	KeyArrowLeft  Key = "ArrowLeft"
@@ -35,8 +37,10 @@ func (ev MsgKeyDown) ShiftKey() bool {
 	return ev.shift
 }
 
+// MouseButton represents mouse buttons.
 type MouseButton int
 
+// This is the list of supported mouse buttons.
 const (
 	ButtonMain      MouseButton = iota // left button
 	ButtonAuxiliary                    // middle button
@@ -58,7 +62,8 @@ type MsgMouseMove struct {
 
 type msgQuit struct{}
 
-type MsgWindowSize struct {
+// MsgScreenSize is used to report the screen size.
+type MsgScreenSize struct {
 	Width  int       // width in cells
 	Height int       // height in cells
 	Time   time.Time // time when the event was generated

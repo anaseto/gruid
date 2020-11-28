@@ -121,7 +121,7 @@ func (t *Driver) PollMsg() (gorltk.Msg, bool) {
 		case *tcell.EventInterrupt:
 			return nil, false
 		case *tcell.EventResize:
-			ev := gorltk.MsgWindowSize{}
+			ev := gorltk.MsgScreenSize{}
 			ev.Time = tev.When()
 			ev.Width, ev.Height = tev.Size()
 			return ev, true
