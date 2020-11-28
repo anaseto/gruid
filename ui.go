@@ -9,8 +9,20 @@
 // is based on the Elm Architecture.
 package gorltk
 
+import (
+	"fmt"
+	"log"
+	"runtime/debug"
+)
+
 // Game is the game user interface.
 type Game struct {
+	// CatchPanics ensures that Close is called on the driver before ending
+	// the game Start loop. When a panic occurs, it will be recovered, the
+	// stack trace will be printed and an error will be returned. It
+	// defaults to true.
+	CatchPanics bool
+
 	driver Driver
 	model  Model
 	grid   *Grid
@@ -21,32 +33,44 @@ type GameConfig struct {
 	Model  Model  // game state
 	Grid   *Grid  // game UI grid
 	Driver Driver // input and rendering driver
+
 }
 
 // NewGame creates a new Game.
 func NewGame(cfg GameConfig) *Game {
 	return &Game{
-		model:  cfg.Model,
-		grid:   cfg.Grid,
-		driver: cfg.Driver,
+		model:       cfg.Model,
+		grid:        cfg.Grid,
+		driver:      cfg.Driver,
+		CatchPanics: true,
 	}
 }
 
 // Start initializes the program and runs the main game loop.
-func (g *Game) Start() error {
+func (g *Game) Start() (err error) {
 	var (
 		cmds = make(chan Cmd)
 		msgs = make(chan Msg)
+		done = make(chan struct{})
 	)
 
-	// TODO: Catch panics ?
-
 	// driver initialization
-	err := g.driver.Init()
+	err = g.driver.Init()
 	if err != nil {
 		return err
 	}
-	defer g.driver.Close()
+	if g.CatchPanics {
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("%v", r)
+				g.driver.Close()
+				log.Printf("Caught panic: %v\nStack Trace:\n", r)
+				debug.PrintStack()
+			} else {
+				g.driver.Close()
+			}
+		}()
+	}
 
 	// model initialization
 	initCmd := g.model.Init()
@@ -63,19 +87,25 @@ func (g *Game) Start() error {
 	// input messages queueing
 	go func() {
 		for {
-			msgs <- g.driver.PollMsg()
+			msg, ok := g.driver.PollMsg()
+			if ok {
+				msgs <- msg
+			}
 		}
 	}()
 
 	// command processing
 	go func() {
 		for {
-			// TODO: force clean end when we are done?
-			cmd := <-cmds
-			if cmd != nil {
-				go func() {
-					msgs <- cmd()
-				}()
+			select {
+			case <-done:
+				return
+			case cmd := <-cmds:
+				if cmd != nil {
+					go func() {
+						msgs <- cmd()
+					}()
+				}
 			}
 		}
 	}()
@@ -84,6 +114,7 @@ func (g *Game) Start() error {
 	for {
 		msg := <-msgs
 		if _, ok := msg.(msgQuit); ok {
+			close(done)
 			return nil
 		}
 		cmd := g.model.Update(msg)
@@ -107,12 +138,14 @@ type Model interface {
 	// Init will be called to initialize the model. It may return an
 	// initial command to perform.
 	Init() Cmd
+
 	// Update is called when a message is received. Use it to update the
 	// model in response to messages and/or send commands.
 	Update(Msg) Cmd
-	// Draw is called after Init and then after every Update and sends the
-	// UI grid state to the driver. Use this function to draw the UI
-	// elements in the grid.
+
+	// Draw is called after Init and then after every Update.  Use this
+	// function to draw the UI elements in the grid. The grid resulting
+	// changes will then automatically be sent to the driver.
 	Draw(*Grid)
 }
 
@@ -122,12 +155,13 @@ type Driver interface {
 	Init() error
 	// Flush sends last frame grid changes to the driver.
 	Flush(*Grid)
-	// PollMsg waits for user input and returns it.
-	PollMsg() Msg
-	// Interrupt sends an EventInterrupt event.
+	// PollMsg waits for user input. It returns (msg, true) on user input,
+	// and (nil, false) if the waiting is terminated by calling Interrupt.
+	PollMsg() (Msg, bool)
+	// Interrupt terminates prematurely a PollMsg call.
 	Interrupt()
 	// Close executes optional code before closing the UI.
 	Close()
-	// ClearCache clears any cache from cell styles to tiles.
+	// ClearCache clears the cache from cell styles to tiles, if any.
 	ClearCache()
 }

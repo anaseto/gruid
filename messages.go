@@ -56,13 +56,13 @@ type MsgMouseMove struct {
 	Time     time.Time // time when the event was generated
 }
 
-// MsgInterrupt represents a wakeup. It can be used to end prematurely a
-// driver PollEvent call.
-type MsgInterrupt struct {
-	Time time.Time // time when the event was generated
-}
-
 type msgQuit struct{}
+
+type MsgWindowSize struct {
+	Width  int       // width in cells
+	Height int       // height in cells
+	Time   time.Time // time when the event was generated
+}
 
 // Quit is a special command that signals the game to exit.
 func Quit() Msg {

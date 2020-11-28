@@ -16,13 +16,13 @@ import (
 
 type TileManager interface {
 	// GetImage returns the image to be used for a given cell style.
-	GetImage(gorltk.GridCell) *image.RGBA
+	GetImage(gorltk.Cell) *image.RGBA
 }
 
 type Driver struct {
 	TileManager TileManager
 	ir          *gothic.Interpreter
-	cache       map[gorltk.GridCell]*image.RGBA
+	cache       map[gorltk.Cell]*image.RGBA
 	Width       int
 	Height      int
 	width       int
@@ -55,7 +55,9 @@ $can create image 0 0 -anchor nw -image gamescreen
 			s = keysym
 		}
 		if len(eventCh) < cap(eventCh) {
-			eventCh <- gorltk.MsgKeyDown{Key: gorltk.Key(s), Time: time.Now()}
+			if msg, ok := getMsgKeyDown(s); ok {
+				eventCh <- msg
+			}
 		}
 	})
 	tk.ir.RegisterCommand("MouseDown", func(x, y, n int) {
@@ -102,18 +104,20 @@ wm protocol . WM_DELETE_WINDOW OnClosing
 func (tk *Driver) initElements() error {
 	tk.width = 16
 	tk.height = 24
-	tk.cache = make(map[gorltk.GridCell]*image.RGBA)
+	tk.cache = make(map[gorltk.Cell]*image.RGBA)
 	return nil
 }
 
 var eventCh chan gorltk.Msg
+var intCh chan bool
 
 func init() {
 	eventCh = make(chan gorltk.Msg, 5)
+	intCh = make(chan bool, 1)
 }
 
 func (tk *Driver) Interrupt() {
-	eventCh <- gorltk.MsgInterrupt{Time: time.Now()}
+	intCh <- true
 }
 
 func (tk *Driver) Close() {
@@ -169,7 +173,7 @@ func (tk *Driver) UpdateRectangle(xmin, ymin, xmax, ymax int) {
 		xmin*16, ymin*24, (xmax+1)*16, (ymax+1)*24) // TODO: optimize this more
 }
 
-func (tk *Driver) draw(gd *gorltk.Grid, cs gorltk.GridCell, x, y int) {
+func (tk *Driver) draw(gd *gorltk.Grid, cs gorltk.Cell, x, y int) {
 	var img *image.RGBA
 	if im, ok := tk.cache[cs]; ok {
 		img = im
@@ -188,50 +192,53 @@ func (tk *Driver) ClearCache() {
 	}
 }
 
-func (tk *Driver) PollMsg() (ev gorltk.Msg) {
-again:
-	for {
-		ev = <-eventCh
-		switch ev := ev.(type) {
-		case gorltk.MsgKeyDown:
-			switch ev.Key {
-			case "Down", "KP_2":
-				ev.Key = gorltk.KeyArrowDown
-			case "Left", "KP_4":
-				ev.Key = gorltk.KeyArrowLeft
-			case "Right", "KP_6":
-				ev.Key = gorltk.KeyArrowRight
-			case "Up", "KP_8":
-				ev.Key = gorltk.KeyArrowUp
-			case "BackSpace":
-				ev.Key = gorltk.KeyBackspace
-			case "Delete", "KP_7":
-				ev.Key = gorltk.KeyDelete
-			case "End", "KP_1":
-				ev.Key = gorltk.KeyEnd
-			case "KP_Enter", "Return", "KP_5":
-				ev.Key = gorltk.KeyEnter
-			case "Escape":
-				ev.Key = gorltk.KeyEscape
-			case "Home":
-				ev.Key = gorltk.KeyHome
-			case "Insert":
-				ev.Key = gorltk.KeyInsert
-			case "KP_9", "Prior":
-				ev.Key = gorltk.KeyPageUp
-			case "KP_3", "Next":
-				ev.Key = gorltk.KeyPageDown
-			case "space":
-				ev.Key = gorltk.KeySpace
-			case "Tab":
-				ev.Key = gorltk.KeyTab
-			default:
-				if utf8.RuneCountInString(string(ev.Key)) != 1 {
-					continue again
-				}
-			}
-			return ev
+func (tk *Driver) getMsgKeyDown(s string) (gorltk.Msg, bool) {
+	var key gorltk.Key
+	switch s {
+	case "Down", "KP_2":
+		key = gorltk.KeyArrowDown
+	case "Left", "KP_4":
+		key = gorltk.KeyArrowLeft
+	case "Right", "KP_6":
+		key = gorltk.KeyArrowRight
+	case "Up", "KP_8":
+		key = gorltk.KeyArrowUp
+	case "BackSpace":
+		key = gorltk.KeyBackspace
+	case "Delete", "KP_7":
+		key = gorltk.KeyDelete
+	case "End", "KP_1":
+		key = gorltk.KeyEnd
+	case "KP_Enter", "Return", "KP_5":
+		key = gorltk.KeyEnter
+	case "Escape":
+		key = gorltk.KeyEscape
+	case "Home":
+		key = gorltk.KeyHome
+	case "Insert":
+		key = gorltk.KeyInsert
+	case "KP_9", "Prior":
+		key = gorltk.KeyPageUp
+	case "KP_3", "Next":
+		key = gorltk.KeyPageDown
+	case "space":
+		key = gorltk.KeySpace
+	case "Tab":
+		key = gorltk.KeyTab
+	default:
+		if utf8.RuneCountInString(s) != 1 {
+			return "", false
 		}
-		return ev
+		key = Key(s)
+	}
+	return gorltk.MsgKeyDown{Key: key, Time: time.Now()}
+}
+
+func (tk *Driver) PollMsg() (gorltk.Msg, bool) {
+	select {
+	case ev := <-eventCh:
+		return ev, true
+	case <-intCh:
+		return nil, false
 	}
 }

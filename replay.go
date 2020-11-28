@@ -112,7 +112,7 @@ func (rep *Replay) Draw(gd *Grid) {
 		rep.undo = append(rep.undo, []FrameCell{})
 		j := len(rep.undo) - 1
 		for _, dr := range df.Cells {
-			i := gd.GetIndex(dr.Pos)
+			i := gd.getIdx(dr.Pos)
 			c := gd.cellBuffer[i]
 			rep.undo[j] = append(rep.undo[j], FrameCell{Cell: c, Pos: dr.Pos})
 			gd.SetCell(dr.Pos, dr.Cell)
