@@ -35,10 +35,12 @@ func (rep *replay) Init() Cmd {
 	rep.auto = true
 	rep.speed = 1
 	rep.undo = [][]FrameCell{}
+	rep.action = replayNext
 	return rep.tick()
 }
 
 func (rep *replay) Update(msg Msg) Cmd {
+	rep.action = replayNone
 	switch msg := msg.(type) {
 	case MsgKeyDown:
 		switch msg.Key {
@@ -106,6 +108,9 @@ func (rep *replay) Update(msg Msg) Cmd {
 			rep.speed = 1
 		}
 	}
+	if !rep.auto || rep.frame > len(rep.Frames)-1 || rep.frame < 0 || rep.action == replayNone {
+		return nil
+	}
 	return rep.tick()
 }
 
@@ -131,9 +136,6 @@ func (rep *replay) Draw(gd *Grid) {
 }
 
 func (rep *replay) tick() Cmd {
-	if !rep.auto || rep.frame > len(rep.Frames)-1 || rep.frame < 0 {
-		return nil
-	}
 	var d time.Duration
 	if rep.frame > 0 {
 		d = rep.Frames[rep.frame].Time.Sub(rep.Frames[rep.frame-1].Time)
