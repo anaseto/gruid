@@ -32,14 +32,18 @@ type Driver struct {
 	th          int
 	mousepos    gorltk.Position
 	canvas      *image.RGBA
+	msgs        chan gorltk.Msg
+	interrupt   chan bool
 }
 
 func (tk *Driver) Init() error {
+	tk.msgs = make(chan gorltk.Msg, 5)
+	tk.interrupt = make(chan bool)
 	tk.tw, tk.th = tk.TileManager.TileSize()
 	tk.cache = make(map[gorltk.Cell]*image.RGBA)
 	tk.canvas = image.NewRGBA(image.Rect(0, 0, tk.Width*tk.tw, tk.Height*tk.th))
 	tk.ir = gothic.NewInterpreter(fmt.Sprintf(`
-wm title . "Harmonist Tk"
+wm title . "gorltk Tk"
 wm resizable . 0 0
 set width [expr {%d * %d}]
 set height [expr {%d * %d}]
@@ -58,31 +62,31 @@ $can create image 0 0 -anchor nw -image gamescreen
 		} else {
 			s = keysym
 		}
-		if len(msgCh) < cap(msgCh) {
+		if len(tk.msgs) < cap(tk.msgs) {
 			if msg, ok := getMsgKeyDown(s); ok {
-				msgCh <- msg
+				tk.msgs <- msg
 			}
 		}
 	})
 	tk.ir.RegisterCommand("MouseDown", func(x, y, n int) {
-		if len(msgCh) < cap(msgCh) {
-			msgCh <- gorltk.MsgMouseDown{MousePos: gorltk.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th}, Button: gorltk.MouseButton(n - 1), Time: time.Now()}
+		if len(tk.msgs) < cap(tk.msgs) {
+			tk.msgs <- gorltk.MsgMouseDown{MousePos: gorltk.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th}, Button: gorltk.MouseButton(n - 1), Time: time.Now()}
 		}
 	})
 	tk.ir.RegisterCommand("MouseMotion", func(x, y int) {
 		nx := (x - 1) / tk.tw
 		ny := (y - 1) / tk.th
 		if nx != tk.mousepos.X || ny != tk.mousepos.Y {
-			if len(msgCh) < cap(msgCh) {
+			if len(tk.msgs) < cap(tk.msgs) {
 				tk.mousepos.X = nx
 				tk.mousepos.Y = ny
-				msgCh <- gorltk.MsgMouseMove{MousePos: gorltk.Position{X: nx, Y: ny}, Time: time.Now()}
+				tk.msgs <- gorltk.MsgMouseMove{MousePos: gorltk.Position{X: nx, Y: ny}, Time: time.Now()}
 			}
 		}
 	})
 	tk.ir.RegisterCommand("OnClosing", func() {
-		if len(msgCh) < cap(msgCh) {
-			msgCh <- gorltk.Quit()
+		if len(tk.msgs) < cap(tk.msgs) {
+			tk.msgs <- gorltk.Quit()
 		}
 	})
 	tk.ir.Eval(`
@@ -98,25 +102,58 @@ bind .c <ButtonPress> {
 wm protocol . WM_DELETE_WINDOW OnClosing
 `)
 
-	//SolarizedPalette()
-	//settingsActions = append(settingsActions, toggleTiles)
-	//GameConfig.Tiles = true
 	return nil
 }
 
-var msgCh chan gorltk.Msg
-var intCh chan bool
-
-func init() {
-	msgCh = make(chan gorltk.Msg, 5)
-	intCh = make(chan bool)
+func getMsgKeyDown(s string) (gorltk.Msg, bool) {
+	var key gorltk.Key
+	switch s {
+	case "Down", "KP_2":
+		key = gorltk.KeyArrowDown
+	case "Left", "KP_4":
+		key = gorltk.KeyArrowLeft
+	case "Right", "KP_6":
+		key = gorltk.KeyArrowRight
+	case "Up", "KP_8":
+		key = gorltk.KeyArrowUp
+	case "BackSpace":
+		key = gorltk.KeyBackspace
+	case "Delete", "KP_7":
+		key = gorltk.KeyDelete
+	case "End", "KP_1":
+		key = gorltk.KeyEnd
+	case "KP_Enter", "Return", "KP_5":
+		key = gorltk.KeyEnter
+	case "Escape":
+		key = gorltk.KeyEscape
+	case "Home":
+		key = gorltk.KeyHome
+	case "Insert":
+		key = gorltk.KeyInsert
+	case "KP_9", "Prior":
+		key = gorltk.KeyPageUp
+	case "KP_3", "Next":
+		key = gorltk.KeyPageDown
+	case "space":
+		key = gorltk.KeySpace
+	case "Tab":
+		key = gorltk.KeyTab
+	default:
+		if utf8.RuneCountInString(s) != 1 {
+			return "", false
+		}
+		key = gorltk.Key(s)
+	}
+	return gorltk.MsgKeyDown{Key: key, Time: time.Now()}, true
 }
 
-func (tk *Driver) Interrupt() {
-	intCh <- true
-}
-
-func (tk *Driver) Close() {
+func (tk *Driver) PollMsg() (gorltk.Msg, bool) {
+	select {
+	case msg := <-tk.msgs:
+		return msg, true
+	case <-tk.interrupt:
+		return nil, false
+	}
 }
 
 type rectangle struct {
@@ -180,61 +217,16 @@ func (tk *Driver) draw(gd *gorltk.Grid, cs gorltk.Cell, x, y int) {
 	draw.Draw(tk.canvas, image.Rect(x*tk.tw, tk.th*y, (x+1)*tk.tw, (y+1)*tk.th), img, image.Point{0, 0}, draw.Over)
 }
 
+func (tk *Driver) Interrupt() {
+	tk.interrupt <- true
+}
+
+func (tk *Driver) Close() {
+	// do nothing
+}
+
 func (tk *Driver) ClearCache() {
 	for c, _ := range tk.cache {
-		//if c.Style == StyleMap {
 		delete(tk.cache, c)
-		//}
-	}
-}
-
-func getMsgKeyDown(s string) (gorltk.Msg, bool) {
-	var key gorltk.Key
-	switch s {
-	case "Down", "KP_2":
-		key = gorltk.KeyArrowDown
-	case "Left", "KP_4":
-		key = gorltk.KeyArrowLeft
-	case "Right", "KP_6":
-		key = gorltk.KeyArrowRight
-	case "Up", "KP_8":
-		key = gorltk.KeyArrowUp
-	case "BackSpace":
-		key = gorltk.KeyBackspace
-	case "Delete", "KP_7":
-		key = gorltk.KeyDelete
-	case "End", "KP_1":
-		key = gorltk.KeyEnd
-	case "KP_Enter", "Return", "KP_5":
-		key = gorltk.KeyEnter
-	case "Escape":
-		key = gorltk.KeyEscape
-	case "Home":
-		key = gorltk.KeyHome
-	case "Insert":
-		key = gorltk.KeyInsert
-	case "KP_9", "Prior":
-		key = gorltk.KeyPageUp
-	case "KP_3", "Next":
-		key = gorltk.KeyPageDown
-	case "space":
-		key = gorltk.KeySpace
-	case "Tab":
-		key = gorltk.KeyTab
-	default:
-		if utf8.RuneCountInString(s) != 1 {
-			return "", false
-		}
-		key = gorltk.Key(s)
-	}
-	return gorltk.MsgKeyDown{Key: key, Time: time.Now()}, true
-}
-
-func (tk *Driver) PollMsg() (gorltk.Msg, bool) {
-	select {
-	case msg := <-msgCh:
-		return msg, true
-	case <-intCh:
-		return nil, false
 	}
 }

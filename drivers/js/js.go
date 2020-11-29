@@ -29,9 +29,15 @@ type Driver struct {
 	th          int
 	mousepos    gorltk.Position
 	grid        *gorltk.Grid
+	msgs        chan gorltk.Msg
+	interrupt   chan bool
+	flushdone   chan bool
 }
 
 func (dr *Driver) Init() error {
+	dr.msgs = make(chan gorltk.Msg, 5)
+	dr.interrupt = make(chan bool)
+	dr.flushdone = make(chan bool)
 	canvas := js.Global().Get("document").Call("getElementById", "gamecanvas")
 	canvas.Call("addEventListener", "contextmenu", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
@@ -67,9 +73,9 @@ func (dr *Driver) Init() error {
 			if s == "Unidentified" {
 				s = code
 			}
-			if len(msgCh) < cap(msgCh) {
+			if len(dr.msgs) < cap(dr.msgs) {
 				if msg, ok := getMsgKeyDown(s, code); ok {
-					msgCh <- msg
+					dr.msgs <- msg
 				}
 			}
 			return nil
@@ -78,8 +84,8 @@ func (dr *Driver) Init() error {
 		"addEventListener", "mousedown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			e := args[0]
 			pos := dr.getMousePos(e)
-			if len(msgCh) < cap(msgCh) {
-				msgCh <- gorltk.MsgMouseDown{MousePos: pos, Button: gorltk.MouseButton(e.Get("button").Int()), Time: time.Now()}
+			if len(dr.msgs) < cap(dr.msgs) {
+				dr.msgs <- gorltk.MsgMouseDown{MousePos: pos, Button: gorltk.MouseButton(e.Get("button").Int()), Time: time.Now()}
 			}
 			return nil
 		}))
@@ -90,8 +96,8 @@ func (dr *Driver) Init() error {
 			if pos.X != dr.mousepos.X || pos.Y != dr.mousepos.Y {
 				dr.mousepos.X = pos.X
 				dr.mousepos.Y = pos.Y
-				if len(msgCh) < cap(msgCh) {
-					msgCh <- gorltk.MsgMouseMove{MousePos: pos, Time: time.Now()}
+				if len(dr.msgs) < cap(dr.msgs) {
+					dr.msgs <- gorltk.MsgMouseMove{MousePos: pos, Time: time.Now()}
 				}
 			}
 			return nil
@@ -107,60 +113,6 @@ func (dr *Driver) getMousePos(evt js.Value) gorltk.Position {
 	x := (evt.Get("clientX").Float() - rect.Get("left").Float()) * scaleX
 	y := (evt.Get("clientY").Float() - rect.Get("top").Float()) * scaleY
 	return gorltk.Position{X: (int(x) - 1) / dr.tw, Y: (int(y) - 1) / dr.th}
-}
-
-var msgCh chan gorltk.Msg
-var intCh chan bool
-var flushdone chan bool
-
-func init() {
-	msgCh = make(chan gorltk.Msg, 5)
-	intCh = make(chan bool)
-	flushdone = make(chan bool)
-}
-
-func (dr *Driver) Interrupt() {
-	intCh <- true
-}
-
-func (dr *Driver) Close() {
-	dr.grid = nil // release grid resource
-}
-
-func (dr *Driver) Flush(gd *gorltk.Grid) {
-	dr.grid = gd
-	js.Global().Get("window").Call("requestAnimationFrame",
-		js.FuncOf(func(this js.Value, args []js.Value) interface{} { dr.flushCallback(); return nil }))
-	<-flushdone
-}
-
-func (dr *Driver) flushCallback() {
-	for _, cdraw := range dr.grid.Frame().Cells {
-		cell := cdraw.Cell
-		dr.draw(cell, cdraw.Pos.X, cdraw.Pos.Y)
-	}
-	flushdone <- true
-}
-
-func (dr *Driver) draw(cell gorltk.Cell, x, y int) {
-	var canvas js.Value
-	if cv, ok := dr.cache[cell]; ok {
-		canvas = cv
-	} else {
-		canvas = js.Global().Get("document").Call("createElement", "canvas")
-		canvas.Set("width", dr.tw)
-		canvas.Set("height", dr.th)
-		ctx := canvas.Call("getContext", "2d")
-		ctx.Set("imageSmoothingEnabled", false)
-		buf := dr.TileManager.GetImage(cell).Pix // TODO: do something if image is nil?
-		ua := js.Global().Get("Uint8Array").New(js.ValueOf(len(buf)))
-		js.CopyBytesToJS(ua, buf)
-		ca := js.Global().Get("Uint8ClampedArray").New(ua)
-		imgdata := js.Global().Get("ImageData").New(ca, dr.tw, dr.th)
-		ctx.Call("putImageData", imgdata, 0, 0)
-		dr.cache[cell] = canvas
-	}
-	dr.ctx.Call("drawImage", canvas, x*dr.tw, dr.th*y)
 }
 
 func getMsgKeyDown(s, code string) (gorltk.Msg, bool) {
@@ -210,11 +162,55 @@ func getMsgKeyDown(s, code string) (gorltk.Msg, bool) {
 
 func (dr *Driver) PollMsg() (gorltk.Msg, bool) {
 	select {
-	case msg := <-msgCh:
+	case msg := <-dr.msgs:
 		return msg, true
-	case <-intCh:
+	case <-dr.interrupt:
 		return nil, false
 	}
+}
+
+func (dr *Driver) Flush(gd *gorltk.Grid) {
+	dr.grid = gd
+	js.Global().Get("window").Call("requestAnimationFrame",
+		js.FuncOf(func(this js.Value, args []js.Value) interface{} { dr.flushCallback(); return nil }))
+	<-dr.flushdone
+}
+
+func (dr *Driver) flushCallback() {
+	for _, cdraw := range dr.grid.Frame().Cells {
+		cell := cdraw.Cell
+		dr.draw(cell, cdraw.Pos.X, cdraw.Pos.Y)
+	}
+	dr.flushdone <- true
+}
+
+func (dr *Driver) draw(cell gorltk.Cell, x, y int) {
+	var canvas js.Value
+	if cv, ok := dr.cache[cell]; ok {
+		canvas = cv
+	} else {
+		canvas = js.Global().Get("document").Call("createElement", "canvas")
+		canvas.Set("width", dr.tw)
+		canvas.Set("height", dr.th)
+		ctx := canvas.Call("getContext", "2d")
+		ctx.Set("imageSmoothingEnabled", false)
+		buf := dr.TileManager.GetImage(cell).Pix // TODO: do something if image is nil?
+		ua := js.Global().Get("Uint8Array").New(js.ValueOf(len(buf)))
+		js.CopyBytesToJS(ua, buf)
+		ca := js.Global().Get("Uint8ClampedArray").New(ua)
+		imgdata := js.Global().Get("ImageData").New(ca, dr.tw, dr.th)
+		ctx.Call("putImageData", imgdata, 0, 0)
+		dr.cache[cell] = canvas
+	}
+	dr.ctx.Call("drawImage", canvas, x*dr.tw, dr.th*y)
+}
+
+func (dr *Driver) Interrupt() {
+	dr.interrupt <- true
+}
+
+func (dr *Driver) Close() {
+	dr.grid = nil // release grid resource
 }
 
 func (dr *Driver) ClearCache() {
