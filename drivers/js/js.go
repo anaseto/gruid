@@ -208,11 +208,17 @@ func getMsgKeyDown(s, code string) (gorltk.Msg, bool) {
 	return gorltk.MsgKeyDown{Key: key, Time: time.Now()}, true
 }
 
-func (tk *Driver) PollMsg() (gorltk.Msg, bool) {
+func (dr *Driver) PollMsg() (gorltk.Msg, bool) {
 	select {
 	case msg := <-msgCh:
 		return msg, true
 	case <-intCh:
 		return nil, false
+	}
+}
+
+func (dr *Driver) ClearCache() {
+	for c, _ := range dr.cache {
+		delete(dr.cache, c)
 	}
 }
