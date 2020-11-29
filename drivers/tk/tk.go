@@ -17,27 +17,32 @@ import (
 type TileManager interface {
 	// GetImage returns the image to be used for a given cell style.
 	GetImage(gorltk.Cell) *image.RGBA
+
+	// TileSize returns the (width, height) in pixels of the tiles.
+	TileSize() (int, int)
 }
 
 type Driver struct {
 	TileManager TileManager
+	Width       int // initial screen width in cells
+	Height      int // initial screen height in cells
 	ir          *gothic.Interpreter
 	cache       map[gorltk.Cell]*image.RGBA
-	Width       int
-	Height      int
-	width       int
-	height      int
+	tw          int
+	th          int
 	mousepos    gorltk.Position
 	canvas      *image.RGBA
 }
 
 func (tk *Driver) Init() error {
-	tk.canvas = image.NewRGBA(image.Rect(0, 0, tk.Width*16, tk.Height*24))
+	tk.tw, tk.th = tk.TileManager.TileSize()
+	tk.cache = make(map[gorltk.Cell]*image.RGBA)
+	tk.canvas = image.NewRGBA(image.Rect(0, 0, tk.Width*tk.tw, tk.Height*tk.th))
 	tk.ir = gothic.NewInterpreter(fmt.Sprintf(`
 wm title . "Harmonist Tk"
 wm resizable . 0 0
-set width [expr {16 * %d}]
-set height [expr {24 * %d}]
+set width [expr {%d * %d}]
+set height [expr {%d * %d}]
 wm geometry . =${width}x$height
 set can [canvas .c -width $width -height $height -background #002b36]
 grid $can -row 0 -column 0
@@ -45,8 +50,7 @@ focus $can
 image create photo gamescreen -width $width -height $height -palette 256/256/256
 image create photo bufscreen -width $width -height $height -palette 256/256/256
 $can create image 0 0 -anchor nw -image gamescreen
-`, tk.Width, tk.Height))
-	tk.initElements()
+`, tk.tw, tk.Width, tk.th, tk.Height))
 	tk.ir.RegisterCommand("GetKey", func(c, keysym string) {
 		var s string
 		if c != "" {
@@ -54,32 +58,31 @@ $can create image 0 0 -anchor nw -image gamescreen
 		} else {
 			s = keysym
 		}
-		if len(eventCh) < cap(eventCh) {
+		if len(msgCh) < cap(msgCh) {
 			if msg, ok := getMsgKeyDown(s); ok {
-				eventCh <- msg
+				msgCh <- msg
 			}
 		}
 	})
 	tk.ir.RegisterCommand("MouseDown", func(x, y, n int) {
-		if len(eventCh) < cap(eventCh) {
-			eventCh <- gorltk.MsgMouseDown{MousePos: gorltk.Position{X: (x - 1) / tk.width, Y: (y - 1) / tk.height}, Button: gorltk.MouseButton(n - 1), Time: time.Now()}
+		if len(msgCh) < cap(msgCh) {
+			msgCh <- gorltk.MsgMouseDown{MousePos: gorltk.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th}, Button: gorltk.MouseButton(n - 1), Time: time.Now()}
 		}
 	})
 	tk.ir.RegisterCommand("MouseMotion", func(x, y int) {
-		nx := (x - 1) / tk.width
-		ny := (y - 1) / tk.height
+		nx := (x - 1) / tk.tw
+		ny := (y - 1) / tk.th
 		if nx != tk.mousepos.X || ny != tk.mousepos.Y {
-			if len(eventCh) < cap(eventCh) {
+			if len(msgCh) < cap(msgCh) {
 				tk.mousepos.X = nx
 				tk.mousepos.Y = ny
-				eventCh <- gorltk.MsgMouseMove{MousePos: gorltk.Position{X: nx, Y: ny}, Time: time.Now()}
+				msgCh <- gorltk.MsgMouseMove{MousePos: gorltk.Position{X: nx, Y: ny}, Time: time.Now()}
 			}
 		}
 	})
 	tk.ir.RegisterCommand("OnClosing", func() {
-		if len(eventCh) < cap(eventCh) {
-			// TODO: make it not depend on a default string and normal mode
-			eventCh <- gorltk.MsgKeyDown{Key: "S", Time: time.Now()}
+		if len(msgCh) < cap(msgCh) {
+			msgCh <- gorltk.Quit()
 		}
 	})
 	tk.ir.Eval(`
@@ -101,19 +104,12 @@ wm protocol . WM_DELETE_WINDOW OnClosing
 	return nil
 }
 
-func (tk *Driver) initElements() error {
-	tk.width = 16
-	tk.height = 24
-	tk.cache = make(map[gorltk.Cell]*image.RGBA)
-	return nil
-}
-
-var eventCh chan gorltk.Msg
+var msgCh chan gorltk.Msg
 var intCh chan bool
 
 func init() {
-	eventCh = make(chan gorltk.Msg, 5)
-	intCh = make(chan bool, 1)
+	msgCh = make(chan gorltk.Msg, 5)
+	intCh = make(chan bool)
 }
 
 func (tk *Driver) Interrupt() {
@@ -166,11 +162,11 @@ func (tk *Driver) UpdateRectangle(xmin, ymin, xmax, ymax int) {
 		return
 	}
 	pngbuf := &bytes.Buffer{}
-	subimg := tk.canvas.SubImage(image.Rect(xmin*16, ymin*24, (xmax+1)*16, (ymax+1)*24))
+	subimg := tk.canvas.SubImage(image.Rect(xmin*tk.tw, ymin*tk.th, (xmax+1)*tk.tw, (ymax+1)*tk.th))
 	png.Encode(pngbuf, subimg)
 	png := base64.StdEncoding.EncodeToString(pngbuf.Bytes())
 	tk.ir.Eval("gamescreen put %{0%s} -format png -to %{1%d} %{2%d} %{3%d} %{4%d}", png,
-		xmin*16, ymin*24, (xmax+1)*16, (ymax+1)*24) // TODO: optimize this more
+		xmin*tk.tw, ymin*tk.th, (xmax+1)*tk.tw, (ymax+1)*tk.th)
 }
 
 func (tk *Driver) draw(gd *gorltk.Grid, cs gorltk.Cell, x, y int) {
@@ -179,9 +175,9 @@ func (tk *Driver) draw(gd *gorltk.Grid, cs gorltk.Cell, x, y int) {
 		img = im
 	} else {
 		img = tk.TileManager.GetImage(cs)
-		tk.cache[cs] = img
+		tk.cache[cs] = img // TODO: do something if image is nil?
 	}
-	draw.Draw(tk.canvas, image.Rect(x*tk.width, tk.height*y, (x+1)*tk.width, (y+1)*tk.height), img, image.Point{0, 0}, draw.Over)
+	draw.Draw(tk.canvas, image.Rect(x*tk.tw, tk.th*y, (x+1)*tk.tw, (y+1)*tk.th), img, image.Point{0, 0}, draw.Over)
 }
 
 func (tk *Driver) ClearCache() {
@@ -236,8 +232,8 @@ func getMsgKeyDown(s string) (gorltk.Msg, bool) {
 
 func (tk *Driver) PollMsg() (gorltk.Msg, bool) {
 	select {
-	case ev := <-eventCh:
-		return ev, true
+	case msg := <-msgCh:
+		return msg, true
 	case <-intCh:
 		return nil, false
 	}
