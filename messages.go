@@ -27,8 +27,8 @@ const (
 // MsgKeyDown represents a key press.
 type MsgKeyDown struct {
 	Key   Key       // name of the key in MsgKeyDown event
-	shift bool      //
 	Time  time.Time // time when the event was generated
+	shift bool      //
 }
 
 // ShiftKey indicates if the shift key was pressed when the event occured. This
