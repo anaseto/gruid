@@ -86,10 +86,7 @@ func (g *App) Start() (err error) {
 	// input messages queueing
 	go func() {
 		for {
-			msg, ok := g.driver.PollMsg()
-			if ok {
-				msgs <- msg
-			}
+			msgs <- g.driver.PollMsg()
 		}
 	}()
 
@@ -156,12 +153,8 @@ type Driver interface {
 	// Flush sends last frame grid changes to the driver.
 	Flush(*Grid)
 
-	// PollMsg waits for user input. It returns (msg, true) on user input,
-	// and (nil, false) if the waiting is terminated by calling Interrupt.
-	PollMsg() (Msg, bool)
-
-	// Interrupt terminates prematurely a PollMsg call.
-	Interrupt()
+	// PollMsg waits for user input messages.
+	PollMsg() Msg
 
 	// Close may execute needed code to finalize the screen and release
 	// resources.

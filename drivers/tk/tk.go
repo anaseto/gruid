@@ -33,12 +33,10 @@ type Driver struct {
 	mousepos    gorltk.Position
 	canvas      *image.RGBA
 	msgs        chan gorltk.Msg
-	interrupt   chan bool
 }
 
 func (tk *Driver) Init() error {
 	tk.msgs = make(chan gorltk.Msg, 5)
-	tk.interrupt = make(chan bool)
 	tk.tw, tk.th = tk.TileManager.TileSize()
 	tk.cache = make(map[gorltk.Cell]*image.RGBA)
 	tk.canvas = image.NewRGBA(image.Rect(0, 0, tk.Width*tk.tw, tk.Height*tk.th))
@@ -147,13 +145,9 @@ func getMsgKeyDown(s string) (gorltk.Msg, bool) {
 	return gorltk.MsgKeyDown{Key: key, Time: time.Now()}, true
 }
 
-func (tk *Driver) PollMsg() (gorltk.Msg, bool) {
-	select {
-	case msg := <-tk.msgs:
-		return msg, true
-	case <-tk.interrupt:
-		return nil, false
-	}
+func (tk *Driver) PollMsg() gorltk.Msg {
+	msg := <-tk.msgs
+	return msg
 }
 
 type rectangle struct {
@@ -215,10 +209,6 @@ func (tk *Driver) draw(gd *gorltk.Grid, cs gorltk.Cell, x, y int) {
 		tk.cache[cs] = img // TODO: do something if image is nil?
 	}
 	draw.Draw(tk.canvas, image.Rect(x*tk.tw, tk.th*y, (x+1)*tk.tw, (y+1)*tk.th), img, image.Point{0, 0}, draw.Over)
-}
-
-func (tk *Driver) Interrupt() {
-	tk.interrupt <- true
 }
 
 func (tk *Driver) Close() {

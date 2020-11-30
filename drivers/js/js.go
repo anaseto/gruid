@@ -30,13 +30,11 @@ type Driver struct {
 	mousepos    gorltk.Position
 	grid        *gorltk.Grid
 	msgs        chan gorltk.Msg
-	interrupt   chan bool
 	flushdone   chan bool
 }
 
 func (dr *Driver) Init() error {
 	dr.msgs = make(chan gorltk.Msg, 5)
-	dr.interrupt = make(chan bool)
 	dr.flushdone = make(chan bool)
 	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
 	canvas.Call("addEventListener", "contextmenu", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -160,13 +158,9 @@ func getMsgKeyDown(s, code string) (gorltk.Msg, bool) {
 	return gorltk.MsgKeyDown{Key: key, Time: time.Now()}, true
 }
 
-func (dr *Driver) PollMsg() (gorltk.Msg, bool) {
-	select {
-	case msg := <-dr.msgs:
-		return msg, true
-	case <-dr.interrupt:
-		return nil, false
-	}
+func (dr *Driver) PollMsg() gorltk.Msg {
+	msg := <-dr.msgs
+	return msg
 }
 
 func (dr *Driver) Flush(gd *gorltk.Grid) {
@@ -203,10 +197,6 @@ func (dr *Driver) draw(cell gorltk.Cell, x, y int) {
 		dr.cache[cell] = canvas
 	}
 	dr.ctx.Call("drawImage", canvas, x*dr.tw, dr.th*y)
-}
-
-func (dr *Driver) Interrupt() {
-	dr.interrupt <- true
 }
 
 func (dr *Driver) Close() {

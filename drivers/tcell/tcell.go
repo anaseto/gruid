@@ -47,11 +47,7 @@ func (t *Driver) Flush(gd *gorltk.Grid) {
 	t.screen.Show()
 }
 
-func (t *Driver) Interrupt() {
-	t.screen.PostEvent(tcell.NewEventInterrupt(nil))
-}
-
-func (t *Driver) PollMsg() (gorltk.Msg, bool) {
+func (t *Driver) PollMsg() gorltk.Msg {
 	for {
 		switch tev := t.screen.PollEvent().(type) {
 		case *tcell.EventKey:
@@ -90,7 +86,7 @@ func (t *Driver) PollMsg() (gorltk.Msg, bool) {
 			if tev.Rune() != 0 && ev.Key == "" {
 				ev.Key = gorltk.Key(tev.Rune())
 			}
-			return ev, true
+			return ev
 		case *tcell.EventMouse:
 			x, y := tev.Position()
 			switch tev.Buttons() {
@@ -99,32 +95,30 @@ func (t *Driver) PollMsg() (gorltk.Msg, bool) {
 				ev.Time = tev.When()
 				ev.MousePos = gorltk.Position{X: x, Y: y}
 				ev.Button = gorltk.ButtonMain
-				return ev, true
+				return ev
 			case tcell.Button3:
 				ev := gorltk.MsgMouseDown{}
 				ev.Time = tev.When()
 				ev.MousePos = gorltk.Position{X: x, Y: y}
 				ev.Button = gorltk.ButtonAuxiliary
-				return ev, true
+				return ev
 			case tcell.Button2:
 				ev := gorltk.MsgMouseDown{}
 				ev.Time = tev.When()
 				ev.MousePos = gorltk.Position{X: x, Y: y}
 				ev.Button = gorltk.ButtonSecondary
-				return ev, true
+				return ev
 			case tcell.ButtonNone:
 				ev := gorltk.MsgMouseMove{}
 				ev.Time = tev.When()
 				ev.MousePos = gorltk.Position{X: x, Y: y}
-				return ev, true
+				return ev
 			}
-		case *tcell.EventInterrupt:
-			return nil, false
 		case *tcell.EventResize:
 			ev := gorltk.MsgScreenSize{}
 			ev.Time = tev.When()
 			ev.Width, ev.Height = tev.Size()
-			return ev, true
+			return ev
 		}
 	}
 }
