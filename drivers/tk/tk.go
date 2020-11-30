@@ -51,9 +51,9 @@ wm geometry . =${width}x$height
 set can [canvas .c -width $width -height $height -background #002b36]
 grid $can -row 0 -column 0
 focus $can
-image create photo gamescreen -width $width -height $height -palette 256/256/256
+image create photo appscreen -width $width -height $height -palette 256/256/256
 image create photo bufscreen -width $width -height $height -palette 256/256/256
-$can create image 0 0 -anchor nw -image gamescreen
+$can create image 0 0 -anchor nw -image appscreen
 `, tk.tw, tk.Width, tk.th, tk.Height))
 	tk.ir.RegisterCommand("GetKey", func(c, keysym string) {
 		var s string
@@ -202,7 +202,7 @@ func (tk *Driver) UpdateRectangle(xmin, ymin, xmax, ymax int) {
 	subimg := tk.canvas.SubImage(image.Rect(xmin*tk.tw, ymin*tk.th, (xmax+1)*tk.tw, (ymax+1)*tk.th))
 	png.Encode(pngbuf, subimg)
 	png := base64.StdEncoding.EncodeToString(pngbuf.Bytes())
-	tk.ir.Eval("gamescreen put %{0%s} -format png -to %{1%d} %{2%d} %{3%d} %{4%d}", png,
+	tk.ir.Eval("appscreen put %{0%s} -format png -to %{1%d} %{2%d} %{3%d} %{4%d}", png,
 		xmin*tk.tw, ymin*tk.th, (xmax+1)*tk.tw, (ymax+1)*tk.th)
 }
 

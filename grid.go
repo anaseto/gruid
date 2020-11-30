@@ -25,7 +25,7 @@ type Cell struct {
 	Attrs AttrMask // custom styling attributes
 }
 
-// Grid represents the game grid that is used to draw to the screen.
+// Grid represents the application's grid that is used to draw to the screen.
 type Grid struct {
 	width          int
 	height         int
@@ -99,14 +99,26 @@ func (gd *Grid) Resize(w, h int) {
 	gd.cellBuffer = newBuf
 }
 
-// SetCell draws cell content and styling at a given position in the grid. It
-// is a no-op if the given position is outside the grid.
+// SetCell draws cell content and styling at a given position in the grid. If
+// the position is out of range, the function does nothing.
 func (gd *Grid) SetCell(pos Position, c Cell) {
 	i := gd.getIdx(pos)
 	if i >= len(gd.cellBuffer) || i < 0 {
 		return
 	}
 	gd.cellBuffer[i] = c
+}
+
+// GetCell returns the cell content and styling at a given position. If the
+// position is out of range, it returns de zero value. The returned cell is the
+// content as it is in the logical grid, which may be different from what is
+// currently displayed on the screen.
+func (gd *Grid) GetCell(pos Position) Cell {
+	i := gd.getIdx(pos)
+	if i >= len(gd.cellBuffer) || i < 0 {
+		return Cell{}
+	}
+	return gd.cellBuffer[i]
 }
 
 func (gd *Grid) getIdx(pos Position) int {
@@ -120,7 +132,7 @@ func (gd *Grid) getPos(i int) Position {
 // Frame returns the drawing instructions produced by last Draw call.
 //
 // This function may be used to implement new drivers. You should normally not
-// call it by hand when implementing a game.
+// call it by hand in your application code.
 func (gd *Grid) Frame() Frame {
 	return gd.frame
 }
@@ -129,7 +141,8 @@ func (gd *Grid) Frame() Frame {
 // changes are recorded, and can be retrieved later by calling Frames().
 //
 // This function is automatically called after each Draw of the Model. You
-// should normally not call it by hand when implementing a game using a Model.
+// should normally not call it by hand when implementing an application using a
+// Model.
 func (gd *Grid) Draw() {
 	if len(gd.cellBackBuffer) != len(gd.cellBuffer) {
 		gd.cellBackBuffer = make([]Cell, len(gd.cellBuffer))
@@ -152,7 +165,7 @@ func (gd *Grid) Draw() {
 
 // Frames returns a recording of frame changes as produced by successive Draw()
 // calls, if recording was enabled for the grid. The frame recording can be
-// used to watch a replay of the game.
+// used to watch a replay of the application's session.
 func (gd *Grid) Frames() []Frame {
 	return gd.frames
 }

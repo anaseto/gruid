@@ -69,7 +69,7 @@ type MsgScreenSize struct {
 	Time   time.Time // time when the event was generated
 }
 
-// Quit is a special command that signals the game to exit.
+// Quit is a special command that signals the application to exit.
 func Quit() Msg {
 	return msgQuit{}
 }

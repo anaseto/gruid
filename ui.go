@@ -1,8 +1,7 @@
-// Package gorltk provides a model for building roguelike games that use a
-// grid-like interface. The interface abstracts rendering and input for
-// different platforms. The package provides drivers for terminal apps
-// (driver/tcell), native graphical apps (driver/tk) and browser apps
-// (driver/js).
+// Package gorltk provides a model for building grid-based applications. The
+// interface abstracts rendering and input for different platforms. The package
+// provides drivers for terminal apps (driver/tcell), native graphical apps
+// (driver/tk) and browser apps (driver/js).
 //
 // The package uses an architecture of updating a model in response to messages
 // inspired from the bubbletea module for building terminal apps, which in turn
@@ -15,12 +14,12 @@ import (
 	"runtime/debug"
 )
 
-// Game is the game user interface.
-type Game struct {
+// App is the application user interface.
+type App struct {
 	// CatchPanics ensures that Close is called on the driver before ending
-	// the game Start loop. When a panic occurs, it will be recovered, the
-	// stack trace will be printed and an error will be returned. It
-	// defaults to true.
+	// the Start loop. When a panic occurs, it will be recovered, the stack
+	// trace will be printed and an error will be returned. It defaults to
+	// true.
 	CatchPanics bool
 
 	driver Driver
@@ -28,17 +27,17 @@ type Game struct {
 	grid   *Grid
 }
 
-// GameConfig contains the configuration for creating a new Game.
-type GameConfig struct {
-	Model  Model  // game state
-	Grid   *Grid  // game UI grid
+// AppConfig contains the configuration for creating a new App.
+type AppConfig struct {
+	Model  Model  // application state
+	Grid   *Grid  // application grid logical contents
 	Driver Driver // input and rendering driver
 
 }
 
-// NewGame creates a new Game.
-func NewGame(cfg GameConfig) *Game {
-	return &Game{
+// NewApp creates a new App.
+func NewApp(cfg AppConfig) *App {
+	return &App{
 		model:       cfg.Model,
 		grid:        cfg.Grid,
 		driver:      cfg.Driver,
@@ -46,8 +45,8 @@ func NewGame(cfg GameConfig) *Game {
 	}
 }
 
-// Start initializes the program and runs the main game loop.
-func (g *Game) Start() (err error) {
+// Start initializes the program and runs the application's main loop.
+func (g *App) Start() (err error) {
 	var (
 		cmds = make(chan Cmd)
 		msgs = make(chan Msg)
@@ -133,7 +132,7 @@ type Msg interface{}
 // IO operations. A nil command acts as a no-op.
 type Cmd func() Msg
 
-// Model contains the game state.
+// Model contains the application's state.
 type Model interface {
 	// Init will be called to initialize the model. It may return an
 	// initial command to perform.
@@ -149,7 +148,7 @@ type Model interface {
 	Draw(*Grid)
 }
 
-// Driver handles both user input and rendering. When creating a Game and using
+// Driver handles both user input and rendering. When creating an App and using
 // the Start main loop, you will not have to call those methods directly.
 type Driver interface {
 	Init() error

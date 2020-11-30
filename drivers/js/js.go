@@ -38,7 +38,7 @@ func (dr *Driver) Init() error {
 	dr.msgs = make(chan gorltk.Msg, 5)
 	dr.interrupt = make(chan bool)
 	dr.flushdone = make(chan bool)
-	canvas := js.Global().Get("document").Call("getElementById", "gamecanvas")
+	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
 	canvas.Call("addEventListener", "contextmenu", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
@@ -52,7 +52,7 @@ func (dr *Driver) Init() error {
 	canvas.Set("width", dr.tw*dr.Width)
 	dr.cache = make(map[gorltk.Cell]js.Value)
 
-	gamediv := js.Global().Get("document").Call("getElementById", "gamediv")
+	appdiv := js.Global().Get("document").Call("getElementById", "appdiv")
 	js.Global().Get("document").Call(
 		"addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			e := args[0]
@@ -65,7 +65,7 @@ func (dr *Driver) Init() error {
 			if s == "F11" {
 				screenfull := js.Global().Get("screenfull")
 				if screenfull.Truthy() && screenfull.Get("enabled").Bool() {
-					screenfull.Call("toggle", gamediv)
+					screenfull.Call("toggle", appdiv)
 				}
 				return nil
 			}
@@ -106,7 +106,7 @@ func (dr *Driver) Init() error {
 }
 
 func (dr *Driver) getMousePos(evt js.Value) gorltk.Position {
-	canvas := js.Global().Get("document").Call("getElementById", "gamecanvas")
+	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
 	rect := canvas.Call("getBoundingClientRect")
 	scaleX := canvas.Get("width").Float() / rect.Get("width").Float()
 	scaleY := canvas.Get("height").Float() / rect.Get("height").Float()
