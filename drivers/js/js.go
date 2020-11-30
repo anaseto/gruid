@@ -7,12 +7,12 @@ import (
 
 	"syscall/js"
 
-	"github.com/anaseto/gorltk"
+	"github.com/anaseto/gruid"
 )
 
 type TileManager interface {
 	// GetImage returns the image to be used for a given cell style.
-	GetImage(gorltk.Cell) *image.RGBA
+	GetImage(gruid.Cell) *image.RGBA
 
 	// TileSize returns the (width, height) in pixels of the tiles.
 	TileSize() (int, int)
@@ -24,17 +24,17 @@ type Driver struct {
 	Height      int // initial screen height in celles
 	display     js.Value
 	ctx         js.Value
-	cache       map[gorltk.Cell]js.Value
+	cache       map[gruid.Cell]js.Value
 	tw          int
 	th          int
-	mousepos    gorltk.Position
-	grid        *gorltk.Grid
-	msgs        chan gorltk.Msg
+	mousepos    gruid.Position
+	grid        *gruid.Grid
+	msgs        chan gruid.Msg
 	flushdone   chan bool
 }
 
 func (dr *Driver) Init() error {
-	dr.msgs = make(chan gorltk.Msg, 5)
+	dr.msgs = make(chan gruid.Msg, 5)
 	dr.flushdone = make(chan bool)
 	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
 	canvas.Call("addEventListener", "contextmenu", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -48,7 +48,7 @@ func (dr *Driver) Init() error {
 	dr.tw, dr.th = dr.TileManager.TileSize()
 	canvas.Set("height", dr.th*dr.Height)
 	canvas.Set("width", dr.tw*dr.Width)
-	dr.cache = make(map[gorltk.Cell]js.Value)
+	dr.cache = make(map[gruid.Cell]js.Value)
 
 	appdiv := js.Global().Get("document").Call("getElementById", "appdiv")
 	js.Global().Get("document").Call(
@@ -83,7 +83,7 @@ func (dr *Driver) Init() error {
 			e := args[0]
 			pos := dr.getMousePos(e)
 			if len(dr.msgs) < cap(dr.msgs) {
-				dr.msgs <- gorltk.MsgMouseDown{MousePos: pos, Button: gorltk.MouseButton(e.Get("button").Int()), Time: time.Now()}
+				dr.msgs <- gruid.MsgMouseDown{MousePos: pos, Button: gruid.MouseButton(e.Get("button").Int()), Time: time.Now()}
 			}
 			return nil
 		}))
@@ -95,7 +95,7 @@ func (dr *Driver) Init() error {
 				dr.mousepos.X = pos.X
 				dr.mousepos.Y = pos.Y
 				if len(dr.msgs) < cap(dr.msgs) {
-					dr.msgs <- gorltk.MsgMouseMove{MousePos: pos, Time: time.Now()}
+					dr.msgs <- gruid.MsgMouseMove{MousePos: pos, Time: time.Now()}
 				}
 			}
 			return nil
@@ -103,67 +103,67 @@ func (dr *Driver) Init() error {
 	return nil
 }
 
-func (dr *Driver) getMousePos(evt js.Value) gorltk.Position {
+func (dr *Driver) getMousePos(evt js.Value) gruid.Position {
 	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
 	rect := canvas.Call("getBoundingClientRect")
 	scaleX := canvas.Get("width").Float() / rect.Get("width").Float()
 	scaleY := canvas.Get("height").Float() / rect.Get("height").Float()
 	x := (evt.Get("clientX").Float() - rect.Get("left").Float()) * scaleX
 	y := (evt.Get("clientY").Float() - rect.Get("top").Float()) * scaleY
-	return gorltk.Position{X: (int(x) - 1) / dr.tw, Y: (int(y) - 1) / dr.th}
+	return gruid.Position{X: (int(x) - 1) / dr.tw, Y: (int(y) - 1) / dr.th}
 }
 
-func getMsgKeyDown(s, code string) (gorltk.Msg, bool) {
+func getMsgKeyDown(s, code string) (gruid.Msg, bool) {
 	if code == "Numpad5" && s != "5" {
 		s = "Enter"
 	}
-	var key gorltk.Key
+	var key gruid.Key
 	switch s {
 	case "ArrowDown":
-		key = gorltk.KeyArrowDown
+		key = gruid.KeyArrowDown
 	case "ArrowLeft":
-		key = gorltk.KeyArrowLeft
+		key = gruid.KeyArrowLeft
 	case "ArrowRight":
-		key = gorltk.KeyArrowRight
+		key = gruid.KeyArrowRight
 	case "ArrowUp":
-		key = gorltk.KeyArrowUp
+		key = gruid.KeyArrowUp
 	case "BackSpace":
-		key = gorltk.KeyBackspace
+		key = gruid.KeyBackspace
 	case "Delete":
-		key = gorltk.KeyDelete
+		key = gruid.KeyDelete
 	case "End":
-		key = gorltk.KeyEnd
+		key = gruid.KeyEnd
 	case "Enter":
-		key = gorltk.KeyEnter
+		key = gruid.KeyEnter
 	case "Escape":
-		key = gorltk.KeyEscape
+		key = gruid.KeyEscape
 	case "Home":
-		key = gorltk.KeyHome
+		key = gruid.KeyHome
 	case "Insert":
-		key = gorltk.KeyInsert
+		key = gruid.KeyInsert
 	case "PageUp":
-		key = gorltk.KeyPageUp
+		key = gruid.KeyPageUp
 	case "PageDown":
-		key = gorltk.KeyPageDown
+		key = gruid.KeyPageDown
 	case " ":
-		key = gorltk.KeySpace
+		key = gruid.KeySpace
 	case "Tab":
-		key = gorltk.KeyTab
+		key = gruid.KeyTab
 	default:
 		if utf8.RuneCountInString(s) != 1 {
 			return "", false
 		}
-		key = gorltk.Key(s)
+		key = gruid.Key(s)
 	}
-	return gorltk.MsgKeyDown{Key: key, Time: time.Now()}, true
+	return gruid.MsgKeyDown{Key: key, Time: time.Now()}, true
 }
 
-func (dr *Driver) PollMsg() gorltk.Msg {
+func (dr *Driver) PollMsg() gruid.Msg {
 	msg := <-dr.msgs
 	return msg
 }
 
-func (dr *Driver) Flush(gd *gorltk.Grid) {
+func (dr *Driver) Flush(gd *gruid.Grid) {
 	dr.grid = gd
 	js.Global().Get("window").Call("requestAnimationFrame",
 		js.FuncOf(func(this js.Value, args []js.Value) interface{} { dr.flushCallback(); return nil }))
@@ -178,7 +178,7 @@ func (dr *Driver) flushCallback() {
 	dr.flushdone <- true
 }
 
-func (dr *Driver) draw(cell gorltk.Cell, x, y int) {
+func (dr *Driver) draw(cell gruid.Cell, x, y int) {
 	var canvas js.Value
 	if cv, ok := dr.cache[cell]; ok {
 		canvas = cv

@@ -1,4 +1,4 @@
-package gorltk
+package gruid
 
 import "time"
 

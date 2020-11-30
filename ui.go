@@ -1,4 +1,4 @@
-// Package gorltk provides a model for building grid-based applications. The
+// Package gruid provides a model for building grid-based applications. The
 // interface abstracts rendering and input for different platforms. The package
 // provides drivers for terminal apps (driver/tcell), native graphical apps
 // (driver/tk) and browser apps (driver/js).
@@ -6,7 +6,7 @@
 // The package uses an architecture of updating a model in response to messages
 // inspired from the bubbletea module for building terminal apps, which in turn
 // is based on the Elm Architecture.
-package gorltk
+package gruid
 
 import (
 	"fmt"

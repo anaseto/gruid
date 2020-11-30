@@ -3,18 +3,18 @@ package models
 import (
 	"time"
 
-	"github.com/anaseto/gorltk"
+	"github.com/anaseto/gruid"
 )
 
 // NewReplay returns a Model that runs a replay of an application's session with
 // the given recorded frames.
-func NewReplay(frames []gorltk.Frame) gorltk.Model {
+func NewReplay(frames []gruid.Frame) gruid.Model {
 	return &replay{Frames: frames}
 }
 
 type replay struct {
-	Frames []gorltk.Frame
-	undo   [][]gorltk.FrameCell
+	Frames []gruid.Frame
+	undo   [][]gruid.FrameCell
 	fidx   int // frame index
 	auto   bool
 	speed  time.Duration
@@ -35,42 +35,42 @@ const (
 
 type msgTick int // frame number
 
-func (rep *replay) Init() gorltk.Cmd {
+func (rep *replay) Init() gruid.Cmd {
 	rep.auto = true
 	rep.speed = 1 // default to real time speed
-	rep.undo = [][]gorltk.FrameCell{}
+	rep.undo = [][]gruid.FrameCell{}
 	return rep.tick()
 }
 
-func (rep *replay) Update(msg gorltk.Msg) gorltk.Cmd {
+func (rep *replay) Update(msg gruid.Msg) gruid.Cmd {
 	rep.action = replayNone
 	switch msg := msg.(type) {
-	case gorltk.MsgKeyDown:
+	case gruid.MsgKeyDown:
 		switch msg.Key {
-		case "Q", "q", gorltk.KeyEscape:
+		case "Q", "q", gruid.KeyEscape:
 			rep.action = replayQuit
-		case "p", "P", gorltk.KeySpace:
+		case "p", "P", gruid.KeySpace:
 			rep.action = replayTogglePause
 		case "+", ">":
 			rep.action = replaySpeedMore
 		case "-", "<":
 			rep.action = replaySpeedLess
-		case gorltk.KeyArrowRight, gorltk.KeyArrowDown, gorltk.KeyEnter, "j", "n", "f":
+		case gruid.KeyArrowRight, gruid.KeyArrowDown, gruid.KeyEnter, "j", "n", "f":
 			rep.action = replayNext
 			rep.auto = false
-		case gorltk.KeyArrowLeft, gorltk.KeyArrowUp, gorltk.KeyBackspace, "k", "N", "b":
+		case gruid.KeyArrowLeft, gruid.KeyArrowUp, gruid.KeyBackspace, "k", "N", "b":
 			rep.action = replayPrevious
 			rep.auto = false
 		}
-	case gorltk.MsgMouseDown:
+	case gruid.MsgMouseDown:
 		switch msg.Button {
-		case gorltk.ButtonMain:
+		case gruid.ButtonMain:
 			rep.action = replayTogglePause
-		case gorltk.ButtonAuxiliary:
+		case gruid.ButtonAuxiliary:
 			rep.action = replayNext
 			rep.action = replayTogglePause
 			rep.auto = false
-		case gorltk.ButtonSecondary:
+		case gruid.ButtonSecondary:
 			rep.action = replayPrevious
 			rep.auto = false
 		}
@@ -97,7 +97,7 @@ func (rep *replay) Update(msg gorltk.Msg) gorltk.Cmd {
 		}
 		rep.fidx--
 	case replayQuit:
-		return gorltk.Quit
+		return gruid.Quit
 	case replayTogglePause:
 		rep.auto = !rep.auto
 	case replaySpeedMore:
@@ -117,11 +117,11 @@ func (rep *replay) Update(msg gorltk.Msg) gorltk.Cmd {
 	return rep.tick()
 }
 
-func (rep *replay) Draw(gd *gorltk.Grid) {
+func (rep *replay) Draw(gd *gruid.Grid) {
 	switch rep.action {
 	case replayNext:
 		frame := rep.Frames[rep.fidx-1]
-		rep.undo = append(rep.undo, []gorltk.FrameCell{})
+		rep.undo = append(rep.undo, []gruid.FrameCell{})
 		j := len(rep.undo) - 1
 		w, h := gd.Size()
 		if frame.Width > w || frame.Height > h {
@@ -129,7 +129,7 @@ func (rep *replay) Draw(gd *gorltk.Grid) {
 		}
 		for _, fc := range frame.Cells {
 			c := gd.GetCell(fc.Pos)
-			rep.undo[j] = append(rep.undo[j], gorltk.FrameCell{Cell: c, Pos: fc.Pos})
+			rep.undo[j] = append(rep.undo[j], gruid.FrameCell{Cell: c, Pos: fc.Pos})
 			gd.SetCell(fc.Pos, fc.Cell)
 		}
 	case replayPrevious:
@@ -141,7 +141,7 @@ func (rep *replay) Draw(gd *gorltk.Grid) {
 	}
 }
 
-func (rep *replay) tick() gorltk.Cmd {
+func (rep *replay) tick() gruid.Cmd {
 	var d time.Duration
 	if rep.fidx > 0 {
 		d = rep.Frames[rep.fidx].Time.Sub(rep.Frames[rep.fidx-1].Time)
@@ -156,7 +156,7 @@ func (rep *replay) tick() gorltk.Cmd {
 		d = 5 * time.Millisecond
 	}
 	n := rep.fidx
-	return func() gorltk.Msg {
+	return func() gruid.Msg {
 		t := time.NewTimer(d)
 		<-t.C
 		return msgTick(n)

@@ -1,14 +1,14 @@
 package tcell
 
 import (
-	"github.com/anaseto/gorltk"
+	"github.com/anaseto/gruid"
 	"github.com/gdamore/tcell/v2"
 )
 
 type StyleManager interface {
 	// GetAttributes returns a mask of text attributes for a given cell
 	// style.
-	GetStyle(gorltk.Cell) tcell.Style
+	GetStyle(gruid.Cell) tcell.Style
 }
 
 type Driver struct {
@@ -37,7 +37,7 @@ func (t *Driver) Close() {
 	t.screen.Fini()
 }
 
-func (t *Driver) Flush(gd *gorltk.Grid) {
+func (t *Driver) Flush(gd *gruid.Grid) {
 	for _, cdraw := range gd.Frame().Cells {
 		c := cdraw.Cell
 		st := t.StyleManager.GetStyle(c)
@@ -47,75 +47,75 @@ func (t *Driver) Flush(gd *gorltk.Grid) {
 	t.screen.Show()
 }
 
-func (t *Driver) PollMsg() gorltk.Msg {
+func (t *Driver) PollMsg() gruid.Msg {
 	for {
 		switch tev := t.screen.PollEvent().(type) {
 		case *tcell.EventKey:
-			ev := gorltk.MsgKeyDown{}
+			ev := gruid.MsgKeyDown{}
 			ev.Time = tev.When()
 			switch tev.Key() {
 			case tcell.KeyDown:
-				ev.Key = gorltk.KeyArrowDown
+				ev.Key = gruid.KeyArrowDown
 			case tcell.KeyLeft:
-				ev.Key = gorltk.KeyArrowLeft
+				ev.Key = gruid.KeyArrowLeft
 			case tcell.KeyRight:
-				ev.Key = gorltk.KeyArrowRight
+				ev.Key = gruid.KeyArrowRight
 			case tcell.KeyUp:
-				ev.Key = gorltk.KeyArrowUp
+				ev.Key = gruid.KeyArrowUp
 			case tcell.KeyBackspace:
-				ev.Key = gorltk.KeyBackspace
+				ev.Key = gruid.KeyBackspace
 			case tcell.KeyDelete:
-				ev.Key = gorltk.KeyDelete
+				ev.Key = gruid.KeyDelete
 			case tcell.KeyEnd:
-				ev.Key = gorltk.KeyEnd
+				ev.Key = gruid.KeyEnd
 			case tcell.KeyEscape:
-				ev.Key = gorltk.KeyEscape
+				ev.Key = gruid.KeyEscape
 			case tcell.KeyEnter:
-				ev.Key = gorltk.KeyEnter
+				ev.Key = gruid.KeyEnter
 			case tcell.KeyHome:
-				ev.Key = gorltk.KeyHome
+				ev.Key = gruid.KeyHome
 			case tcell.KeyInsert:
-				ev.Key = gorltk.KeyInsert
+				ev.Key = gruid.KeyInsert
 			case tcell.KeyPgUp:
-				ev.Key = gorltk.KeyPageUp
+				ev.Key = gruid.KeyPageUp
 			case tcell.KeyPgDn:
-				ev.Key = gorltk.KeyPageDown
+				ev.Key = gruid.KeyPageDown
 			case tcell.KeyTab:
-				ev.Key = gorltk.KeyTab
+				ev.Key = gruid.KeyTab
 			}
 			if tev.Rune() != 0 && ev.Key == "" {
-				ev.Key = gorltk.Key(tev.Rune())
+				ev.Key = gruid.Key(tev.Rune())
 			}
 			return ev
 		case *tcell.EventMouse:
 			x, y := tev.Position()
 			switch tev.Buttons() {
 			case tcell.Button1:
-				ev := gorltk.MsgMouseDown{}
+				ev := gruid.MsgMouseDown{}
 				ev.Time = tev.When()
-				ev.MousePos = gorltk.Position{X: x, Y: y}
-				ev.Button = gorltk.ButtonMain
+				ev.MousePos = gruid.Position{X: x, Y: y}
+				ev.Button = gruid.ButtonMain
 				return ev
 			case tcell.Button3:
-				ev := gorltk.MsgMouseDown{}
+				ev := gruid.MsgMouseDown{}
 				ev.Time = tev.When()
-				ev.MousePos = gorltk.Position{X: x, Y: y}
-				ev.Button = gorltk.ButtonAuxiliary
+				ev.MousePos = gruid.Position{X: x, Y: y}
+				ev.Button = gruid.ButtonAuxiliary
 				return ev
 			case tcell.Button2:
-				ev := gorltk.MsgMouseDown{}
+				ev := gruid.MsgMouseDown{}
 				ev.Time = tev.When()
-				ev.MousePos = gorltk.Position{X: x, Y: y}
-				ev.Button = gorltk.ButtonSecondary
+				ev.MousePos = gruid.Position{X: x, Y: y}
+				ev.Button = gruid.ButtonSecondary
 				return ev
 			case tcell.ButtonNone:
-				ev := gorltk.MsgMouseMove{}
+				ev := gruid.MsgMouseMove{}
 				ev.Time = tev.When()
-				ev.MousePos = gorltk.Position{X: x, Y: y}
+				ev.MousePos = gruid.Position{X: x, Y: y}
 				return ev
 			}
 		case *tcell.EventResize:
-			ev := gorltk.MsgScreenSize{}
+			ev := gruid.MsgScreenSize{}
 			ev.Time = tev.When()
 			ev.Width, ev.Height = tev.Size()
 			return ev

@@ -10,13 +10,13 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/anaseto/gorltk"
+	"github.com/anaseto/gruid"
 	"github.com/nsf/gothic"
 )
 
 type TileManager interface {
 	// GetImage returns the image to be used for a given cell style.
-	GetImage(gorltk.Cell) *image.RGBA
+	GetImage(gruid.Cell) *image.RGBA
 
 	// TileSize returns the (width, height) in pixels of the tiles.
 	TileSize() (int, int)
@@ -27,21 +27,21 @@ type Driver struct {
 	Width       int // initial screen width in cells
 	Height      int // initial screen height in cells
 	ir          *gothic.Interpreter
-	cache       map[gorltk.Cell]*image.RGBA
+	cache       map[gruid.Cell]*image.RGBA
 	tw          int
 	th          int
-	mousepos    gorltk.Position
+	mousepos    gruid.Position
 	canvas      *image.RGBA
-	msgs        chan gorltk.Msg
+	msgs        chan gruid.Msg
 }
 
 func (tk *Driver) Init() error {
-	tk.msgs = make(chan gorltk.Msg, 5)
+	tk.msgs = make(chan gruid.Msg, 5)
 	tk.tw, tk.th = tk.TileManager.TileSize()
-	tk.cache = make(map[gorltk.Cell]*image.RGBA)
+	tk.cache = make(map[gruid.Cell]*image.RGBA)
 	tk.canvas = image.NewRGBA(image.Rect(0, 0, tk.Width*tk.tw, tk.Height*tk.th))
 	tk.ir = gothic.NewInterpreter(fmt.Sprintf(`
-wm title . "gorltk Tk"
+wm title . "gruid Tk"
 wm resizable . 0 0
 set width [expr {%d * %d}]
 set height [expr {%d * %d}]
@@ -68,7 +68,7 @@ $can create image 0 0 -anchor nw -image appscreen
 	})
 	tk.ir.RegisterCommand("MouseDown", func(x, y, n int) {
 		if len(tk.msgs) < cap(tk.msgs) {
-			tk.msgs <- gorltk.MsgMouseDown{MousePos: gorltk.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th}, Button: gorltk.MouseButton(n - 1), Time: time.Now()}
+			tk.msgs <- gruid.MsgMouseDown{MousePos: gruid.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th}, Button: gruid.MouseButton(n - 1), Time: time.Now()}
 		}
 	})
 	tk.ir.RegisterCommand("MouseMotion", func(x, y int) {
@@ -78,13 +78,13 @@ $can create image 0 0 -anchor nw -image appscreen
 			if len(tk.msgs) < cap(tk.msgs) {
 				tk.mousepos.X = nx
 				tk.mousepos.Y = ny
-				tk.msgs <- gorltk.MsgMouseMove{MousePos: gorltk.Position{X: nx, Y: ny}, Time: time.Now()}
+				tk.msgs <- gruid.MsgMouseMove{MousePos: gruid.Position{X: nx, Y: ny}, Time: time.Now()}
 			}
 		}
 	})
 	tk.ir.RegisterCommand("OnClosing", func() {
 		if len(tk.msgs) < cap(tk.msgs) {
-			tk.msgs <- gorltk.Quit()
+			tk.msgs <- gruid.Quit()
 		}
 	})
 	tk.ir.Eval(`
@@ -103,49 +103,49 @@ wm protocol . WM_DELETE_WINDOW OnClosing
 	return nil
 }
 
-func getMsgKeyDown(s string) (gorltk.Msg, bool) {
-	var key gorltk.Key
+func getMsgKeyDown(s string) (gruid.Msg, bool) {
+	var key gruid.Key
 	switch s {
 	case "Down", "KP_2":
-		key = gorltk.KeyArrowDown
+		key = gruid.KeyArrowDown
 	case "Left", "KP_4":
-		key = gorltk.KeyArrowLeft
+		key = gruid.KeyArrowLeft
 	case "Right", "KP_6":
-		key = gorltk.KeyArrowRight
+		key = gruid.KeyArrowRight
 	case "Up", "KP_8":
-		key = gorltk.KeyArrowUp
+		key = gruid.KeyArrowUp
 	case "BackSpace":
-		key = gorltk.KeyBackspace
+		key = gruid.KeyBackspace
 	case "Delete", "KP_7":
-		key = gorltk.KeyDelete
+		key = gruid.KeyDelete
 	case "End", "KP_1":
-		key = gorltk.KeyEnd
+		key = gruid.KeyEnd
 	case "KP_Enter", "Return", "KP_5":
-		key = gorltk.KeyEnter
+		key = gruid.KeyEnter
 	case "Escape":
-		key = gorltk.KeyEscape
+		key = gruid.KeyEscape
 	case "Home":
-		key = gorltk.KeyHome
+		key = gruid.KeyHome
 	case "Insert":
-		key = gorltk.KeyInsert
+		key = gruid.KeyInsert
 	case "KP_9", "Prior":
-		key = gorltk.KeyPageUp
+		key = gruid.KeyPageUp
 	case "KP_3", "Next":
-		key = gorltk.KeyPageDown
+		key = gruid.KeyPageDown
 	case "space":
-		key = gorltk.KeySpace
+		key = gruid.KeySpace
 	case "Tab":
-		key = gorltk.KeyTab
+		key = gruid.KeyTab
 	default:
 		if utf8.RuneCountInString(s) != 1 {
 			return "", false
 		}
-		key = gorltk.Key(s)
+		key = gruid.Key(s)
 	}
-	return gorltk.MsgKeyDown{Key: key, Time: time.Now()}, true
+	return gruid.MsgKeyDown{Key: key, Time: time.Now()}, true
 }
 
-func (tk *Driver) PollMsg() gorltk.Msg {
+func (tk *Driver) PollMsg() gruid.Msg {
 	msg := <-tk.msgs
 	return msg
 }
@@ -154,7 +154,7 @@ type rectangle struct {
 	xmin, xmax, ymin, ymax int
 }
 
-func (tk *Driver) Flush(gd *gorltk.Grid) {
+func (tk *Driver) Flush(gd *gruid.Grid) {
 	w, h := gd.Size()
 	rects := []rectangle{}
 	r := rectangle{w - 1, 0, h - 1, 0}
@@ -200,7 +200,7 @@ func (tk *Driver) UpdateRectangle(xmin, ymin, xmax, ymax int) {
 		xmin*tk.tw, ymin*tk.th, (xmax+1)*tk.tw, (ymax+1)*tk.th)
 }
 
-func (tk *Driver) draw(gd *gorltk.Grid, cs gorltk.Cell, x, y int) {
+func (tk *Driver) draw(gd *gruid.Grid, cs gruid.Cell, x, y int) {
 	var img *image.RGBA
 	if im, ok := tk.cache[cs]; ok {
 		img = im

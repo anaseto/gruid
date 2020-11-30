@@ -1,4 +1,4 @@
-package gorltk
+package gruid
 
 func abs(x int) int {
 	if x < 0 {
