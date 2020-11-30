@@ -69,6 +69,10 @@ func (g *App) Start() (err error) {
 				g.driver.Close()
 			}
 		}()
+	} else {
+		defer func() {
+			g.driver.Close()
+		}()
 	}
 
 	// model initialization
