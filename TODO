@@ -9,3 +9,4 @@ add game events queue package ?
 add animation utilities package ?
 add map generation utilities package ?
 compress replay frames?
+send MsgScreenSize at start and on resize (when sensible)
