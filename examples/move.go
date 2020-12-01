@@ -7,12 +7,12 @@ import (
 )
 
 func main() {
-	var dodo = gruid.NewGrid(gruid.GridConfig{})
+	var gd = gruid.NewGrid(gruid.GridConfig{})
 	st := styler{}
-	var dododri = &tcell.Driver{StyleManager: st}
-	m := &model{grid: dodo}
+	var dri = &tcell.Driver{StyleManager: st}
+	m := &model{grid: gd}
 	app := gruid.NewApp(gruid.AppConfig{
-		Driver: dododri,
+		Driver: dri,
 		Model:  m,
 	})
 	app.Start()
