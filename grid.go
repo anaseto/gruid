@@ -176,6 +176,7 @@ func (gd Grid) Resize(w, h int) Grid {
 			}
 		}
 		gd.ug.cellBuffer = newBuf
+		gd.ug.cellBackBuffer = make([]Cell, len(gd.ug.cellBuffer))
 	}
 	return gd
 }
@@ -238,9 +239,9 @@ func (gd Grid) Frame() Frame {
 // This function is automatically called after each Draw of the Model. You
 // should normally not call it by hand when implementing an application using a
 // Model. It is provided just in case you want to use a grid without an
-// application.
+// application and a model.
 func (gd Grid) ComputeFrame() Grid {
-	// TODO: unexport?
+	// XXX: unexport?
 	if len(gd.ug.cellBackBuffer) != len(gd.ug.cellBuffer) {
 		gd.ug.cellBackBuffer = make([]Cell, len(gd.ug.cellBuffer))
 	}
