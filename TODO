@@ -1,0 +1,11 @@
+add MouseWheelUp and MouseWheelDown
+add MouseRelease?
+add text markup model
+add menu choice model
+add box/label/simple pager model
+add sdl driver
+add paths package with dijkstra, astar
+add game events queue package ?
+add animation utilities package ?
+add map generation utilities package ?
+compress replay frames?

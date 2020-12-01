@@ -138,9 +138,9 @@ func (gd Grid) Slice(rg Range) Grid {
 	return Grid{ug: gd.ug, rg: rg}
 }
 
-// Size returns the (width, height) of the grid in cells.
+// Size returns the (width, height) parts of the grid range.
 func (gd Grid) Size() (int, int) {
-	return gd.ug.width, gd.ug.height
+	return gd.rg.Width, gd.rg.Height
 }
 
 // Resize is similar to Slice, but it only specifies new dimensions, and if the
@@ -211,6 +211,17 @@ func (gd Grid) GetCell(pos Position) Cell {
 		return Cell{}
 	}
 	return gd.ug.cellBuffer[i]
+}
+
+// Iter calls a given function for all the positions of the grid.
+func (gd Grid) Iter(fn func(Position)) {
+	xmax, ymax := gd.Size()
+	for y := 0; y < ymax; y++ {
+		for x := 0; x < xmax; x++ {
+			pos := Position{X: x, Y: y}
+			fn(pos)
+		}
+	}
 }
 
 // getIdx returns the buffer index of a relative position.
