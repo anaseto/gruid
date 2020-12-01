@@ -182,7 +182,4 @@ type Driver interface {
 	// Close may execute needed code to finalize the screen and release
 	// resources.
 	Close()
-
-	// ClearCache clears the cache from cell styles to tiles, if any.
-	ClearCache()
 }

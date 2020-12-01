@@ -122,7 +122,3 @@ func (t *Driver) PollMsg() gruid.Msg {
 		}
 	}
 }
-
-func (t *Driver) ClearCache() {
-	// no special cache
-}
