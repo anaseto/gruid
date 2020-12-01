@@ -231,8 +231,9 @@ func (gd Grid) Frame() Frame {
 	return gd.ug.frame
 }
 
-// Draw computes next frame changes. If recording is activated the frame
-// changes are recorded, and can be retrieved later by calling Frames().
+// Draw computes next frame changes which can be retrieved by calling Frame().
+// If recording is activated the frame changes are recorded, and can be
+// retrieved later by calling Frames().
 //
 // This function is automatically called after each Draw of the Model. You
 // should normally not call it by hand when implementing an application using a
