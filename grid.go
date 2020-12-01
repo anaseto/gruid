@@ -98,10 +98,10 @@ type FrameCell struct {
 func NewGrid(cfg GridConfig) Grid {
 	gd := Grid{}
 	gd.ug = &grid{}
-	if cfg.Height <= 1 {
+	if cfg.Height < 1 {
 		cfg.Height = 24
 	}
-	if cfg.Width <= 1 {
+	if cfg.Width < 1 {
 		cfg.Width = 80
 	}
 	gd = gd.Resize(cfg.Width, cfg.Height)
