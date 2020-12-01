@@ -1,3 +1,6 @@
+// The package models defines some basic UI elements as gruid models. They can
+// be used either as the main model for an application, or used inside Update
+// and Draw of the main model.
 package models
 
 import (
@@ -8,12 +11,25 @@ import (
 
 // NewReplay returns a Model that runs a replay of an application's session with
 // the given recorded frames.
-func NewReplay(frames []gruid.Frame) gruid.Model {
-	return &replay{Frames: frames}
+func NewReplay(cfg ReplayConfig) *Replay {
+	return &Replay{
+		gd:     cfg.Grid,
+		frames: cfg.Frames,
+		auto:   true,
+		speed:  1,
+		undo:   [][]gruid.FrameCell{},
+	}
 }
 
-type replay struct {
-	Frames []gruid.Frame
+// ReplayConfig contains replay configuration.
+type ReplayConfig struct {
+	Grid   gruid.Grid    // grid to use for drawing
+	Frames []gruid.Frame // recorded frames to replay
+}
+
+type Replay struct {
+	frames []gruid.Frame
+	gd     gruid.Grid
 	undo   [][]gruid.FrameCell
 	fidx   int // frame index
 	auto   bool
@@ -35,14 +51,14 @@ const (
 
 type msgTick int // frame number
 
-func (rep *replay) Init() gruid.Cmd {
-	rep.auto = true
-	rep.speed = 1 // default to real time speed
-	rep.undo = [][]gruid.FrameCell{}
+// Init implements Model.Init for Replay. It returns a timer command for
+// starting automatic replay.
+func (rep *Replay) Init() gruid.Cmd {
 	return rep.tick()
 }
 
-func (rep *replay) Update(msg gruid.Msg) gruid.Cmd {
+// Update implements Model.Update for Replay.
+func (rep *Replay) Update(msg gruid.Msg) gruid.Cmd {
 	rep.action = replayNone
 	switch msg := msg.(type) {
 	case gruid.MsgKeyDown:
@@ -81,7 +97,7 @@ func (rep *replay) Update(msg gruid.Msg) gruid.Cmd {
 	}
 	switch rep.action {
 	case replayNext:
-		if rep.fidx >= len(rep.Frames) {
+		if rep.fidx >= len(rep.frames) {
 			rep.action = replayNone
 			break
 		} else if rep.fidx < 0 {
@@ -92,8 +108,8 @@ func (rep *replay) Update(msg gruid.Msg) gruid.Cmd {
 		if rep.fidx <= 1 {
 			rep.action = replayNone
 			break
-		} else if rep.fidx >= len(rep.Frames) {
-			rep.fidx = len(rep.Frames)
+		} else if rep.fidx >= len(rep.frames) {
+			rep.fidx = len(rep.frames)
 		}
 		rep.fidx--
 	case replayQuit:
@@ -111,40 +127,42 @@ func (rep *replay) Update(msg gruid.Msg) gruid.Cmd {
 			rep.speed = 1
 		}
 	}
-	if !rep.auto || rep.fidx > len(rep.Frames)-1 || rep.fidx < 0 || rep.action == replayNone {
+	if !rep.auto || rep.fidx > len(rep.frames)-1 || rep.fidx < 0 || rep.action == replayNone {
 		return nil
 	}
 	return rep.tick()
 }
 
-func (rep *replay) Draw(gd *gruid.Grid) {
+// Draw implements Model.Draw for Replay.
+func (rep *Replay) Draw() gruid.Grid {
 	switch rep.action {
 	case replayNext:
-		frame := rep.Frames[rep.fidx-1]
+		frame := rep.frames[rep.fidx-1]
 		rep.undo = append(rep.undo, []gruid.FrameCell{})
 		j := len(rep.undo) - 1
-		w, h := gd.Size()
+		w, h := rep.gd.Size()
 		if frame.Width > w || frame.Height > h {
-			gd.Resize(frame.Width, frame.Height)
+			rep.gd = rep.gd.Resize(frame.Width, frame.Height)
 		}
 		for _, fc := range frame.Cells {
-			c := gd.GetCell(fc.Pos)
+			c := rep.gd.GetCell(fc.Pos)
 			rep.undo[j] = append(rep.undo[j], gruid.FrameCell{Cell: c, Pos: fc.Pos})
-			gd.SetCell(fc.Pos, fc.Cell)
+			rep.gd.SetCell(fc.Pos, fc.Cell)
 		}
 	case replayPrevious:
 		fcells := rep.undo[len(rep.undo)-1]
 		for _, fc := range fcells {
-			gd.SetCell(fc.Pos, fc.Cell)
+			rep.gd.SetCell(fc.Pos, fc.Cell)
 		}
 		rep.undo = rep.undo[:len(rep.undo)-1]
 	}
+	return rep.gd
 }
 
-func (rep *replay) tick() gruid.Cmd {
+func (rep *Replay) tick() gruid.Cmd {
 	var d time.Duration
 	if rep.fidx > 0 {
-		d = rep.Frames[rep.fidx].Time.Sub(rep.Frames[rep.fidx-1].Time)
+		d = rep.frames[rep.fidx].Time.Sub(rep.frames[rep.fidx-1].Time)
 	} else {
 		d = 0
 	}

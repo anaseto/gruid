@@ -154,7 +154,7 @@ type rectangle struct {
 	xmin, xmax, ymin, ymax int
 }
 
-func (tk *Driver) Flush(gd *gruid.Grid) {
+func (tk *Driver) Flush(gd gruid.Grid) {
 	w, h := gd.Size()
 	rects := []rectangle{}
 	r := rectangle{w - 1, 0, h - 1, 0}
@@ -200,7 +200,7 @@ func (tk *Driver) UpdateRectangle(xmin, ymin, xmax, ymax int) {
 		xmin*tk.tw, ymin*tk.th, (xmax+1)*tk.tw, (ymax+1)*tk.th)
 }
 
-func (tk *Driver) draw(gd *gruid.Grid, cs gruid.Cell, x, y int) {
+func (tk *Driver) draw(gd gruid.Grid, cs gruid.Cell, x, y int) {
 	var img *image.RGBA
 	if im, ok := tk.cache[cs]; ok {
 		img = im

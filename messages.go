@@ -73,3 +73,7 @@ type MsgScreenSize struct {
 func Quit() Msg {
 	return msgQuit{}
 }
+
+// msgBatch is an internal message used to perform a bunch of commands. You can
+// send a msgBatch with Batch.
+type msgBatch []Cmd

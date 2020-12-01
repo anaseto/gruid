@@ -37,7 +37,7 @@ func (t *Driver) Close() {
 	t.screen.Fini()
 }
 
-func (t *Driver) Flush(gd *gruid.Grid) {
+func (t *Driver) Flush(gd gruid.Grid) {
 	for _, cdraw := range gd.Frame().Cells {
 		c := cdraw.Cell
 		st := t.StyleManager.GetStyle(c)

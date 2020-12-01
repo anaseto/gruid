@@ -4,8 +4,9 @@
 // (driver/tk) and browser apps (driver/js).
 //
 // The package uses an architecture of updating a model in response to messages
-// inspired from the bubbletea module for building terminal apps, which in turn
-// is based on the Elm Architecture.
+// strongly inspired from the bubbletea module for building terminal apps (see
+// github.com/charmbracelet/bubbletea), which in turn is based on the Elm
+// Architecture (https://guide.elm-lang.org/architecture/).
 package gruid
 
 import (
@@ -14,7 +15,8 @@ import (
 	"runtime/debug"
 )
 
-// App is the application user interface.
+// App represents a message and model-driven application with a grid-based user
+// interface.
 type App struct {
 	// CatchPanics ensures that Close is called on the driver before ending
 	// the Start loop. When a panic occurs, it will be recovered, the stack
@@ -24,29 +26,25 @@ type App struct {
 
 	driver Driver
 	model  Model
-	grid   *Grid
 }
 
 // AppConfig contains the configuration for creating a new App.
 type AppConfig struct {
 	Model  Model  // application state
-	Grid   *Grid  // application grid logical contents
 	Driver Driver // input and rendering driver
-
 }
 
 // NewApp creates a new App.
 func NewApp(cfg AppConfig) *App {
 	return &App{
 		model:       cfg.Model,
-		grid:        cfg.Grid,
 		driver:      cfg.Driver,
 		CatchPanics: true,
 	}
 }
 
 // Start initializes the program and runs the application's main loop.
-func (g *App) Start() (err error) {
+func (app *App) Start() (err error) {
 	var (
 		cmds = make(chan Cmd)
 		msgs = make(chan Msg)
@@ -54,29 +52,29 @@ func (g *App) Start() (err error) {
 	)
 
 	// driver initialization
-	err = g.driver.Init()
+	err = app.driver.Init()
 	if err != nil {
 		return err
 	}
-	if g.CatchPanics {
+	if app.CatchPanics {
 		defer func() {
 			if r := recover(); r != nil {
 				err = fmt.Errorf("%v", r)
-				g.driver.Close()
+				app.driver.Close()
 				log.Printf("Caught panic: %v\nStack Trace:\n", r)
 				debug.PrintStack()
 			} else {
-				g.driver.Close()
+				app.driver.Close()
 			}
 		}()
 	} else {
 		defer func() {
-			g.driver.Close()
+			app.driver.Close()
 		}()
 	}
 
 	// model initialization
-	initCmd := g.model.Init()
+	initCmd := app.model.Init()
 	if initCmd != nil {
 		go func() {
 			cmds <- initCmd
@@ -84,13 +82,12 @@ func (g *App) Start() (err error) {
 	}
 
 	// first drawing
-	g.grid.Draw()
-	g.driver.Flush(g.grid)
+	app.driver.Flush(app.model.Draw().ComputeFrame())
 
 	// input messages queueing
 	go func() {
 		for {
-			msgs <- g.driver.PollMsg()
+			msgs <- app.driver.PollMsg()
 		}
 	}()
 
@@ -113,15 +110,24 @@ func (g *App) Start() (err error) {
 	// main loop
 	for {
 		msg := <-msgs
+
+		// Handle quit message
 		if _, ok := msg.(msgQuit); ok {
 			close(done)
 			return nil
 		}
-		cmd := g.model.Update(msg)
-		cmds <- cmd
-		g.model.Draw(g.grid)
-		g.grid.Draw()
-		g.driver.Flush(g.grid)
+
+		// Process batch commands
+		if batchedCmds, ok := msg.(msgBatch); ok {
+			for _, cmd := range batchedCmds {
+				cmds <- cmd
+			}
+			continue
+		}
+
+		cmd := app.model.Update(msg)                      // run update
+		cmds <- cmd                                       // process command (if any)
+		app.driver.Flush(app.model.Draw().ComputeFrame()) // send drawings to driver
 	}
 }
 
@@ -133,10 +139,21 @@ type Msg interface{}
 // IO operations. A nil command acts as a no-op.
 type Cmd func() Msg
 
+// Batch peforms a bunch of commands concurrently with no ordering guarantees
+// about the results.
+func Batch(cmds ...Cmd) Cmd {
+	if len(cmds) == 0 {
+		return nil
+	}
+	return func() Msg {
+		return msgBatch(cmds)
+	}
+}
+
 // Model contains the application's state.
 type Model interface {
-	// Init will be called to initialize the model. It may return an
-	// initial command to perform.
+	// Init will be called first by Start. It may return an initial command
+	// to perform.
 	Init() Cmd
 
 	// Update is called when a message is received. Use it to update the
@@ -144,9 +161,10 @@ type Model interface {
 	Update(Msg) Cmd
 
 	// Draw is called after Init and then after every Update.  Use this
-	// function to draw the UI elements in the grid. The grid resulting
-	// changes will then automatically be sent to the driver.
-	Draw(*Grid)
+	// function to draw the UI elements in a grid to be returned.  The
+	// returned grid will then automatically be sent to the driver for
+	// immediate display.
+	Draw() Grid
 }
 
 // Driver handles both user input and rendering. When creating an App and using
@@ -155,7 +173,7 @@ type Driver interface {
 	Init() error
 
 	// Flush sends last frame grid changes to the driver.
-	Flush(*Grid)
+	Flush(Grid)
 
 	// PollMsg waits for user input messages.
 	PollMsg() Msg

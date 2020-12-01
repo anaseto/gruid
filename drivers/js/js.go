@@ -28,7 +28,7 @@ type Driver struct {
 	tw          int
 	th          int
 	mousepos    gruid.Position
-	grid        *gruid.Grid
+	grid        gruid.Grid
 	msgs        chan gruid.Msg
 	flushdone   chan bool
 }
@@ -163,7 +163,7 @@ func (dr *Driver) PollMsg() gruid.Msg {
 	return msg
 }
 
-func (dr *Driver) Flush(gd *gruid.Grid) {
+func (dr *Driver) Flush(gd gruid.Grid) {
 	dr.grid = gd
 	js.Global().Get("window").Call("requestAnimationFrame",
 		js.FuncOf(func(this js.Value, args []js.Value) interface{} { dr.flushCallback(); return nil }))
