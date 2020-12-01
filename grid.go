@@ -98,10 +98,10 @@ type FrameCell struct {
 func NewGrid(cfg GridConfig) Grid {
 	gd := Grid{}
 	gd.ug = &grid{}
-	if cfg.Height <= 0 {
+	if cfg.Height <= 1 {
 		cfg.Height = 24
 	}
-	if cfg.Width <= 0 {
+	if cfg.Width <= 1 {
 		cfg.Width = 80
 	}
 	gd = gd.Resize(cfg.Width, cfg.Height)
@@ -116,22 +116,23 @@ func (gd Grid) Range() Range {
 }
 
 // Slice returns a rectangular slice of the grid given by a range. If the range
-// is out of bounds of the parent grid, it will be reduced to fit.
+// is out of bounds of the parent grid, it will be reduced to fit to the
+// available space.
 //
 // This makes it easy to use relative coordinates when working with UI
 // elements.
 func (gd Grid) Slice(rg Range) Grid {
+	if rg.Pos.X+rg.Width > gd.rg.Width {
+		rg.Width = gd.rg.Width - rg.Pos.X
+	}
+	if rg.Pos.Y+rg.Height > gd.rg.Height {
+		rg.Height = rg.Height - rg.Pos.Y
+	}
 	if rg.Width < 0 {
 		rg.Width = 0
 	}
 	if rg.Height < 0 {
 		rg.Height = 0
-	}
-	if rg.Pos.X+rg.Width > gd.rg.Width {
-		gd.rg.Width = rg.Pos.X + rg.Width
-	}
-	if rg.Pos.Y+rg.Height > gd.rg.Height {
-		gd.rg.Height = rg.Pos.Y + rg.Height
 	}
 	rg.Pos.X = gd.rg.Pos.X + rg.Pos.X
 	rg.Pos.Y = gd.rg.Pos.Y + rg.Pos.Y
@@ -181,14 +182,15 @@ func (gd Grid) Resize(w, h int) Grid {
 	return gd
 }
 
-func (gd Grid) Valid(pos Position) bool {
+// Contains returns true if the relative position is within the grid range.
+func (gd Grid) Contains(pos Position) bool {
 	return pos.X >= 0 && pos.Y >= 0 && pos.X < gd.rg.Width && pos.Y < gd.rg.Height
 }
 
 // SetCell draws cell content and styling at a given position in the grid. If
 // the position is out of range, the function does nothing.
 func (gd Grid) SetCell(pos Position, c Cell) {
-	if !gd.Valid(pos) {
+	if !gd.Contains(pos) {
 		return
 	}
 	i := gd.getIdx(pos)
@@ -203,7 +205,7 @@ func (gd Grid) SetCell(pos Position, c Cell) {
 // content as it is in the logical grid, which may be different from what is
 // currently displayed on the screen.
 func (gd Grid) GetCell(pos Position) Cell {
-	if !gd.Valid(pos) {
+	if !gd.Contains(pos) {
 		return Cell{}
 	}
 	i := gd.getIdx(pos)
