@@ -44,7 +44,8 @@ func NewApp(cfg AppConfig) *App {
 }
 
 // Start initializes the program and runs the application's main loop.
-func (app *App) Start() (err error) {
+func (app *App) Start() error {
+	var err error
 	var (
 		cmds = make(chan Cmd)
 		msgs = make(chan Msg)
@@ -114,7 +115,7 @@ func (app *App) Start() (err error) {
 		// Handle quit message
 		if _, ok := msg.(msgQuit); ok {
 			close(done)
-			return nil
+			return err
 		}
 
 		// Process batch commands
