@@ -35,6 +35,7 @@ type Replay struct {
 	auto   bool
 	speed  time.Duration
 	action repAction
+	app    bool // whether running as main gruid.App model
 }
 
 type repAction int
@@ -54,6 +55,7 @@ type msgTick int // frame number
 // Init implements Model.Init for Replay. It returns a timer command for
 // starting automatic replay.
 func (rep *Replay) Init() gruid.Cmd {
+	rep.app = true
 	return rep.tick()
 }
 
@@ -64,7 +66,9 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Cmd {
 	case gruid.MsgKeyDown:
 		switch msg.Key {
 		case "Q", "q", gruid.KeyEscape:
-			rep.action = replayQuit
+			if rep.app {
+				rep.action = replayQuit
+			}
 		case "p", "P", gruid.KeySpace:
 			rep.action = replayTogglePause
 		case "+", ">":
