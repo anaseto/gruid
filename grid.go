@@ -40,25 +40,94 @@ type Position struct {
 	Y int
 }
 
-// Range represents a rectangle in a grid with upper left position Pos, and a
-// given Width and Height.
+// Shift returns a new position with coordinates shifted by (x,y).
+func (pos Position) Shift(x, y int) Position {
+	return Position{X: pos.X + x, Y: pos.Y + y}
+}
+
+// Add returns vector pos+p.
+func (pos Position) Add(p Position) Position {
+	return Position{X: pos.X + p.X, Y: pos.Y + p.Y}
+}
+
+// Sub returns vectur pos-p.
+func (pos Position) Sub(p Position) Position {
+	return Position{X: pos.X - p.X, Y: pos.Y - p.Y}
+}
+
+// In reports whether the absolute position is withing the given range.
+func (pos Position) In(rg Range) bool {
+	return pos.X >= rg.Min.X && pos.Y >= rg.Min.Y && pos.X < rg.Max.X && pos.Y < rg.Max.Y
+}
+
+// Range represents a rectangle in a grid with upper left position Min and
+// bottom right position Max (excluded). In other terms, it contains all the
+// positions Pos such that Min <= Pos < Max. A range is well-formed if Min <=
+// Max.
 type Range struct {
-	Pos    Position // upper left position
-	Width  int      // width in cells
-	Height int      // height in cells
+	Min, Max Position
+}
+
+// Width returns the width of the range.
+func (rg Range) Width() int {
+	return rg.Max.X - rg.Min.X
+}
+
+// Height returns the height of the range.
+func (rg Range) Height() int {
+	return rg.Max.Y - rg.Min.Y
+}
+
+// Shift returns a new range with coordinates shifted by (x0,y0) and (x1,y1).
+func (rg Range) Shift(x0, y0, x1, y1 int) Range {
+	rg = Range{Min: rg.Min.Shift(x0, y0), Max: rg.Max.Shift(x1, y1)}
+	if rg.Min.X > rg.Max.X {
+		rg.Min.X = rg.Max.X
+	}
+	if rg.Min.Y > rg.Max.Y {
+		rg.Max.Y = rg.Min.Y
+	}
+	return rg
+}
+
+// Line reduces the range to line y, or an empty range if out of bounds.
+func (rg Range) Line(y int) Range {
+	if rg.Min.Shift(0, y).In(rg) {
+		rg.Min.Y = rg.Min.Y + y
+		rg.Max.Y = rg.Min.Y + 1
+	} else {
+		rg = Range{}
+	}
+	return rg
+}
+
+// Column reduces the range to column x, or an empty range if out of bounds.
+func (rg Range) Column(x int) Range {
+	if rg.Min.Shift(x, 0).In(rg) {
+		rg.Min.X = rg.Min.X + x
+		rg.Max.X = rg.Min.X + 1
+	} else {
+		rg = Range{}
+	}
+	return rg
+}
+
+// Empty reports whether the range contains no positions.
+func (rg Range) Empty() bool {
+	return rg.Min.X >= rg.Max.X || rg.Min.Y >= rg.Max.Y
 }
 
 // Relative returns a position relative to the range, given an absolute
 // position in the grid. You may use it for example when dealing with mouse
 // coordinates from a MsgMouseDown or a MsgMouseMove message.
 func (rg Range) Relative(pos Position) Position {
-	return Position{X: pos.X - rg.Pos.X, Y: pos.Y - rg.Pos.Y}
+	return Position{X: pos.X - rg.Min.X, Y: pos.Y - rg.Min.Y}
 }
 
 // Absolute returns an absolute position in a grid, given a position relative
 // to the range.
 func (rg Range) Absolute(pos Position) Position {
-	return Position{X: pos.X + rg.Pos.X, Y: pos.Y + rg.Pos.Y}
+	return Position{X: pos.X + rg.Min.X, Y: pos.Y + rg.Min.Y}
 }
 
 type grid struct {
@@ -115,33 +184,33 @@ func (gd Grid) Range() Range {
 	return gd.rg
 }
 
-// Slice returns a rectangular slice of the grid given by a range. If the range
-// is out of bounds of the parent grid, it will be reduced to fit to the
-// available space.
+// Slice returns a rectangular slice of the grid given by a range relative to
+// the grid. If the range is out of bounds of the parent grid, it will be
+// reduced to fit to the available space.
 //
 // This makes it easy to use relative coordinates when working with UI
 // elements.
 func (gd Grid) Slice(rg Range) Grid {
-	if rg.Pos.X+rg.Width > gd.rg.Width {
-		rg.Width = gd.rg.Width - rg.Pos.X
+	if rg.Min.X < 0 {
+		rg.Min.X = 0
 	}
-	if rg.Pos.Y+rg.Height > gd.rg.Height {
-		rg.Height = rg.Height - rg.Pos.Y
+	if rg.Min.Y < 0 {
+		rg.Min.Y = 0
 	}
-	if rg.Width < 0 {
-		rg.Width = 0
+	if rg.Max.X > gd.rg.Width() {
+		rg.Max.X = gd.rg.Width()
 	}
-	if rg.Height < 0 {
-		rg.Height = 0
+	if rg.Max.Y > gd.rg.Height() {
+		rg.Max.Y = gd.rg.Height()
 	}
-	rg.Pos.X = gd.rg.Pos.X + rg.Pos.X
-	rg.Pos.Y = gd.rg.Pos.Y + rg.Pos.Y
+	rg.Min = rg.Min.Add(rg.Min)
+	rg.Max = rg.Max.Add(rg.Min)
 	return Grid{ug: gd.ug, rg: rg}
 }
 
 // Size returns the (width, height) parts of the grid range.
 func (gd Grid) Size() (int, int) {
-	return gd.rg.Width, gd.rg.Height
+	return gd.rg.Width(), gd.rg.Height()
 }
 
 // Resize is similar to Slice, but it only specifies new dimensions, and if the
@@ -151,20 +220,23 @@ func (gd Grid) Size() (int, int) {
 // Note that this only modifies the size of the grid, which may be different
 // than the window screen size.
 func (gd Grid) Resize(w, h int) Grid {
-	if gd.rg.Width == w && gd.rg.Height == h {
+	if gd.rg.Width() == w && gd.rg.Height() == h {
 		return gd
 	}
-	gd.rg.Width = w
-	gd.rg.Height = h
+	if w < 0 || h < 0 {
+		gd.rg.Max = gd.rg.Min
+		return gd
+	}
+	gd.rg.Max = gd.rg.Min.Shift(w, h)
 	uw := gd.ug.width
 	uh := gd.ug.height
 	grow := false
-	if w+gd.rg.Pos.X > uw {
-		gd.ug.width = w + gd.rg.Pos.X
+	if w+gd.rg.Min.X > uw {
+		gd.ug.width = w + gd.rg.Min.X
 		grow = true
 	}
-	if h+gd.rg.Pos.Y > uh {
-		gd.ug.height = h + gd.rg.Pos.Y
+	if h+gd.rg.Min.Y > uh {
+		gd.ug.height = h + gd.rg.Min.Y
 		grow = true
 	}
 	if grow {
@@ -184,7 +256,7 @@ func (gd Grid) Resize(w, h int) Grid {
 
 // Contains returns true if the relative position is within the grid range.
 func (gd Grid) Contains(pos Position) bool {
-	return pos.X >= 0 && pos.Y >= 0 && pos.X < gd.rg.Width && pos.Y < gd.rg.Height
+	return gd.rg.Absolute(pos).In(gd.rg)
 }
 
 // SetCell draws cell content and styling at a given position in the grid. If
