@@ -22,8 +22,8 @@ func main() {
 const (
 	Black gruid.Color = iota
 	White
-	Navy
-	Green
+	Blue
+	Yellow
 	Gray
 )
 
@@ -36,10 +36,10 @@ func (st styler) GetStyle(cell gruid.Cell) tc.Style {
 		ts = ts.Foreground(tc.ColorBlack)
 	case White:
 		ts = ts.Foreground(tc.ColorWhite)
-	case Navy:
+	case Blue:
 		ts = ts.Foreground(tc.ColorNavy)
-	case Green:
-		ts = ts.Foreground(tc.ColorGreen)
+	case Yellow:
+		ts = ts.Foreground(tc.ColorOlive)
 	}
 	switch cell.Bg {
 	case Black:
@@ -71,10 +71,10 @@ func (m *model) Init() gruid.Cmd {
 		ColorBgAlt:       Gray,
 		ColorFg:          White,
 		ColorAvailable:   White,
-		ColorSelected:    Green,
+		ColorSelected:    Yellow,
 		ColorUnavailable: White,
-		ColorHeader:      Navy,
-		ColorTitle:       Green,
+		ColorHeader:      Blue,
+		ColorTitle:       Yellow,
 	}
 	menu := models.NewMenu(models.MenuConfig{
 		Grid:    m.grid.Slice(gruid.Range{m.grid.Range().Min, m.grid.Range().Min.Shift(20, len(entries)+2)}),

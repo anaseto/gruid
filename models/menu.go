@@ -63,6 +63,7 @@ func NewMenu(cfg MenuConfig) *Menu {
 		entries: cfg.Entries,
 		title:   cfg.Title,
 		style:   cfg.Style,
+		draw:    true,
 	}
 	m.cursorAtFirstChoice()
 	return m
@@ -77,7 +78,7 @@ type Menu struct {
 	style   MenuStyle
 	cursor  int
 	action  MenuAction
-	nodraw  bool
+	draw    bool
 }
 
 // Selection return the index of the currently selected entry.
@@ -101,7 +102,7 @@ func (m *Menu) SetEntries(entries []MenuEntry) {
 // Update implements Model.Update
 func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 	l := len(m.entries)
-	m.nodraw = false
+	m.draw = false
 	m.action = MenuSelection // default action
 	switch msg := msg.(type) {
 	case gruid.MsgKeyDown:
@@ -116,6 +117,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 			if m.cursor >= l {
 				m.cursorAtFirstChoice()
 			}
+			m.draw = true
 		case msg.Key == gruid.KeyArrowUp:
 			m.cursor--
 			for m.cursor >= 0 && m.entries[m.cursor].Kind != EntryChoice {
@@ -124,8 +126,10 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 			if m.cursor < 0 {
 				m.cursorAtLastChoice()
 			}
+			m.draw = true
 		case msg.Key == gruid.KeyEnter && m.entries[m.cursor].Kind == EntryChoice:
 			m.action = MenuAccept
+			m.draw = true
 		default:
 			nchars := utf8.RuneCountInString(string(msg.Key))
 			if nchars == 1 {
@@ -137,21 +141,20 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 					}
 				}
 			}
+			m.draw = true
 		}
 	case gruid.MsgMouseMove:
 		pos := msg.MousePos.Relative(m.grid.Range())
 		if !m.grid.Contains(pos) {
-			m.nodraw = true
 			break
 		}
 		if m.isEdgePos(pos) {
-			m.nodraw = true
 			break
 		}
 		if pos.Y-1 == m.cursor {
-			m.nodraw = true
 			break
 		}
+		m.draw = true
 		m.cursor = pos.Y - 1
 	case gruid.MsgMouseDown:
 		pos := msg.MousePos.Relative(m.grid.Range())
@@ -162,15 +165,13 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 				break
 			}
 			if m.isEdgePos(pos) {
-				m.nodraw = true
 				break
 			}
 			m.cursor = pos.Y - 1
 			if m.entries[m.cursor].Kind == EntryChoice {
 				m.action = MenuAccept
 			}
-		case gruid.ButtonAuxiliary:
-			m.action = MenuCancel
+			m.draw = true
 		}
 	}
 	return nil
@@ -199,6 +200,9 @@ func (m *Menu) cursorAtLastChoice() {
 
 // Draw implements Model.Draw.
 func (m *Menu) Draw() gruid.Grid {
+	if !m.draw {
+		return m.grid
+	}
 	if m.style.Boxed {
 		b := box{
 			grid:    m.grid,
