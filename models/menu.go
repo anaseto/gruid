@@ -1,7 +1,6 @@
 package models
 
 import (
-	"strings"
 	"unicode/utf8"
 
 	"github.com/anaseto/gruid"
@@ -72,31 +71,14 @@ func NewMenu(cfg MenuConfig) *Menu {
 // Menu is a widget that asks the user to select an option among a list of
 // entries.
 type Menu struct {
-	grid             gruid.Grid
-	entries          []MenuEntry
-	title            string
-	style            MenuStyle
-	cursor           int
-	action           MenuAction
-	nodraw           bool
-	colorBg          gruid.Color
-	colorBgAlt       gruid.Color
-	colorFg          gruid.Color
-	colorAvailable   gruid.Color
-	colorSelected    gruid.Color
-	colorUnavailable gruid.Color
-	colorHeader      gruid.Color
-	colorTitle       gruid.Color
+	grid    gruid.Grid
+	entries []MenuEntry
+	title   string
+	style   MenuStyle
+	cursor  int
+	action  MenuAction
+	nodraw  bool
 }
-
-//func (m *Menu) Init() {
-//if ui.choiceCursor >= 0 && ui.choiceCursor < len(m.entries) &&
-//m.entries[ui.choiceCursor].Kind == EntryChoice {
-//m.cursor = ui.choiceCursor
-//} else {
-//m.cursorAtFirstChoice()
-//}
-//}
 
 // Selection return the index of the currently selected entry.
 func (m *Menu) Selection() int {
@@ -126,7 +108,6 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 		switch {
 		case msg.Key == gruid.KeyEscape || msg.Key == gruid.KeySpace || msg.Key == "x" || msg.Key == "X":
 			m.action = MenuCancel
-		case len(msg.Key) == 1:
 		case msg.Key == gruid.KeyArrowDown:
 			m.cursor++
 			for m.cursor < l && m.entries[m.cursor].Kind != EntryChoice {
@@ -158,7 +139,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 			}
 		}
 	case gruid.MsgMouseMove:
-		pos := m.grid.Range().Relative(msg.MousePos)
+		pos := msg.MousePos.Relative(m.grid.Range())
 		if !m.grid.Contains(pos) {
 			m.nodraw = true
 			break
@@ -167,13 +148,13 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 			m.nodraw = true
 			break
 		}
-		if pos.Y == m.cursor {
+		if pos.Y-1 == m.cursor {
 			m.nodraw = true
 			break
 		}
-		m.cursor = pos.Y
+		m.cursor = pos.Y - 1
 	case gruid.MsgMouseDown:
-		pos := m.grid.Range().Relative(msg.MousePos)
+		pos := msg.MousePos.Relative(m.grid.Range())
 		switch msg.Button {
 		case gruid.ButtonMain:
 			if !m.grid.Contains(pos) {
@@ -184,7 +165,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 				m.nodraw = true
 				break
 			}
-			m.cursor = pos.Y
+			m.cursor = pos.Y - 1
 			if m.entries[m.cursor].Kind == EntryChoice {
 				m.action = MenuAccept
 			}
@@ -218,35 +199,60 @@ func (m *Menu) cursorAtLastChoice() {
 
 // Draw implements Model.Draw.
 func (m *Menu) Draw() gruid.Grid {
-	j := 0
+	if m.style.Boxed {
+		b := box{
+			grid:    m.grid,
+			title:   m.title,
+			fg:      m.style.ColorFg,
+			bg:      m.style.ColorBg,
+			fgtitle: m.style.ColorTitle,
+		}
+		b.draw()
+	}
 	alt := false
-	//ui.DrawBox(m.title, m.x0-1, m.y0-1, m.w+2, len(m.entries)+2, m.colorTitle, m.colorBg)
+	t := textline{}
+	rg := m.grid.Range().Relative()
+	cgrid := m.grid.Slice(rg.Shift(1, 1, -1, -1))
+	crg := cgrid.Range().Relative()
 	for i, c := range m.entries {
-		bg := m.colorBg
-		fg := m.colorFg
+		bg := m.style.ColorBg
 		if c.Kind != EntryHeader {
+			fg := m.style.ColorFg
 			if alt {
-				bg = m.colorBgAlt
+				bg = m.style.ColorBgAlt
 			}
 			alt = !alt
 			if c.Kind == EntryUnavailable {
-				fg = m.colorUnavailable
+				fg = m.style.ColorUnavailable
 			}
 			if c.Kind == EntryChoice && i == m.cursor {
-				fg = m.colorSelected
+				fg = m.style.ColorSelected
 			}
-			//ui.ClearWithColor(m.x0, m.y0+i, m.w, bg)
-			//if m.letters {
-			//ui.DrawColoredTextOnBG(fmt.Sprintf("%c - %s", rune(j+97), c.Text), m.x0, m.y0+i, fg, bg)
-			//} else {
-			//ui.DrawColoredTextOnBG(fmt.Sprintf(" %s", c.Text), m.x0, m.y0+i, fg, bg)
-			//}
-			j++
+			nchars := utf8.RuneCountInString(c.Text)
+			t.grid = cgrid.Slice(crg.Line(i))
+			t.fg = fg
+			t.bg = bg
+			t.text = c.Text
+			t.draw()
+			cell := gruid.Cell{Bg: bg, Rune: ' '}
+			line := cgrid.Slice(crg.Line(i).Shift(nchars, 0, 0, 0))
+			line.Iter(func(pos gruid.Position) {
+				line.SetCell(pos, cell)
+			})
 		} else {
 			alt = false
-			fg = m.colorHeader
-			//ui.ClearWithColor(m.x0, m.y0+i, m.w, bg)
-			//ui.DrawColoredTextOnBG(c.Text, m.x0, m.y0+i, fg, bg)
+			fg := m.style.ColorHeader
+			nchars := utf8.RuneCountInString(c.Text)
+			t.fg = fg
+			t.bg = bg
+			t.grid = cgrid.Slice(crg.Line(i))
+			t.text = c.Text
+			t.draw()
+			cell := gruid.Cell{Bg: bg, Rune: ' '}
+			line := cgrid.Slice(crg.Line(i).Shift(nchars, 0, 0, 0))
+			line.Iter(func(pos gruid.Position) {
+				line.SetCell(pos, cell)
+			})
 		}
 	}
 	return m.grid
@@ -261,23 +267,60 @@ type box struct {
 }
 
 func (b box) draw() {
-	rg := b.grid.Range()
-	cgrid := b.grid.Slice(rg.Shift(1, 0, -1, 0))
-	crg := cgrid.Range()
-	t := textline{
-		fg:   b.fg,
-		bg:   b.bg,
-		grid: cgrid.Slice(crg.Line(0)),
+	rg := b.grid.Range().Relative()
+	if rg.Empty() {
+		return
 	}
+	cgrid := b.grid.Slice(rg.Shift(1, 0, -1, 0))
+	crg := cgrid.Range().Relative()
+	t := textline{
+		fg: b.fg,
+		bg: b.bg,
+	}
+	cell := gruid.Cell{Fg: b.fg, Bg: b.bg}
+	cell.Rune = '─'
 	if b.title != "" {
 		nchars := utf8.RuneCountInString(b.title)
 		dist := (crg.Width() - nchars) / 2
-		s := strings.Repeat("─", dist)
-		t.text = s
-		t.draw()
+		line := cgrid.Slice(crg.Line(0))
+		line.Iter(func(pos gruid.Position) {
+			line.SetCell(pos, cell)
+		})
 		t.fg = b.fgtitle
-		t.grid = cgrid.Slice(crg.Shift(dist, 0, 0, 0))
+		t.grid = cgrid.Slice(crg.Line(0).Shift(dist, 0, 0, 0))
+		t.text = b.title
+		t.draw()
+		line = cgrid.Slice(crg.Line(0).Shift(dist+nchars, 0, 0, 0))
+		line.Iter(func(pos gruid.Position) {
+			line.SetCell(pos, cell)
+		})
+	} else {
+		line := cgrid.Slice(crg.Line(0))
+		line.Iter(func(pos gruid.Position) {
+			line.SetCell(pos, cell)
+		})
 	}
+	line := cgrid.Slice(crg.Line(crg.Height() - 1))
+	line.Iter(func(pos gruid.Position) {
+		line.SetCell(pos, cell)
+	})
+	cell.Rune = '┌'
+	b.grid.SetCell(rg.Min, cell)
+	cell.Rune = '┐'
+	b.grid.SetCell(gruid.Position{X: rg.Width() - 1}, cell)
+	cell.Rune = '└'
+	b.grid.SetCell(gruid.Position{Y: rg.Height() - 1}, cell)
+	cell.Rune = '┘'
+	b.grid.SetCell(rg.Max.Shift(-1, -1), cell)
+	cell.Rune = '│'
+	col := b.grid.Slice(rg.Shift(0, 1, 0, -1).Column(0))
+	col.Iter(func(pos gruid.Position) {
+		col.SetCell(pos, cell)
+	})
+	col = b.grid.Slice(rg.Shift(0, 1, 0, -1).Column(rg.Width() - 1))
+	col.Iter(func(pos gruid.Position) {
+		col.SetCell(pos, cell)
+	})
 }
 
 type textline struct {
@@ -292,68 +335,3 @@ func (t textline) draw() {
 		t.grid.SetCell(gruid.Position{X: i}, gruid.Cell{Fg: t.fg, Bg: t.bg, Rune: r})
 	}
 }
-
-//func (t textline) draw() {
-//nchars := utf8.RuneCountInString(text)
-//if t.header {
-//dist := (width - nchars) / 2
-//for i := 0; i < dist; i++ {
-//grid.SetCell(i, y, '─', ColorFg, bg)
-//}
-//if text != "" {
-//ui.DrawColoredTextOnBG(text, x+dist, y, fg, bg)
-//}
-//for i := x + dist + nchars; i < x+width; i++ {
-//grid.SetCell(i, y, '─', ColorFg, bg)
-//}
-//}
-
-//func (ui *gameui) DrawBox(title string, x, y, width, height int, fg, bg Color) {
-//ui.DrawHeader(title, x, y, width, fg, bg)
-//ui.SetCell(x, y, '┌', ColorFg, bg)
-//ui.SetCell(x+width-1, y, '┐', ColorFg, bg)
-//ui.SetCell(x, y+height-1, '└', ColorFg, bg)
-//ui.SetCell(x+width-1, y+height-1, '┘', ColorFg, bg)
-//for j := y + 1; j < y+height-1; j++ {
-//ui.SetCell(x, j, '│', ColorFg, bg)
-//ui.SetCell(x+width-1, j, '│', ColorFg, bg)
-//}
-//for i := x + 1; i < x+width-1; i++ {
-//ui.SetCell(i, y+height-1, '─', ColorFg, bg)
-//}
-//for i := x + 1; i < x+width-1; i++ {
-//for j := y + 1; j < y+height-1; j++ {
-//ui.SetCell(i, j, ' ', ColorFg, bg)
-//}
-//}
-//}
-
-//func (ui *gameui) DrawHeader(title string, x, y, width int, fg, bg Color) {
-//nchars := utf8.RuneCountInString(title)
-//dist := (width - nchars) / 2
-//for i := x; i < x+dist; i++ {
-//ui.SetCell(i, y, '─', ColorFg, bg)
-//}
-//if title != "" {
-//ui.DrawColoredTextOnBG(title, x+dist, y, fg, bg)
-//}
-//for i := x + dist + nchars; i < x+width; i++ {
-//ui.SetCell(i, y, '─', ColorFg, bg)
-//}
-//}
-
-//func (ui *gameui) DrawColoredTextOnBG(text string, x, y int, fg, bg Color) {
-//col := 0
-//for _, r := range text {
-//if r == '\n' {
-//y++
-//col = 0
-//continue
-//}
-//if x+col >= UIWidth {
-//break
-//}
-//ui.SetCell(x+col, y, r, fg, bg)
-//col++
-//}
-//}

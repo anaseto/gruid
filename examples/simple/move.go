@@ -21,7 +21,7 @@ func main() {
 const (
 	Black gruid.Color = iota
 	White
-	Blue
+	Navy
 )
 
 type styler struct{}
@@ -30,17 +30,17 @@ func (st styler) GetStyle(cell gruid.Cell) tc.Style {
 	ts := tc.StyleDefault
 	switch cell.Fg {
 	case Black:
-		ts.Foreground(tc.ColorBlack)
+		ts = ts.Foreground(tc.ColorBlack)
 	case White:
-		ts.Foreground(tc.ColorWhite)
-	case Blue:
-		ts.Foreground(tc.ColorBlue)
+		ts = ts.Foreground(tc.ColorWhite)
+	case Navy:
+		ts = ts.Foreground(tc.ColorNavy)
 	}
 	switch cell.Bg {
 	case Black:
-		ts.Background(tc.ColorBlack)
+		ts = ts.Background(tc.ColorBlack)
 	case White:
-		ts.Background(tc.ColorWhite)
+		ts = ts.Background(tc.ColorWhite)
 	}
 	return ts
 }
@@ -85,7 +85,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Cmd {
 func (m *model) Draw() gruid.Grid {
 	m.grid.Iter(func(pos gruid.Position) {
 		if pos == m.playerPos {
-			m.grid.SetCell(pos, gruid.Cell{Fg: Blue, Bg: Black, Rune: '@'})
+			m.grid.SetCell(pos, gruid.Cell{Fg: Navy, Bg: Black, Rune: '@'})
 		} else {
 			m.grid.SetCell(pos, gruid.Cell{Fg: White, Bg: Black, Rune: '.'})
 		}

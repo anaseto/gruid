@@ -60,6 +60,18 @@ func (pos Position) In(rg Range) bool {
 	return pos.X >= rg.Min.X && pos.Y >= rg.Min.Y && pos.X < rg.Max.X && pos.Y < rg.Max.Y
 }
 
+// Relative changes an absolute position into tho position relative a given
+// range. You may use it for example when dealing with mouse coordinates from a
+// MsgMouseDown or a MsgMouseMove message.
+func (pos Position) Relative(rg Range) Position {
+	return Position{X: pos.X - rg.Min.X, Y: pos.Y - rg.Min.Y}
+}
+
+// Absolute returns the absolute position given a range.
+func (pos Position) Absolute(rg Range) Position {
+	return Position{X: pos.X + rg.Min.X, Y: pos.Y + rg.Min.Y}
+}
+
 // Range represents a rectangle in a grid with upper left position Min and
 // bottom right position Max (excluded). In other terms, it contains all the
 // positions Pos such that Min <= Pos < Max. A range is well-formed if Min <=
@@ -117,17 +129,12 @@ func (rg Range) Empty() bool {
 	return rg.Min.X >= rg.Max.X || rg.Min.Y >= rg.Max.Y
 }
 
-// Relative returns a position relative to the range, given an absolute
-// position in the grid. You may use it for example when dealing with mouse
-// coordinates from a MsgMouseDown or a MsgMouseMove message.
-func (rg Range) Relative(pos Position) Position {
-	return Position{X: pos.X - rg.Min.X, Y: pos.Y - rg.Min.Y}
-}
-
-// Absolute returns an absolute position in a grid, given a position relative
-// to the range.
-func (rg Range) Absolute(pos Position) Position {
-	return Position{X: pos.X + rg.Min.X, Y: pos.Y + rg.Min.Y}
+// Relative returns a range of same size with Min = (0, 0). It may be useful to
+// define grid slices as a Shift of a relative original range.
+func (rg Range) Relative() Range {
+	rg.Max = rg.Max.Sub(rg.Min)
+	rg.Min = Position{}
+	return rg
 }
 
 type grid struct {
@@ -203,8 +210,9 @@ func (gd Grid) Slice(rg Range) Grid {
 	if rg.Max.Y > gd.rg.Height() {
 		rg.Max.Y = gd.rg.Height()
 	}
-	rg.Min = rg.Min.Add(rg.Min)
-	rg.Max = rg.Max.Add(rg.Min)
+	min := gd.rg.Min
+	rg.Min = rg.Min.Add(min)
+	rg.Max = rg.Max.Add(min)
 	return Grid{ug: gd.ug, rg: rg}
 }
 
@@ -256,7 +264,7 @@ func (gd Grid) Resize(w, h int) Grid {
 
 // Contains returns true if the relative position is within the grid range.
 func (gd Grid) Contains(pos Position) bool {
-	return gd.rg.Absolute(pos).In(gd.rg)
+	return pos.Absolute(gd.rg).In(gd.rg)
 }
 
 // SetCell draws cell content and styling at a given position in the grid. If
@@ -300,7 +308,7 @@ func (gd Grid) Iter(fn func(Position)) {
 
 // getIdx returns the buffer index of a relative position.
 func (gd Grid) getIdx(pos Position) int {
-	pos = gd.rg.Absolute(pos)
+	pos = pos.Absolute(gd.rg)
 	return pos.Y*gd.ug.width + pos.X
 }
 
