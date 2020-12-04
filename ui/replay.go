@@ -1,5 +1,5 @@
-// The package models defines common UI utilities.
-package models
+// The package ui defines common UI utilities.
+package ui
 
 import (
 	"time"

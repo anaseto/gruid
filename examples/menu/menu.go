@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/anaseto/gruid"
 	"github.com/anaseto/gruid/drivers/tcell"
-	"github.com/anaseto/gruid/models"
+	"github.com/anaseto/gruid/ui"
 	tc "github.com/gdamore/tcell/v2"
 )
 
@@ -47,20 +47,20 @@ func (sty styler) GetStyle(st gruid.CellStyle) tc.Style {
 }
 
 type model struct {
-	playerPos gruid.Position
-	grid      gruid.Grid
-	menu      *models.Menu
-	label     *models.Label
+	grid  gruid.Grid
+	menu  *ui.Menu
+	label *ui.Label
 }
 
 func (m *model) Init() gruid.Cmd {
-	entries := []models.MenuEntry{
-		{Kind: models.EntryHeader, Text: "Header"},
-		{Kind: models.EntryChoice, Text: "(F)irst", Key: "F"},
-		{Kind: models.EntryChoice, Text: "(S)econd", Key: "S"},
+	entries := []ui.MenuEntry{
+		{Kind: ui.EntryHeader, Text: "Header"},
+		{Kind: ui.EntryChoice, Text: "(F)irst", Key: "F"},
+		{Kind: ui.EntryChoice, Text: "(S)econd", Key: "S"},
+		{Kind: ui.EntryChoice, Text: "(T)hird", Key: "T"},
 	}
 	st := gruid.CellStyle{}
-	style := models.MenuStyle{
+	style := ui.MenuStyle{
 		Boxed:       true,
 		Content:     st,
 		BgAlt:       ColorAltBg,
@@ -69,19 +69,19 @@ func (m *model) Init() gruid.Cmd {
 		Header:      st.Foreground(ColorHeader),
 		Title:       st.Foreground(ColorTitle),
 	}
-	menu := models.NewMenu(models.MenuConfig{
+	menu := ui.NewMenu(ui.MenuConfig{
 		Grid:    m.grid.Slice(gruid.NewRange(0, 0, 20, len(entries)+2)),
 		Entries: entries,
 		Title:   "Menu",
 		Style:   style,
 	})
 	m.menu = menu
-	label := &models.Label{
+	label := &ui.Label{
 		Boxed: true,
 		Grid:  m.grid.Slice(gruid.NewRange(22, 0, 70, 5)),
 		Title: "Menu Action",
 		Text:  "",
-		Style: models.LabelStyle{Content: st, Title: st.Foreground(ColorHeader)},
+		Style: ui.LabelStyle{Content: st, Title: st.Foreground(ColorHeader)},
 	}
 	m.label = label
 	return nil
@@ -90,14 +90,14 @@ func (m *model) Init() gruid.Cmd {
 func (m *model) Update(msg gruid.Msg) gruid.Cmd {
 	m.menu.Update(msg)
 	switch m.menu.Action() {
-	case models.MenuCancel:
+	case ui.MenuCancel:
 		return gruid.Quit
-	case models.MenuMove:
-		m.label.Text = "changed selection"
-	case models.MenuAccept:
+	case ui.MenuMove:
+		m.label.Text = "moved selection"
+	case ui.MenuAccept:
 		m.label.Text = "accepted selection"
-	case models.MenuPass:
-		m.label.Text = "no action but that is not important the thing is that it does not fit"
+	case ui.MenuPass:
+		m.label.Text = "no action (like mouse motion)"
 	}
 	return nil
 }
