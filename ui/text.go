@@ -24,6 +24,11 @@ func (stt *StyledText) Text() string {
 	return stt.text
 }
 
+// SetText updates the styled text.
+func (stt *StyledText) SetText(text string) {
+	stt.text = text
+}
+
 // Size returns the minimum (w, h) size in cells which can fit the text.
 func (stt *StyledText) Size() (int, int) {
 	x := 0
