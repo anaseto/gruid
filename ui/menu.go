@@ -6,22 +6,22 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-// EntryKind represents the different kinds of entries.
-type EntryKind int
+// MenuEntryKind represents the different kinds of entries.
+type MenuEntryKind int
 
 // These constants define the available entry kinds.
 const (
-	EntryChoice      EntryKind = iota // a choice
-	EntryUnavailable                  // an unavailable choice
-	EntryHeader                       // a sub-header
+	EntryChoice      MenuEntryKind = iota // a choice
+	EntryUnavailable                      // an unavailable choice
+	EntryHeader                           // a sub-header
 )
 
 // MenuEntry represents an entry in the menu. It is displayed on one line, and
 // for example can be a choice or a header.
 type MenuEntry struct {
-	Kind EntryKind // available choice, header line, etc.
-	Text string    // displayed text on the entry line
-	Key  gruid.Key // accept entry shortcut, if any
+	Kind MenuEntryKind // available choice, header line, etc.
+	Text string        // displayed text on the entry line
+	Key  gruid.Key     // accept entry shortcut, if any
 }
 
 // MenuAction represents an user action with the menu.
