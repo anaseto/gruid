@@ -1,6 +1,4 @@
-// The package models defines some basic UI elements as gruid models. They can
-// be used either as the main model for an application, or used inside Update
-// and Draw of the main model.
+// The package models defines common UI utilities.
 package models
 
 import (
@@ -10,7 +8,7 @@ import (
 )
 
 // NewReplay returns a Model that runs a replay of an application's session with
-// the given recorded frames.
+// the given recorded frames. It implements the gruid.Model interface.
 func NewReplay(cfg ReplayConfig) *Replay {
 	return &Replay{
 		gd:     cfg.Grid,

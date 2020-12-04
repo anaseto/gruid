@@ -12,17 +12,45 @@ import (
 // value for constants.
 type AttrMask uint
 
-// Color is a generic value for representing colors. Those have to be mapped to
-// concrete colors for each driver, as appropiate.
+// Color is a generic value for representing colors. Except for the zero value,
+// which gets special treatment, those have to be mapped to concrete foreground
+// and background colors for each driver, as appropiate.
 type Color uint
+
+// This value by default gets special treatment by drivers and is mapped, when
+// it makes sense, to a default color, both for foreground and background.
+const ColorDefault = 0
 
 // Cell contains all the content and styling information to represent a cell in
 // the grid.
 type Cell struct {
+	Rune  rune      // cell content character
+	Style CellStyle // cell style
+}
+
+// CellStyle represents the styling information of a cell.
+type CellStyle struct {
 	Fg    Color    // foreground color
 	Bg    Color    // background color
-	Rune  rune     // cell character
 	Attrs AttrMask // custom styling attributes
+}
+
+// Foreground returns a derived style with a new foreground color.
+func (st CellStyle) Foreground(cl Color) CellStyle {
+	st.Fg = cl
+	return st
+}
+
+// Background returns a derived style with a new background color.
+func (st CellStyle) Background(cl Color) CellStyle {
+	st.Bg = cl
+	return st
+}
+
+// Attributes returns a derived style with new attributes.
+func (st CellStyle) Attributes(cl Color) CellStyle {
+	st.Bg = cl
+	return st
 }
 
 // Grid represents the grid that is used to draw a model logical contents that
@@ -78,6 +106,19 @@ func (pos Position) Absolute(rg Range) Position {
 // Max.
 type Range struct {
 	Min, Max Position
+}
+
+// NewRange returns a new Range with coordinates (x0, y0) for Min and (x1, y1)
+// for Max. The returned range will have minumum and maximum coordinates
+// swapped if necessary, so that the range is well-formed.
+func NewRange(x0, y0, x1, y1 int) Range {
+	if x1 < x0 {
+		x0, x1 = x1, x0
+	}
+	if y1 < y0 {
+		y0, y1 = y1, y0
+	}
+	return Range{Min: Position{X: x0, Y: y0}, Max: Position{X: x1, Y: y1}}
 }
 
 // Width returns the width of the range.

@@ -8,7 +8,7 @@ import (
 type StyleManager interface {
 	// GetAttributes returns a mask of text attributes for a given cell
 	// style.
-	GetStyle(gruid.Cell) tcell.Style
+	GetStyle(gruid.CellStyle) tcell.Style
 }
 
 type Driver struct {
@@ -40,7 +40,7 @@ func (t *Driver) Close() {
 func (t *Driver) Flush(gd gruid.Grid) {
 	for _, cdraw := range gd.Frame().Cells {
 		c := cdraw.Cell
-		st := t.StyleManager.GetStyle(c)
+		st := t.StyleManager.GetStyle(c.Style)
 		t.screen.SetContent(cdraw.Pos.X, cdraw.Pos.Y, c.Rune, nil, st)
 	}
 	t.screen.Show()

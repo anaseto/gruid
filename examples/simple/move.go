@@ -7,49 +7,43 @@ import (
 )
 
 func main() {
-	var gd = gruid.NewGrid(gruid.GridConfig{})
+
+	// use tcell terminal driver
 	st := styler{}
-	var dri = &tcell.Driver{StyleManager: st}
+	dri := &tcell.Driver{StyleManager: st}
+
+	// our application's state and grid with default config
+	gd := gruid.NewGrid(gruid.GridConfig{})
 	m := &model{grid: gd}
+
+	// define new application
 	app := gruid.NewApp(gruid.AppConfig{
 		Driver: dri,
 		Model:  m,
 	})
+
+	// start application
 	app.Start()
 }
 
 const (
-	Black gruid.Color = iota
-	Gray
-	White
-	Navy
+	ColorPlayer gruid.Color = 1 + iota // skip special zero value gruid.ColorDefault
 )
 
+// type that implements driver's style manager interface
 type styler struct{}
 
-func (st styler) GetStyle(cell gruid.Cell) tc.Style {
+func (sty styler) GetStyle(st gruid.CellStyle) tc.Style {
 	ts := tc.StyleDefault
-	switch cell.Fg {
-	case Gray:
-		ts = ts.Foreground(tc.ColorGray)
-	case Black:
-		ts = ts.Foreground(tc.ColorBlack)
-	case White:
-		ts = ts.Foreground(tc.ColorDefault)
-	case Navy:
-		ts = ts.Foreground(tc.ColorNavy)
-	}
-	switch cell.Bg {
-	case Black:
-		ts = ts.Background(tc.ColorBlack)
-	case White:
-		ts = ts.Background(tc.ColorWhite)
+	switch st.Fg {
+	case ColorPlayer:
+		ts = ts.Foreground(tc.ColorNavy) // blue color for the player
 	}
 	return ts
 }
 
 type model struct {
-	playerPos gruid.Position
+	playerPos gruid.Position // track player position
 	grid      gruid.Grid
 }
 
@@ -86,11 +80,12 @@ func (m *model) Update(msg gruid.Msg) gruid.Cmd {
 }
 
 func (m *model) Draw() gruid.Grid {
+	st := gruid.CellStyle{} // default style
 	m.grid.Iter(func(pos gruid.Position) {
 		if pos == m.playerPos {
-			m.grid.SetCell(pos, gruid.Cell{Fg: Navy, Bg: Gray, Rune: '@'})
+			m.grid.SetCell(pos, gruid.Cell{Rune: '@', Style: st.Foreground(ColorPlayer)})
 		} else {
-			m.grid.SetCell(pos, gruid.Cell{Fg: White, Bg: Gray, Rune: '.'})
+			m.grid.SetCell(pos, gruid.Cell{Rune: '.', Style: st})
 		}
 	})
 	return m.grid

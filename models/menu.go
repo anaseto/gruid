@@ -11,9 +11,9 @@ type EntryKind int
 
 // These constants define the available entry kinds.
 const (
-	EntryChoice EntryKind = iota
-	EntryUnavailable
-	EntryHeader
+	EntryChoice      EntryKind = iota // a choice
+	EntryUnavailable                  // an unavailable choice
+	EntryHeader                       // a sub-header
 )
 
 // MenuEntry represents an entry in the menu. It is displayed on one line, and
@@ -29,23 +29,21 @@ type MenuAction int
 
 // These constants represent the available actions in a menu.
 const (
-	MenuSelection MenuAction = iota // changed selection
-	MenuAccept                      // accepted current selection
-	MenuCancel                      // cancelled selection / close menu
-	MenuNone                        // no action
+	MenuPass   MenuAction = iota // no action
+	MenuAccept                   // accepted current selection
+	MenuCancel                   // cancelled selection / close menu
+	MenuMove                     // changed selection
 )
 
 // MenuStyle represents menu styles.
 type MenuStyle struct {
-	Boxed            bool        // draw a box around the menu
-	ColorBg          gruid.Color // background color
-	ColorBgAlt       gruid.Color // alternate bg on even entry lines
-	ColorFg          gruid.Color // foreground color
-	ColorAvailable   gruid.Color // normal entry choice
-	ColorSelected    gruid.Color // selected entry
-	ColorUnavailable gruid.Color // unavailable entry
-	ColorHeader      gruid.Color // header entry
-	ColorTitle       gruid.Color // box title
+	Boxed       bool // draw a box around the menu
+	Content     gruid.CellStyle
+	BgAlt       gruid.Color     // alternate bg on even entry lines
+	Selected    gruid.Color     // for selected entry
+	Unavailable gruid.Color     // for unavailable entry
+	Header      gruid.CellStyle // header entry
+	Title       gruid.CellStyle // box title
 }
 
 // MenuConfig contains configuration options for creating a menu.
@@ -103,13 +101,14 @@ func (m *Menu) SetEntries(entries []MenuEntry) {
 func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 	l := len(m.entries)
 	m.draw = false
-	m.action = MenuSelection // default action
+	m.action = MenuPass // no action still
 	switch msg := msg.(type) {
 	case gruid.MsgKeyDown:
 		switch {
 		case msg.Key == gruid.KeyEscape || msg.Key == gruid.KeySpace || msg.Key == "x" || msg.Key == "X":
 			m.action = MenuCancel
 		case msg.Key == gruid.KeyArrowDown:
+			m.action = MenuMove
 			m.cursor++
 			for m.cursor < l && m.entries[m.cursor].Kind != EntryChoice {
 				m.cursor++
@@ -119,6 +118,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 			}
 			m.draw = true
 		case msg.Key == gruid.KeyArrowUp:
+			m.action = MenuMove
 			m.cursor--
 			for m.cursor >= 0 && m.entries[m.cursor].Kind != EntryChoice {
 				m.cursor--
@@ -156,6 +156,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 		}
 		m.draw = true
 		m.cursor = pos.Y - 1
+		m.action = MenuMove
 	case gruid.MsgMouseDown:
 		pos := msg.MousePos.Relative(m.grid.Range())
 		switch msg.Button {
@@ -168,6 +169,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 				break
 			}
 			m.cursor = pos.Y - 1
+			m.action = MenuMove
 			if m.entries[m.cursor].Kind == EntryChoice {
 				m.action = MenuAccept
 			}
@@ -205,54 +207,47 @@ func (m *Menu) Draw() gruid.Grid {
 	}
 	if m.style.Boxed {
 		b := box{
-			grid:    m.grid,
-			title:   m.title,
-			fg:      m.style.ColorFg,
-			bg:      m.style.ColorBg,
-			fgtitle: m.style.ColorTitle,
+			grid:       m.grid,
+			title:      m.title,
+			style:      m.style.Content,
+			titleStyle: m.style.Title,
 		}
 		b.draw()
 	}
 	alt := false
-	t := textline{}
 	rg := m.grid.Range().Relative()
 	cgrid := m.grid.Slice(rg.Shift(1, 1, -1, -1))
 	crg := cgrid.Range().Relative()
 	for i, c := range m.entries {
-		bg := m.style.ColorBg
 		if c.Kind != EntryHeader {
-			fg := m.style.ColorFg
+			st := m.style.Content
 			if alt {
-				bg = m.style.ColorBgAlt
+				st.Bg = m.style.BgAlt
 			}
 			alt = !alt
 			if c.Kind == EntryUnavailable {
-				fg = m.style.ColorUnavailable
+				st.Fg = m.style.Unavailable
 			}
 			if c.Kind == EntryChoice && i == m.cursor {
-				fg = m.style.ColorSelected
+				st.Fg = m.style.Selected
 			}
 			nchars := utf8.RuneCountInString(c.Text)
-			t.grid = cgrid.Slice(crg.Line(i))
-			t.fg = fg
-			t.bg = bg
-			t.text = c.Text
-			t.draw()
-			cell := gruid.Cell{Bg: bg, Rune: ' '}
+			stt := NewStyledText(c.Text)
+			stt.SetStyle(st)
+			stt.Draw(cgrid.Slice(crg.Line(i)))
+			cell := gruid.Cell{Rune: ' ', Style: st}
 			line := cgrid.Slice(crg.Line(i).Shift(nchars, 0, 0, 0))
 			line.Iter(func(pos gruid.Position) {
 				line.SetCell(pos, cell)
 			})
 		} else {
 			alt = false
-			fg := m.style.ColorHeader
+			st := m.style.Header
 			nchars := utf8.RuneCountInString(c.Text)
-			t.fg = fg
-			t.bg = bg
-			t.grid = cgrid.Slice(crg.Line(i))
-			t.text = c.Text
-			t.draw()
-			cell := gruid.Cell{Bg: bg, Rune: ' '}
+			stt := NewStyledText(c.Text)
+			stt.SetStyle(st)
+			stt.Draw(cgrid.Slice(crg.Line(i)))
+			cell := gruid.Cell{Rune: ' ', Style: st}
 			line := cgrid.Slice(crg.Line(i).Shift(nchars, 0, 0, 0))
 			line.Iter(func(pos gruid.Position) {
 				line.SetCell(pos, cell)
@@ -260,82 +255,4 @@ func (m *Menu) Draw() gruid.Grid {
 		}
 	}
 	return m.grid
-}
-
-type box struct {
-	grid    gruid.Grid
-	title   string
-	fg      gruid.Color
-	bg      gruid.Color
-	fgtitle gruid.Color
-}
-
-func (b box) draw() {
-	rg := b.grid.Range().Relative()
-	if rg.Empty() {
-		return
-	}
-	cgrid := b.grid.Slice(rg.Shift(1, 0, -1, 0))
-	crg := cgrid.Range().Relative()
-	t := textline{
-		fg: b.fg,
-		bg: b.bg,
-	}
-	cell := gruid.Cell{Fg: b.fg, Bg: b.bg}
-	cell.Rune = '─'
-	if b.title != "" {
-		nchars := utf8.RuneCountInString(b.title)
-		dist := (crg.Width() - nchars) / 2
-		line := cgrid.Slice(crg.Line(0))
-		line.Iter(func(pos gruid.Position) {
-			line.SetCell(pos, cell)
-		})
-		t.fg = b.fgtitle
-		t.grid = cgrid.Slice(crg.Line(0).Shift(dist, 0, 0, 0))
-		t.text = b.title
-		t.draw()
-		line = cgrid.Slice(crg.Line(0).Shift(dist+nchars, 0, 0, 0))
-		line.Iter(func(pos gruid.Position) {
-			line.SetCell(pos, cell)
-		})
-	} else {
-		line := cgrid.Slice(crg.Line(0))
-		line.Iter(func(pos gruid.Position) {
-			line.SetCell(pos, cell)
-		})
-	}
-	line := cgrid.Slice(crg.Line(crg.Height() - 1))
-	line.Iter(func(pos gruid.Position) {
-		line.SetCell(pos, cell)
-	})
-	cell.Rune = '┌'
-	b.grid.SetCell(rg.Min, cell)
-	cell.Rune = '┐'
-	b.grid.SetCell(gruid.Position{X: rg.Width() - 1}, cell)
-	cell.Rune = '└'
-	b.grid.SetCell(gruid.Position{Y: rg.Height() - 1}, cell)
-	cell.Rune = '┘'
-	b.grid.SetCell(rg.Max.Shift(-1, -1), cell)
-	cell.Rune = '│'
-	col := b.grid.Slice(rg.Shift(0, 1, 0, -1).Column(0))
-	col.Iter(func(pos gruid.Position) {
-		col.SetCell(pos, cell)
-	})
-	col = b.grid.Slice(rg.Shift(0, 1, 0, -1).Column(rg.Width() - 1))
-	col.Iter(func(pos gruid.Position) {
-		col.SetCell(pos, cell)
-	})
-}
-
-type textline struct {
-	grid gruid.Grid
-	text string
-	fg   gruid.Color
-	bg   gruid.Color
-}
-
-func (t textline) draw() {
-	for i, r := range t.text {
-		t.grid.SetCell(gruid.Position{X: i}, gruid.Cell{Fg: t.fg, Bg: t.bg, Rune: r})
-	}
 }

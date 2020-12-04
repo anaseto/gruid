@@ -20,34 +20,28 @@ func main() {
 }
 
 const (
-	Black gruid.Color = iota
-	White
-	Blue
-	Yellow
-	Gray
+	ColorUnavailable gruid.Color = 1 + iota // skip zero value ColorDefault
+	ColorHeader
+	ColorSelected
+	ColorAltBg
+	ColorTitle
 )
 
 type styler struct{}
 
-func (st styler) GetStyle(cell gruid.Cell) tc.Style {
+func (sty styler) GetStyle(st gruid.CellStyle) tc.Style {
 	ts := tc.StyleDefault
-	switch cell.Fg {
-	case Black:
-		ts = ts.Foreground(tc.ColorBlack)
-	case White:
+	switch st.Fg {
+	case ColorUnavailable:
 		ts = ts.Foreground(tc.ColorWhite)
-	case Blue:
+	case ColorHeader:
 		ts = ts.Foreground(tc.ColorNavy)
-	case Yellow:
+	case ColorSelected, ColorTitle:
 		ts = ts.Foreground(tc.ColorOlive)
 	}
-	switch cell.Bg {
-	case Black:
+	switch st.Bg {
+	case ColorAltBg:
 		ts = ts.Background(tc.ColorBlack)
-	case White:
-		ts = ts.Background(tc.ColorWhite)
-	case Gray:
-		ts = ts.Background(tc.ColorGray)
 	}
 	return ts
 }
@@ -56,44 +50,59 @@ type model struct {
 	playerPos gruid.Position
 	grid      gruid.Grid
 	menu      *models.Menu
+	label     *models.Label
 }
 
 func (m *model) Init() gruid.Cmd {
-	entries := []models.MenuEntry{}
-	entries = append(entries,
-		models.MenuEntry{Kind: models.EntryHeader, Text: "Header"},
-		models.MenuEntry{Kind: models.EntryChoice, Text: "(F)irst", Key: "F"},
-		models.MenuEntry{Kind: models.EntryChoice, Text: "(S)econd", Key: "S"},
-	)
+	entries := []models.MenuEntry{
+		{Kind: models.EntryHeader, Text: "Header"},
+		{Kind: models.EntryChoice, Text: "(F)irst", Key: "F"},
+		{Kind: models.EntryChoice, Text: "(S)econd", Key: "S"},
+	}
+	st := gruid.CellStyle{}
 	style := models.MenuStyle{
-		Boxed:            true,
-		ColorBg:          Black,
-		ColorBgAlt:       Gray,
-		ColorFg:          White,
-		ColorAvailable:   White,
-		ColorSelected:    Yellow,
-		ColorUnavailable: White,
-		ColorHeader:      Blue,
-		ColorTitle:       Yellow,
+		Boxed:       true,
+		Content:     st,
+		BgAlt:       ColorAltBg,
+		Selected:    ColorSelected,
+		Unavailable: ColorUnavailable,
+		Header:      st.Foreground(ColorHeader),
+		Title:       st.Foreground(ColorTitle),
 	}
 	menu := models.NewMenu(models.MenuConfig{
-		Grid:    m.grid.Slice(gruid.Range{m.grid.Range().Min, m.grid.Range().Min.Shift(20, len(entries)+2)}),
+		Grid:    m.grid.Slice(gruid.NewRange(0, 0, 20, len(entries)+2)),
 		Entries: entries,
 		Title:   "Menu",
 		Style:   style,
 	})
 	m.menu = menu
+	label := &models.Label{
+		Boxed: true,
+		Grid:  m.grid.Slice(gruid.NewRange(22, 0, 70, 5)),
+		Title: "Menu Action",
+		Text:  "",
+		Style: models.LabelStyle{Content: st, Title: st.Foreground(ColorHeader)},
+	}
+	m.label = label
 	return nil
 }
 
 func (m *model) Update(msg gruid.Msg) gruid.Cmd {
 	m.menu.Update(msg)
-	if m.menu.Action() == models.MenuCancel {
+	switch m.menu.Action() {
+	case models.MenuCancel:
 		return gruid.Quit
+	case models.MenuMove:
+		m.label.Text = "changed selection"
+	case models.MenuAccept:
+		m.label.Text = "accepted selection"
+	case models.MenuPass:
+		m.label.Text = "no action but that is not important the thing is that it does not fit"
 	}
 	return nil
 }
 
 func (m *model) Draw() gruid.Grid {
+	m.label.Draw()
 	return m.menu.Draw()
 }

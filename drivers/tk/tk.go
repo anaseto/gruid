@@ -23,9 +23,9 @@ type TileManager interface {
 }
 
 type Driver struct {
-	TileManager TileManager
-	Width       int // initial screen width in cells
-	Height      int // initial screen height in cells
+	TileManager TileManager // for retrieving tiles
+	Width       int         // initial screen width in cells
+	Height      int         // initial screen height in cells
 	ir          *gothic.Interpreter
 	cache       map[gruid.Cell]*image.RGBA
 	tw          int
