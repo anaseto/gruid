@@ -6,11 +6,14 @@ import (
 	"github.com/anaseto/gruid"
 )
 
+// LabelStyle describes styling options for a Label.
 type LabelStyle struct {
 	Content gruid.CellStyle
 	Title   gruid.CellStyle
 }
 
+// Label represents a bunch of text in a grid. It may be boxed and provided
+// with a title.
 type Label struct {
 	Boxed bool
 	Grid  gruid.Grid
@@ -19,6 +22,7 @@ type Label struct {
 	Style LabelStyle
 }
 
+// Draw draws the label into the grid.
 func (l Label) Draw() gruid.Grid {
 	height := strings.Count(l.Text, "\n") + 1
 	gr := l.Grid

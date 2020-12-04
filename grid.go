@@ -17,8 +17,8 @@ type AttrMask uint
 // and background colors for each driver, as appropiate.
 type Color uint
 
-// This value by default gets special treatment by drivers and is mapped, when
-// it makes sense, to a default color, both for foreground and background.
+// ColorDefault gets special treatment by drivers and is mapped, when it makes
+// sense, to a default color, both for foreground and background.
 const ColorDefault = 0
 
 // Cell contains all the content and styling information to represent a cell in
@@ -366,9 +366,9 @@ func (gd Grid) Frame() Frame {
 	return gd.ug.frame
 }
 
-// Draw computes next frame changes which can be retrieved by calling Frame().
-// If recording is activated the frame changes are recorded, and can be
-// retrieved later by calling Frames().
+// ComputeFrame computes next frame changes which can be retrieved by calling
+// Frame().  If recording is activated the frame changes are recorded, and can
+// be retrieved later by calling Frames().
 //
 // This function is automatically called after each Draw of the Model. You
 // should normally not call it by hand when implementing an application using a

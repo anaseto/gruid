@@ -1,4 +1,4 @@
-// The package ui defines common UI utilities.
+// Package ui defines common UI utilities for gruid.
 package ui
 
 import (
