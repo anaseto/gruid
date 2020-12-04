@@ -19,6 +19,30 @@ func NewStyledText(text string) *StyledText {
 	return &StyledText{text: text}
 }
 
+// Text returns the current styled text as a string.
+func (stt *StyledText) Text() string {
+	return stt.text
+}
+
+// Size returns the minimum (w, h) size in cells which can fit the text.
+func (stt *StyledText) Size() (int, int) {
+	x := 0
+	xmax := 0
+	y := 0
+	for _, r := range stt.text {
+		if r == '\n' {
+			if x > xmax {
+				xmax = x
+			}
+			x = 0
+			y++
+			continue
+		}
+		x++
+	}
+	return xmax + 1, y + 1
+}
+
 // SetStyle changes the default content style.
 func (stt *StyledText) SetStyle(style gruid.CellStyle) {
 	stt.style = style
@@ -58,7 +82,7 @@ func (stt *StyledText) Format(width int) {
 	wantspace := false             // whether we expect currently space (start of a new word that is not at line start)
 	wlen := 0                      // current word length
 	markup := len(stt.markups) > 0 // whether markup is activated
-	proc := false                  // processing markup
+	procm := false                 // processing markup
 	start := true                  // whether at line start
 	for _, r := range stt.text {
 		if r == ' ' || r == '\n' {
@@ -91,8 +115,8 @@ func (stt *StyledText) Format(width int) {
 			continue
 		}
 		if markup {
-			if proc {
-				proc = false
+			if procm {
+				procm = false
 				if wordbuf.Len() == 0 {
 					pbuf.WriteRune(r)
 				} else {
@@ -100,7 +124,7 @@ func (stt *StyledText) Format(width int) {
 				}
 				continue
 			} else if r == '%' {
-				proc = true
+				procm = true
 				if wordbuf.Len() == 0 {
 					pbuf.WriteRune(r)
 				} else {
@@ -131,11 +155,11 @@ func (stt *StyledText) Draw(gd gruid.Grid) {
 	x, y := 0, 0
 	c := gruid.Cell{Style: stt.style}
 	markup := len(stt.markups) > 0 // whether markup is activated
-	proc := false                  // processing markup
+	procm := false                 // processing markup
 	for _, r := range stt.text {
 		if markup {
-			if proc {
-				proc = false
+			if procm {
+				procm = false
 				if r != '%' {
 					st, ok := stt.markups[r]
 					if ok {
@@ -144,7 +168,7 @@ func (stt *StyledText) Draw(gd gruid.Grid) {
 					continue
 				}
 			} else if r == '%' {
-				proc = true
+				procm = true
 			}
 		}
 		if r == '\n' {

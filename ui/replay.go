@@ -7,8 +7,7 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-// NewReplay returns a Model that runs a replay of an application's session with
-// the given recorded frames. It implements the gruid.Model interface.
+// NewReplay returns a new Replay with a given configuration.
 func NewReplay(cfg ReplayConfig) *Replay {
 	return &Replay{
 		gd:     cfg.Grid,
@@ -25,6 +24,8 @@ type ReplayConfig struct {
 	Frames []gruid.Frame // recorded frames to replay
 }
 
+// Replay represents an application's session with the given recorded frames.
+// It implements the gruid.Model interface.
 type Replay struct {
 	frames []gruid.Frame
 	gd     gruid.Grid
