@@ -54,8 +54,9 @@ type model struct {
 
 func (m *model) Init() gruid.Cmd {
 	st := gruid.Style{}
+	m.grid = m.grid.Slice(gruid.NewRange(0, 0, 80, 5))
 	label := ui.NewLabel(ui.LabelConfig{
-		Grid:       m.grid.Slice(gruid.NewRange(0, 0, 80, 5)),
+		Grid:       m.grid,
 		Title:      "Menu Last Action",
 		StyledText: ui.NewStyledText("No input messages yet!"),
 		Style:      ui.LabelStyle{Title: st.WithFg(ColorHeader)},
