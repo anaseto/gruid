@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/anaseto/gruid"
 	"github.com/anaseto/gruid/drivers/tcell"
 	"github.com/anaseto/gruid/ui"
@@ -17,11 +19,11 @@ func main() {
 		Model:  m,
 	})
 	app.Start()
+	fmt.Printf("Successful quit.\n")
 }
 
 const (
-	ColorUnavailable gruid.Color = 1 + iota // skip zero value ColorDefault
-	ColorHeader
+	ColorHeader gruid.Color = 1 + iota // skip zero value ColorDefault
 	ColorSelected
 	ColorAltBg
 	ColorTitle
@@ -32,8 +34,6 @@ type styler struct{}
 func (sty styler) GetStyle(st gruid.CellStyle) tc.Style {
 	ts := tc.StyleDefault
 	switch st.Fg {
-	case ColorUnavailable:
-		ts = ts.Foreground(tc.ColorWhite)
 	case ColorHeader:
 		ts = ts.Foreground(tc.ColorNavy)
 	case ColorSelected, ColorTitle:
@@ -50,24 +50,23 @@ type model struct {
 	grid  gruid.Grid
 	menu  *ui.Menu
 	label *ui.Label
+	init  bool
 }
 
 func (m *model) Init() gruid.Cmd {
 	entries := []ui.MenuEntry{
-		{Kind: ui.EntryHeader, Text: "Header"},
-		{Kind: ui.EntryChoice, Text: "(F)irst", Key: "F"},
-		{Kind: ui.EntryChoice, Text: "(S)econd", Key: "S"},
-		{Kind: ui.EntryChoice, Text: "(T)hird", Key: "T"},
+		{Header: true, Text: "Header"},
+		{Text: "(F)irst", Key: "F"},
+		{Text: "(S)econd", Key: "S"},
+		{Text: "(T)hird", Key: "T"},
 	}
 	st := gruid.CellStyle{}
 	style := ui.MenuStyle{
-		Boxed:       true,
-		Content:     st,
-		BgAlt:       ColorAltBg,
-		Selected:    ColorSelected,
-		Unavailable: ColorUnavailable,
-		Header:      st.Foreground(ColorHeader),
-		Title:       st.Foreground(ColorTitle),
+		Boxed:    true,
+		BgAlt:    ColorAltBg,
+		Selected: ColorSelected,
+		Header:   st.Foreground(ColorHeader),
+		Title:    st.Foreground(ColorTitle),
 	}
 	menu := ui.NewMenu(ui.MenuConfig{
 		Grid:    m.grid.Slice(gruid.NewRange(0, 0, 20, len(entries)+2)),
@@ -79,30 +78,33 @@ func (m *model) Init() gruid.Cmd {
 	label := &ui.Label{
 		Boxed: true,
 		Grid:  m.grid.Slice(gruid.NewRange(22, 0, 70, 5)),
-		Title: "Menu Action",
+		Title: "Menu Last Action",
 		Text:  "",
 		Style: ui.LabelStyle{Content: st, Title: st.Foreground(ColorHeader)},
 	}
 	m.label = label
+	m.init = true
 	return nil
 }
 
 func (m *model) Update(msg gruid.Msg) gruid.Cmd {
+	m.init = false
 	m.menu.Update(msg)
 	switch m.menu.Action() {
 	case ui.MenuCancel:
 		return gruid.Quit
 	case ui.MenuMove:
-		m.label.Text = "moved selection"
-	case ui.MenuAccept:
-		m.label.Text = "accepted selection"
-	case ui.MenuPass:
-		m.label.Text = "no action (like mouse motion)"
+		m.label.Text = fmt.Sprintf("moved selection to entry number %d", m.menu.Selection())
+	case ui.MenuActivate:
+		m.label.Text = fmt.Sprintf("activated entry number %d", m.menu.Selection())
 	}
 	return nil
 }
 
 func (m *model) Draw() gruid.Grid {
-	m.label.Draw()
-	return m.menu.Draw()
+	if m.menu.Action() != ui.MenuPass || m.init {
+		m.menu.Draw()
+		m.label.Draw()
+	}
+	return m.grid
 }

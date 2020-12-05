@@ -6,22 +6,12 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-// MenuEntryKind represents the different kinds of entries.
-type MenuEntryKind int
-
-// These constants define the available entry kinds.
-const (
-	EntryChoice      MenuEntryKind = iota // a choice
-	EntryUnavailable                      // an unavailable choice
-	EntryHeader                           // a sub-header
-)
-
 // MenuEntry represents an entry in the menu. It is displayed on one line, and
 // for example can be a choice or a header.
 type MenuEntry struct {
-	Kind MenuEntryKind // available choice, header line, etc.
-	Text string        // displayed text on the entry line
-	Key  gruid.Key     // accept entry shortcut, if any
+	Text   string    // displayed text on the entry line
+	Key    gruid.Key // accept entry shortcut, if any and activable
+	Header bool      // not an activable entry, but a sub-header entry
 }
 
 // MenuAction represents an user action with the menu.
@@ -29,29 +19,41 @@ type MenuAction int
 
 // These constants represent the available actions in a menu.
 const (
-	MenuPass   MenuAction = iota // no action
-	MenuAccept                   // accepted current selection
-	MenuCancel                   // cancelled selection / close menu
-	MenuMove                     // changed selection
+	// MenuPass reports that the menu state did not change (for example a
+	// mouse motion outside the menu, or within a same entry line).
+	MenuPass MenuAction = iota
+
+	// MenuActivate reports that the user clicked or pressed enter to
+	// activate/accept a selected entry, or used a shortcut key to select
+	// and activate/accept a specific entry.
+	MenuActivate
+
+	// MenuCancel reports that the user clicked outside the menu, or
+	// pressed Esc, Space or X.
+	MenuCancel
+
+	// MenuMove reports that the user moved the selection cursor by using
+	// the arrow keys or a mouse motion.
+	MenuMove
 )
 
 // MenuStyle represents menu styles.
 type MenuStyle struct {
-	Boxed       bool // draw a box around the menu
-	Content     gruid.CellStyle
-	BgAlt       gruid.Color     // alternate bg on even entry lines
-	Selected    gruid.Color     // for selected entry
-	Unavailable gruid.Color     // for unavailable entry
-	Header      gruid.CellStyle // header entry
-	Title       gruid.CellStyle // box title
+	BgAlt    gruid.Color     // alternate background on even choice lines
+	Selected gruid.Color     // foreground for selected entry
+	Header   gruid.CellStyle // header entry
+	Boxed    bool            // draw a box around the menu
+	Box      gruid.CellStyle // box style, if any
+	Title    gruid.CellStyle // box title style, if any
 }
 
 // MenuConfig contains configuration options for creating a menu.
 type MenuConfig struct {
-	Grid    gruid.Grid  // grid slice where the menu is drawn
-	Entries []MenuEntry // menu entries
-	Title   string      // optional title
-	Style   MenuStyle
+	Grid       gruid.Grid  // grid slice where the menu is drawn
+	Entries    []MenuEntry // menu entries
+	Title      string      // optional title
+	StyledText StyledText  // default styled text formatter for content
+	Style      MenuStyle
 }
 
 // NewMenu returns a menu with a given configuration.
@@ -60,6 +62,7 @@ func NewMenu(cfg MenuConfig) *Menu {
 		grid:    cfg.Grid,
 		entries: cfg.Entries,
 		title:   cfg.Title,
+		stt:     cfg.StyledText,
 		style:   cfg.Style,
 		draw:    true,
 	}
@@ -73,6 +76,7 @@ type Menu struct {
 	grid    gruid.Grid
 	entries []MenuEntry
 	title   string
+	stt     StyledText
 	style   MenuStyle
 	cursor  int
 	action  MenuAction
@@ -97,10 +101,19 @@ func (m *Menu) SetEntries(entries []MenuEntry) {
 	}
 }
 
-// Update implements Model.Update
+// SetCursor updates the cursor selection index among entries. It may be used
+// to launch the menu at a specific default starting index.
+func (m *Menu) SetCursor(n int) {
+	if n < 0 || n >= len(m.entries) {
+		return
+	}
+	m.cursor = n
+}
+
+// Update implements gruid.Model.Update and updates the menu state in response to
+// user input messages.
 func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 	l := len(m.entries)
-	m.draw = false
 	m.action = MenuPass // no action still
 	switch msg := msg.(type) {
 	case gruid.MsgKeyDown:
@@ -110,82 +123,79 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 		case msg.Key == gruid.KeyArrowDown:
 			m.action = MenuMove
 			m.cursor++
-			for m.cursor < l && m.entries[m.cursor].Kind != EntryChoice {
+			for m.cursor < l && m.entries[m.cursor].Header {
 				m.cursor++
 			}
 			if m.cursor >= l {
 				m.cursorAtFirstChoice()
 			}
-			m.draw = true
 		case msg.Key == gruid.KeyArrowUp:
 			m.action = MenuMove
 			m.cursor--
-			for m.cursor >= 0 && m.entries[m.cursor].Kind != EntryChoice {
+			for m.cursor >= 0 && m.entries[m.cursor].Header {
 				m.cursor--
 			}
 			if m.cursor < 0 {
+				m.cursor = 0
 				m.cursorAtLastChoice()
 			}
-			m.draw = true
-		case msg.Key == gruid.KeyEnter && m.entries[m.cursor].Kind == EntryChoice:
-			m.action = MenuAccept
-			m.draw = true
+		case msg.Key == gruid.KeyEnter && m.cursor < l && !m.entries[m.cursor].Header:
+			m.action = MenuActivate
 		default:
 			nchars := utf8.RuneCountInString(string(msg.Key))
 			if nchars == 1 {
 				for i, e := range m.entries {
 					if e.Key == msg.Key {
 						m.cursor = i
-						m.action = MenuAccept
+						m.action = MenuActivate
 						break
 					}
 				}
 			}
-			m.draw = true
 		}
 	case gruid.MsgMouseMove:
-		pos := msg.MousePos.Relative(m.grid.Range())
-		if !m.grid.Contains(pos) {
+		rg := m.grid.Range()
+		if m.style.Boxed {
+			rg = rg.Shift(1, 1, -1, -1)
+		}
+		pos := msg.MousePos.Relative(rg)
+		if !pos.In(rg.Relative()) || pos.Y >= len(m.entries) {
 			break
 		}
-		if m.isEdgePos(pos) {
+		if pos.Y == m.cursor {
 			break
 		}
-		if pos.Y-1 == m.cursor {
-			break
-		}
-		m.draw = true
-		m.cursor = pos.Y - 1
+		m.cursor = pos.Y
 		m.action = MenuMove
 	case gruid.MsgMouseDown:
-		pos := msg.MousePos.Relative(m.grid.Range())
+		rg := m.grid.Range()
+		if m.style.Boxed {
+			rg = rg.Shift(1, 1, -1, -1)
+		}
+		pos := msg.MousePos.Relative(rg)
 		switch msg.Button {
 		case gruid.ButtonMain:
-			if !m.grid.Contains(pos) {
+			if !msg.MousePos.In(m.grid.Range()) || !m.style.Boxed && pos.Y >= len(m.entries) {
 				m.action = MenuCancel
 				break
 			}
-			if m.isEdgePos(pos) {
+			if !pos.In(rg.Relative()) || pos.Y >= len(m.entries) {
 				break
 			}
-			m.cursor = pos.Y - 1
+			m.cursor = pos.Y
 			m.action = MenuMove
-			if m.entries[m.cursor].Kind == EntryChoice {
-				m.action = MenuAccept
+			if !m.entries[m.cursor].Header {
+				m.action = MenuActivate
 			}
-			m.draw = true
 		}
 	}
 	return nil
 }
 
-func (m *Menu) isEdgePos(pos gruid.Position) bool {
-	return pos.X == 0 || pos.X == m.grid.Range().Width()-1 || pos.Y == 0 || pos.Y == m.grid.Range().Height()-1
-}
-
 func (m *Menu) cursorAtFirstChoice() {
+	m.cursor = 0
 	for i, c := range m.entries {
-		if c.Kind == EntryChoice {
+		if !c.Header {
 			m.cursor = i
 			break
 		}
@@ -193,23 +203,21 @@ func (m *Menu) cursorAtFirstChoice() {
 }
 
 func (m *Menu) cursorAtLastChoice() {
+	m.cursor = 0
 	for i, c := range m.entries {
-		if c.Kind == EntryChoice {
+		if !c.Header {
 			m.cursor = i
 		}
 	}
 }
 
-// Draw implements Model.Draw.
+// Draw implements gruid.Model.Draw.
 func (m *Menu) Draw() gruid.Grid {
-	if !m.draw {
-		return m.grid
-	}
 	if m.style.Boxed {
 		b := box{
 			grid:       m.grid,
 			title:      m.title,
-			style:      m.style.Content,
+			style:      m.style.Box,
 			titleStyle: m.style.Title,
 		}
 		b.draw()
@@ -217,24 +225,22 @@ func (m *Menu) Draw() gruid.Grid {
 	alt := false
 	rg := m.grid.Range().Relative()
 	cgrid := m.grid.Slice(rg.Shift(1, 1, -1, -1))
+	if !m.style.Boxed {
+		cgrid = m.grid
+	}
 	crg := cgrid.Range().Relative()
 	for i, c := range m.entries {
-		if c.Kind != EntryHeader {
-			st := m.style.Content
+		if !c.Header {
+			st := m.stt.Style()
 			if alt {
 				st.Bg = m.style.BgAlt
 			}
 			alt = !alt
-			if c.Kind == EntryUnavailable {
-				st.Fg = m.style.Unavailable
-			}
-			if c.Kind == EntryChoice && i == m.cursor {
+			if i == m.cursor {
 				st.Fg = m.style.Selected
 			}
 			nchars := utf8.RuneCountInString(c.Text)
-			stt := NewStyledText(c.Text)
-			stt.SetStyle(st)
-			stt.Draw(cgrid.Slice(crg.Line(i)))
+			m.stt.With(c.Text, st).Draw(cgrid.Slice(crg.Line(i)))
 			cell := gruid.Cell{Rune: ' ', Style: st}
 			line := cgrid.Slice(crg.Line(i).Shift(nchars, 0, 0, 0))
 			line.Iter(func(pos gruid.Position) {
@@ -244,9 +250,7 @@ func (m *Menu) Draw() gruid.Grid {
 			alt = false
 			st := m.style.Header
 			nchars := utf8.RuneCountInString(c.Text)
-			stt := NewStyledText(c.Text)
-			stt.SetStyle(st)
-			stt.Draw(cgrid.Slice(crg.Line(i)))
+			m.stt.With(c.Text, st).Draw(cgrid.Slice(crg.Line(i)))
 			cell := gruid.Cell{Rune: ' ', Style: st}
 			line := cgrid.Slice(crg.Line(i).Shift(nchars, 0, 0, 0))
 			line.Iter(func(pos gruid.Position) {

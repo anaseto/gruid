@@ -51,8 +51,6 @@ func (l Label) Draw() gruid.Grid {
 	tgrid.Iter(func(pos gruid.Position) {
 		tgrid.SetCell(pos, gruid.Cell{Rune: ' ', Style: l.Style.Content})
 	})
-	st := NewStyledText(l.Text)
-	st.SetStyle(l.Style.Content)
-	st.Draw(tgrid)
+	NewStyledText(l.Text).WithStyle(l.Style.Content).Draw(tgrid)
 	return gr
 }

@@ -29,8 +29,7 @@ func (b box) draw() {
 		line.Iter(func(pos gruid.Position) {
 			line.SetCell(pos, cell)
 		})
-		stt := NewStyledText(b.title)
-		stt.SetStyle(b.titleStyle)
+		stt := NewStyledText(b.title).WithStyle(b.titleStyle)
 		stt.Draw(cgrid.Slice(crg.Line(0).Shift(dist, 0, 0, 0)))
 		line = cgrid.Slice(crg.Line(0).Shift(dist+nchars, 0, 0, 0))
 		line.Iter(func(pos gruid.Position) {
