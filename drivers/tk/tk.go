@@ -33,6 +33,7 @@ type Driver struct {
 	mousepos    gruid.Position
 	canvas      *image.RGBA
 	msgs        chan gruid.Msg
+	mousedrag   int
 }
 
 func (tk *Driver) Init() error {
@@ -53,7 +54,7 @@ image create photo appscreen -width $width -height $height -palette 256/256/256
 image create photo bufscreen -width $width -height $height -palette 256/256/256
 $can create image 0 0 -anchor nw -image appscreen
 `, tk.tw, tk.Width, tk.th, tk.Height))
-	tk.ir.RegisterCommand("GetKey", func(c, keysym string) {
+	tk.ir.RegisterCommand("GetKey", func(c, keysym, mod string) {
 		var s string
 		if c != "" {
 			s = c
@@ -62,13 +63,36 @@ $can create image 0 0 -anchor nw -image appscreen
 		}
 		if len(tk.msgs) < cap(tk.msgs) {
 			if msg, ok := getMsgKeyDown(s); ok {
+				if mod == "Shift" {
+					msg.Shift = true
+				}
 				tk.msgs <- msg
 			}
 		}
 	})
 	tk.ir.RegisterCommand("MouseDown", func(x, y, n int) {
 		if len(tk.msgs) < cap(tk.msgs) {
-			tk.msgs <- gruid.MsgMouse{MousePos: gruid.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th}, Action: gruid.MouseAction(n - 1), Time: time.Now()}
+			if tk.mousedrag > 0 {
+				return
+			}
+			var action gruid.MouseAction
+			switch n {
+			case 1, 2, 3:
+				action = gruid.MouseAction(n - 1)
+				tk.mousedrag = n
+				tk.msgs <- gruid.MsgMouse{MousePos: gruid.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th},
+					Action: action, Time: time.Now()}
+			}
+		}
+	})
+	tk.ir.RegisterCommand("MouseRelease", func(x, y, n int) {
+		if len(tk.msgs) < cap(tk.msgs) {
+			if tk.mousedrag != n {
+				return
+			}
+			tk.mousedrag = 0
+			tk.msgs <- gruid.MsgMouse{MousePos: gruid.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th},
+				Action: gruid.MouseRelease, Time: time.Now()}
 		}
 	})
 	tk.ir.RegisterCommand("MouseMotion", func(x, y int) {
@@ -78,7 +102,8 @@ $can create image 0 0 -anchor nw -image appscreen
 			if len(tk.msgs) < cap(tk.msgs) {
 				tk.mousepos.X = nx
 				tk.mousepos.Y = ny
-				tk.msgs <- gruid.MsgMouse{Action: gruid.MouseMove, MousePos: gruid.Position{X: nx, Y: ny}, Time: time.Now()}
+				tk.msgs <- gruid.MsgMouse{MousePos: gruid.Position{X: nx, Y: ny},
+					Action: gruid.MouseMove, Time: time.Now()}
 			}
 		}
 	})
@@ -88,8 +113,11 @@ $can create image 0 0 -anchor nw -image appscreen
 		}
 	})
 	tk.ir.Eval(`
+bind .c <Shift-Key> {
+	GetKey %A %K Shift
+}
 bind .c <Key> {
-	GetKey %A %K
+	GetKey %A %K {}
 }
 bind .c <Motion> {
 	MouseMotion %x %y
@@ -97,13 +125,16 @@ bind .c <Motion> {
 bind .c <ButtonPress> {
 	MouseDown %x %y %b
 }
+bind .c <ButtonRelease> {
+	MouseRelease %x %y %b
+}
 wm protocol . WM_DELETE_WINDOW OnClosing
 `)
 
 	return nil
 }
 
-func getMsgKeyDown(s string) (gruid.Msg, bool) {
+func getMsgKeyDown(s string) (gruid.MsgKeyDown, bool) {
 	var key gruid.Key
 	switch s {
 	case "Down", "KP_2":
@@ -138,7 +169,7 @@ func getMsgKeyDown(s string) (gruid.Msg, bool) {
 		key = gruid.KeyTab
 	default:
 		if utf8.RuneCountInString(s) != 1 {
-			return "", false
+			return gruid.MsgKeyDown{}, false
 		}
 		key = gruid.Key(s)
 	}

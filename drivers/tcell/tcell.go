@@ -17,6 +17,7 @@ type Driver struct {
 	StyleManager StyleManager
 	screen       tcell.Screen
 	mousedrag    bool
+	mousePos     gruid.Position
 }
 
 func (t *Driver) Init() error {
@@ -51,95 +52,102 @@ func (t *Driver) PollMsg() gruid.Msg {
 	for {
 		switch tev := t.screen.PollEvent().(type) {
 		case *tcell.EventKey:
-			ev := gruid.MsgKeyDown{}
-			ev.Time = tev.When()
+			msg := gruid.MsgKeyDown{}
+			if tev.Modifiers() == tcell.ModShift {
+				msg.Shift = true
+			}
+			msg.Time = tev.When()
 			switch tev.Key() {
 			case tcell.KeyDown:
-				ev.Key = gruid.KeyArrowDown
+				msg.Key = gruid.KeyArrowDown
 			case tcell.KeyLeft:
-				ev.Key = gruid.KeyArrowLeft
+				msg.Key = gruid.KeyArrowLeft
 			case tcell.KeyRight:
-				ev.Key = gruid.KeyArrowRight
+				msg.Key = gruid.KeyArrowRight
 			case tcell.KeyUp:
-				ev.Key = gruid.KeyArrowUp
+				msg.Key = gruid.KeyArrowUp
 			case tcell.KeyBackspace:
-				ev.Key = gruid.KeyBackspace
+				msg.Key = gruid.KeyBackspace
 			case tcell.KeyDelete:
-				ev.Key = gruid.KeyDelete
+				msg.Key = gruid.KeyDelete
 			case tcell.KeyEnd:
-				ev.Key = gruid.KeyEnd
+				msg.Key = gruid.KeyEnd
 			case tcell.KeyEscape:
-				ev.Key = gruid.KeyEscape
+				msg.Key = gruid.KeyEscape
 			case tcell.KeyEnter:
-				ev.Key = gruid.KeyEnter
+				msg.Key = gruid.KeyEnter
 			case tcell.KeyHome:
-				ev.Key = gruid.KeyHome
+				msg.Key = gruid.KeyHome
 			case tcell.KeyInsert:
-				ev.Key = gruid.KeyInsert
+				msg.Key = gruid.KeyInsert
 			case tcell.KeyPgUp:
-				ev.Key = gruid.KeyPageUp
+				msg.Key = gruid.KeyPageUp
 			case tcell.KeyPgDn:
-				ev.Key = gruid.KeyPageDown
+				msg.Key = gruid.KeyPageDown
 			case tcell.KeyTab:
-				ev.Key = gruid.KeyTab
+				msg.Key = gruid.KeyTab
 			}
-			if tev.Rune() != 0 && ev.Key == "" {
-				ev.Key = gruid.Key(tev.Rune())
+			if tev.Rune() != 0 && msg.Key == "" {
+				msg.Key = gruid.Key(tev.Rune())
 			}
-			return ev
+			return msg
 		case *tcell.EventMouse:
 			x, y := tev.Position()
 			switch tev.Buttons() {
 			case tcell.Button1:
-				ev := gruid.MsgMouse{}
-				ev.Time = tev.When()
-				ev.MousePos = gruid.Position{X: x, Y: y}
+				msg := gruid.MsgMouse{}
+				msg.Time = tev.When()
+				msg.MousePos = gruid.Position{X: x, Y: y}
 				if t.mousedrag {
-					ev.Action = gruid.MouseMove
+					msg.Action = gruid.MouseMove
 				} else {
-					ev.Action = gruid.MouseMain
+					msg.Action = gruid.MouseMain
 					t.mousedrag = true
 				}
-				return ev
+				return msg
 			case tcell.Button3:
-				ev := gruid.MsgMouse{}
-				ev.Time = tev.When()
-				ev.MousePos = gruid.Position{X: x, Y: y}
+				msg := gruid.MsgMouse{}
+				msg.Time = tev.When()
+				msg.MousePos = gruid.Position{X: x, Y: y}
 				if t.mousedrag {
-					ev.Action = gruid.MouseMove
+					msg.Action = gruid.MouseMove
 				} else {
-					ev.Action = gruid.MouseAuxiliary
+					msg.Action = gruid.MouseAuxiliary
 					t.mousedrag = true
 				}
-				return ev
+				return msg
 			case tcell.Button2:
-				ev := gruid.MsgMouse{}
-				ev.Time = tev.When()
-				ev.MousePos = gruid.Position{X: x, Y: y}
+				msg := gruid.MsgMouse{}
+				msg.Time = tev.When()
+				msg.MousePos = gruid.Position{X: x, Y: y}
 				if t.mousedrag {
-					ev.Action = gruid.MouseMove
+					msg.Action = gruid.MouseMove
 				} else {
-					ev.Action = gruid.MouseSecondary
+					msg.Action = gruid.MouseSecondary
 					t.mousedrag = true
 				}
-				return ev
+				return msg
 			case tcell.ButtonNone:
-				ev := gruid.MsgMouse{}
-				ev.Time = tev.When()
-				ev.MousePos = gruid.Position{X: x, Y: y}
+				msg := gruid.MsgMouse{}
+				msg.Time = tev.When()
+				msg.MousePos = gruid.Position{X: x, Y: y}
 				if t.mousedrag {
 					t.mousedrag = false
-					ev.Action = gruid.MouseRelease
+					msg.Action = gruid.MouseRelease
 				} else {
-					ev.Action = gruid.MouseMove
+					if t.mousePos == msg.MousePos {
+						continue
+					}
+					msg.Action = gruid.MouseMove
+					t.mousePos = msg.MousePos
 				}
-				return ev
+				return msg
 			}
 		case *tcell.EventResize:
-			ev := gruid.MsgScreenSize{}
-			ev.Time = tev.When()
-			ev.Width, ev.Height = tev.Size()
-			return ev
+			msg := gruid.MsgScreenSize{}
+			msg.Time = tev.When()
+			msg.Width, msg.Height = tev.Size()
+			return msg
 		}
 	}
 }

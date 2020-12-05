@@ -31,9 +31,11 @@ type Driver struct {
 	grid        gruid.Grid
 	msgs        chan gruid.Msg
 	flushdone   chan bool
+	mousedrag   int
 }
 
 func (dr *Driver) Init() error {
+	dr.mousedrag = -1
 	dr.msgs = make(chan gruid.Msg, 5)
 	dr.flushdone = make(chan bool)
 	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
@@ -73,6 +75,9 @@ func (dr *Driver) Init() error {
 			}
 			if len(dr.msgs) < cap(dr.msgs) {
 				if msg, ok := getMsgKeyDown(s, code); ok {
+					if e.Get("shiftKey").Bool() {
+						msg.Shift = true
+					}
 					dr.msgs <- msg
 				}
 			}
@@ -82,8 +87,30 @@ func (dr *Driver) Init() error {
 		"addEventListener", "mousedown", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 			e := args[0]
 			pos := dr.getMousePos(e)
+			if dr.mousedrag >= 0 {
+				return nil
+			}
+			n := e.Get("button").Int()
 			if len(dr.msgs) < cap(dr.msgs) {
-				dr.msgs <- gruid.MsgMouse{MousePos: pos, Action: gruid.MouseAction(e.Get("button").Int()), Time: time.Now()}
+				switch n {
+				case 0, 1, 2:
+					dr.mousedrag = n
+					dr.msgs <- gruid.MsgMouse{MousePos: pos, Action: gruid.MouseAction(n), Time: time.Now()}
+				}
+			}
+			return nil
+		}))
+	canvas.Call(
+		"addEventListener", "mouseup", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+			e := args[0]
+			pos := dr.getMousePos(e)
+			n := e.Get("button").Int()
+			if dr.mousedrag != n {
+				return nil
+			}
+			dr.mousedrag = -1
+			if len(dr.msgs) < cap(dr.msgs) {
+				dr.msgs <- gruid.MsgMouse{MousePos: pos, Action: gruid.MouseAction(n), Time: time.Now()}
 			}
 			return nil
 		}))
@@ -113,7 +140,7 @@ func (dr *Driver) getMousePos(evt js.Value) gruid.Position {
 	return gruid.Position{X: (int(x) - 1) / dr.tw, Y: (int(y) - 1) / dr.th}
 }
 
-func getMsgKeyDown(s, code string) (gruid.Msg, bool) {
+func getMsgKeyDown(s, code string) (gruid.MsgKeyDown, bool) {
 	if code == "Numpad5" && s != "5" {
 		s = "Enter"
 	}
@@ -151,7 +178,7 @@ func getMsgKeyDown(s, code string) (gruid.Msg, bool) {
 		key = gruid.KeyTab
 	default:
 		if utf8.RuneCountInString(s) != 1 {
-			return "", false
+			return gruid.MsgKeyDown{}, false
 		}
 		key = gruid.Key(s)
 	}
@@ -200,7 +227,7 @@ func (dr *Driver) draw(cell gruid.Cell, x, y int) {
 }
 
 func (dr *Driver) Close() {
-	dr.grid = nil // release grid resource
+	dr.grid = gruid.Grid{} // release grid resource
 }
 
 func (dr *Driver) ClearCache() {
