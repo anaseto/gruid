@@ -81,15 +81,15 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Cmd {
 			rep.action = replayPrevious
 			rep.auto = false
 		}
-	case gruid.MsgMouseDown:
-		switch msg.Button {
-		case gruid.ButtonMain:
+	case gruid.MsgMouse:
+		switch msg.Action {
+		case gruid.MouseMain:
 			rep.action = replayTogglePause
-		case gruid.ButtonAuxiliary:
+		case gruid.MouseAuxiliary:
 			rep.action = replayNext
 			rep.action = replayTogglePause
 			rep.auto = false
-		case gruid.ButtonSecondary:
+		case gruid.MouseSecondary:
 			rep.action = replayPrevious
 			rep.auto = false
 		}

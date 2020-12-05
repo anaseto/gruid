@@ -83,7 +83,7 @@ func (dr *Driver) Init() error {
 			e := args[0]
 			pos := dr.getMousePos(e)
 			if len(dr.msgs) < cap(dr.msgs) {
-				dr.msgs <- gruid.MsgMouseDown{MousePos: pos, Button: gruid.MouseButton(e.Get("button").Int()), Time: time.Now()}
+				dr.msgs <- gruid.MsgMouse{MousePos: pos, Action: gruid.MouseAction(e.Get("button").Int()), Time: time.Now()}
 			}
 			return nil
 		}))
@@ -95,7 +95,7 @@ func (dr *Driver) Init() error {
 				dr.mousepos.X = pos.X
 				dr.mousepos.Y = pos.Y
 				if len(dr.msgs) < cap(dr.msgs) {
-					dr.msgs <- gruid.MsgMouseMove{MousePos: pos, Time: time.Now()}
+					dr.msgs <- gruid.MsgMouse{Action: gruid.MouseMove, MousePos: pos, Time: time.Now()}
 				}
 			}
 			return nil

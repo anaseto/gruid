@@ -68,7 +68,7 @@ $can create image 0 0 -anchor nw -image appscreen
 	})
 	tk.ir.RegisterCommand("MouseDown", func(x, y, n int) {
 		if len(tk.msgs) < cap(tk.msgs) {
-			tk.msgs <- gruid.MsgMouseDown{MousePos: gruid.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th}, Button: gruid.MouseButton(n - 1), Time: time.Now()}
+			tk.msgs <- gruid.MsgMouse{MousePos: gruid.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th}, Action: gruid.MouseAction(n - 1), Time: time.Now()}
 		}
 	})
 	tk.ir.RegisterCommand("MouseMotion", func(x, y int) {
@@ -78,7 +78,7 @@ $can create image 0 0 -anchor nw -image appscreen
 			if len(tk.msgs) < cap(tk.msgs) {
 				tk.mousepos.X = nx
 				tk.mousepos.Y = ny
-				tk.msgs <- gruid.MsgMouseMove{MousePos: gruid.Position{X: nx, Y: ny}, Time: time.Now()}
+				tk.msgs <- gruid.MsgMouse{Action: gruid.MouseMove, MousePos: gruid.Position{X: nx, Y: ny}, Time: time.Now()}
 			}
 		}
 	})

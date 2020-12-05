@@ -6,10 +6,10 @@ import (
 
 // LabelStyle describes styling options for a Label.
 type LabelStyle struct {
-	Boxed       bool            // draw a box around the label
+	Boxed       bool        // draw a box around the label
 	Box         gruid.Style // box style, if any
 	Title       gruid.Style // box title style, if any
-	AdjustWidth bool            // reduce the width of the box if possible
+	AdjustWidth bool        // reduce the width of the box if possible
 }
 
 // LabelConfig describes configuration options for a creating a label.
@@ -43,12 +43,17 @@ func NewLabel(cfg LabelConfig) *Label {
 	return lb
 }
 
-// SetText updates the styled text for the label.
+// SetStyledText updates the styled text for the label.
+func (lb *Label) SetStyledText(stt StyledText) {
+	lb.stt = stt
+}
+
+// SetText updates the text for the label.
 func (lb *Label) SetText(text string) {
 	lb.stt = lb.stt.WithText(text)
 }
 
-// Text returns the styled text currently used by the label.
+// Text returns the text currently used by the label.
 func (lb *Label) Text() string {
 	return lb.stt.Text()
 }

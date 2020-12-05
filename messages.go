@@ -37,27 +37,40 @@ func (ev MsgKeyDown) ShiftKey() bool {
 	return ev.shift
 }
 
-// MouseButton represents mouse buttons.
-type MouseButton int
+// MouseAction represents mouse buttons.
+type MouseAction int
 
-// This is the list of supported mouse buttons.
+// This is the list of supported mouse buttons and actions.
 const (
-	ButtonMain      MouseButton = iota // left button
-	ButtonAuxiliary                    // middle button
-	ButtonSecondary                    // right button
+	MouseMain      MouseAction = iota // left button
+	MouseAuxiliary                    // middle button
+	MouseSecondary                    // right button
+	MouseRelease                      // button release
+	MouseMove                         // mouse motion
 )
 
-// MsgMouseDown represents a mouse click.
-type MsgMouseDown struct {
-	Button   MouseButton // which button was pressed
-	MousePos Position    // mouse position in the grid
-	Time     time.Time   // time when the event was generated
+func (ma MouseAction) String() string {
+	var s string
+	switch ma {
+	case MouseMain:
+		s = "button main"
+	case MouseAuxiliary:
+		s = "button auxiliary"
+	case MouseSecondary:
+		s = "button secondary"
+	case MouseRelease:
+		s = "button release"
+	case MouseMove:
+		s = "move"
+	}
+	return s
 }
 
-// MsgMouseMove represents a mouse motion.
-type MsgMouseMove struct {
-	MousePos Position  // mouse position in the grid
-	Time     time.Time // time when the event was generated
+// MsgMouse represents a mouse user event.
+type MsgMouse struct {
+	Action   MouseAction // mouse action (click, release, move)
+	MousePos Position    // mouse position in the grid
+	Time     time.Time   // time when the event was generated
 }
 
 type msgQuit struct{}

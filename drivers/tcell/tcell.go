@@ -16,6 +16,7 @@ type Driver struct {
 	// attributes.
 	StyleManager StyleManager
 	screen       tcell.Screen
+	mousedrag    bool
 }
 
 func (t *Driver) Init() error {
@@ -90,27 +91,48 @@ func (t *Driver) PollMsg() gruid.Msg {
 			x, y := tev.Position()
 			switch tev.Buttons() {
 			case tcell.Button1:
-				ev := gruid.MsgMouseDown{}
+				ev := gruid.MsgMouse{}
 				ev.Time = tev.When()
 				ev.MousePos = gruid.Position{X: x, Y: y}
-				ev.Button = gruid.ButtonMain
+				if t.mousedrag {
+					ev.Action = gruid.MouseMove
+				} else {
+					ev.Action = gruid.MouseMain
+					t.mousedrag = true
+				}
 				return ev
 			case tcell.Button3:
-				ev := gruid.MsgMouseDown{}
+				ev := gruid.MsgMouse{}
 				ev.Time = tev.When()
 				ev.MousePos = gruid.Position{X: x, Y: y}
-				ev.Button = gruid.ButtonAuxiliary
+				if t.mousedrag {
+					ev.Action = gruid.MouseMove
+				} else {
+					ev.Action = gruid.MouseAuxiliary
+					t.mousedrag = true
+				}
 				return ev
 			case tcell.Button2:
-				ev := gruid.MsgMouseDown{}
+				ev := gruid.MsgMouse{}
 				ev.Time = tev.When()
 				ev.MousePos = gruid.Position{X: x, Y: y}
-				ev.Button = gruid.ButtonSecondary
+				if t.mousedrag {
+					ev.Action = gruid.MouseMove
+				} else {
+					ev.Action = gruid.MouseSecondary
+					t.mousedrag = true
+				}
 				return ev
 			case tcell.ButtonNone:
-				ev := gruid.MsgMouseMove{}
+				ev := gruid.MsgMouse{}
 				ev.Time = tev.When()
 				ev.MousePos = gruid.Position{X: x, Y: y}
+				if t.mousedrag {
+					t.mousedrag = false
+					ev.Action = gruid.MouseRelease
+				} else {
+					ev.Action = gruid.MouseMove
+				}
 				return ev
 			}
 		case *tcell.EventResize:

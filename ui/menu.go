@@ -39,10 +39,10 @@ const (
 
 // MenuStyle describes styling options for a menu.
 type MenuStyle struct {
-	BgAlt    gruid.Color     // alternate background on even choice lines
-	Selected gruid.Color     // foreground for selected entry
+	BgAlt    gruid.Color // alternate background on even choice lines
+	Selected gruid.Color // foreground for selected entry
 	Header   gruid.Style // header entry
-	Boxed    bool            // draw a box around the menu
+	Boxed    bool        // draw a box around the menu
 	Box      gruid.Style // box style, if any
 	Title    gruid.Style // box title style, if any
 }
@@ -161,25 +161,20 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 				}
 			}
 		}
-	case gruid.MsgMouseMove:
+	case gruid.MsgMouse:
 		crg := rg // content range
 		if m.style.Boxed {
 			crg = crg.Shift(1, 1, -1, -1)
 		}
 		pos := msg.MousePos.Relative(crg)
-		if !pos.In(crg.Relative()) || pos.Y == m.cursor || pos.Y >= len(m.entries) {
-			break
-		}
-		m.cursor = pos.Y
-		m.action = MenuMove
-	case gruid.MsgMouseDown:
-		crg := rg // content range
-		if m.style.Boxed {
-			crg = crg.Shift(1, 1, -1, -1)
-		}
-		pos := msg.MousePos.Relative(crg)
-		switch msg.Button {
-		case gruid.ButtonMain:
+		switch msg.Action {
+		case gruid.MouseMove:
+			if !pos.In(crg.Relative()) || pos.Y == m.cursor || pos.Y >= len(m.entries) {
+				break
+			}
+			m.cursor = pos.Y
+			m.action = MenuMove
+		case gruid.MouseMain:
 			if !msg.MousePos.In(rg) || !m.style.Boxed && pos.Y >= len(m.entries) {
 				m.action = MenuCancel
 				break
