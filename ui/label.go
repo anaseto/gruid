@@ -43,12 +43,12 @@ func NewLabel(cfg LabelConfig) *Label {
 	return lb
 }
 
-// SetStyledText updates the styled text for the label.
+// SetText updates the styled text for the label.
 func (lb *Label) SetText(text string) {
 	lb.stt = lb.stt.WithText(text)
 }
 
-// StyledText returns the styled text currently used by the label.
+// Text returns the styled text currently used by the label.
 func (lb *Label) Text() string {
 	return lb.stt.Text()
 }
