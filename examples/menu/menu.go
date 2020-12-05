@@ -56,9 +56,9 @@ type model struct {
 func (m *model) Init() gruid.Cmd {
 	entries := []ui.MenuEntry{
 		{Header: true, Text: "Header"},
-		{Text: "(F)irst", Key: "F"},
-		{Text: "(S)econd", Key: "S"},
-		{Text: "(T)hird", Key: "T"},
+		{Text: "(F)irst", Keys: []gruid.Key{"f", "F"}},
+		{Text: "(S)econd", Keys: []gruid.Key{"s", "S"}},
+		{Text: "(T)hird", Keys: []gruid.Key{"t", "T"}},
 	}
 	st := gruid.CellStyle{}
 	style := ui.MenuStyle{

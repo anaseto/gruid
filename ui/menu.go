@@ -9,9 +9,9 @@ import (
 // MenuEntry represents an entry in the menu. It is displayed on one line, and
 // for example can be a choice or a header.
 type MenuEntry struct {
-	Text   string    // displayed text on the entry line
-	Key    gruid.Key // accept entry shortcut, if any and activable
-	Header bool      // not an activable entry, but a sub-header entry
+	Text   string      // displayed text on the entry line
+	Keys   []gruid.Key // accept entry shortcuts, if any and activable
+	Header bool        // not an activable entry, but a sub-header entry
 }
 
 // MenuAction represents an user action with the menu.
@@ -145,10 +145,12 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 			nchars := utf8.RuneCountInString(string(msg.Key))
 			if nchars == 1 {
 				for i, e := range m.entries {
-					if e.Key == msg.Key {
-						m.cursor = i
-						m.action = MenuActivate
-						break
+					for _, k := range e.Keys {
+						if k == msg.Key {
+							m.cursor = i
+							m.action = MenuActivate
+							break
+						}
 					}
 				}
 			}
