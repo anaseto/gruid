@@ -33,7 +33,7 @@ const (
 // type that implements driver's style manager interface
 type styler struct{}
 
-func (sty styler) GetStyle(st gruid.CellStyle) tc.Style {
+func (sty styler) GetStyle(st gruid.Style) tc.Style {
 	ts := tc.StyleDefault
 	switch st.Fg {
 	case ColorPlayer:

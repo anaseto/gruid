@@ -9,7 +9,7 @@ import (
 type box struct {
 	grid  gruid.Grid
 	title StyledText      // for the title
-	style gruid.CellStyle // for the borders
+	style gruid.Style // for the borders
 }
 
 func (b box) draw() {

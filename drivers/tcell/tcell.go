@@ -8,7 +8,7 @@ import (
 type StyleManager interface {
 	// GetAttributes returns a mask of text attributes for a given cell
 	// style.
-	GetStyle(gruid.CellStyle) tcell.Style
+	GetStyle(gruid.Style) tcell.Style
 }
 
 type Driver struct {

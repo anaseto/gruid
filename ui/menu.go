@@ -41,10 +41,10 @@ const (
 type MenuStyle struct {
 	BgAlt    gruid.Color     // alternate background on even choice lines
 	Selected gruid.Color     // foreground for selected entry
-	Header   gruid.CellStyle // header entry
+	Header   gruid.Style // header entry
 	Boxed    bool            // draw a box around the menu
-	Box      gruid.CellStyle // box style, if any
-	Title    gruid.CellStyle // box title style, if any
+	Box      gruid.Style // box style, if any
+	Title    gruid.Style // box title style, if any
 }
 
 // MenuConfig contains configuration options for creating a menu.

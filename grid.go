@@ -24,8 +24,8 @@ const ColorDefault = 0
 // Cell contains all the content and styling information to represent a cell in
 // the grid.
 type Cell struct {
-	Rune  rune      // cell content character
-	Style CellStyle // cell style
+	Rune  rune  // cell content character
+	Style Style // cell style
 }
 
 // WithRune returns a derived Cell with a new Rune.
@@ -35,38 +35,39 @@ func (c Cell) WithRune(r rune) Cell {
 }
 
 // WithStyle returns a derived Cell with a new Style.
-func (c Cell) WithStyle(st CellStyle) Cell {
+func (c Cell) WithStyle(st Style) Cell {
 	c.Style = st
 	return c
 }
 
-// CellStyle represents the styling information of a cell.
-type CellStyle struct {
+// Style represents the styling information of a cell: foregronud color,
+// background color and custom attributes.
+type Style struct {
 	Fg    Color    // foreground color
 	Bg    Color    // background color
 	Attrs AttrMask // custom styling attributes
 }
 
 // WithFg returns a derived style with a new foreground color.
-func (st CellStyle) WithFg(cl Color) CellStyle {
+func (st Style) WithFg(cl Color) Style {
 	st.Fg = cl
 	return st
 }
 
 // WithBg returns a derived style with a new background color.
-func (st CellStyle) WithBg(cl Color) CellStyle {
+func (st Style) WithBg(cl Color) Style {
 	st.Bg = cl
 	return st
 }
 
 // WithAttrs returns a derived style with new attributes.
-func (st CellStyle) WithAttrs(cl Color) CellStyle {
+func (st Style) WithAttrs(cl Color) Style {
 	st.Bg = cl
 	return st
 }
 
 // Reverse returns a derived style with foreground and background colors reversed.
-func (st CellStyle) Reverse() CellStyle {
+func (st Style) Reverse() Style {
 	st.Fg, st.Bg = st.Bg, st.Fg
 	return st
 }
@@ -354,7 +355,8 @@ func (gd Grid) GetCell(pos Position) Cell {
 	return gd.ug.cellBuffer[i]
 }
 
-// Iter calls a given function for all the positions of the grid.
+// Iter calls a given function for all the positions of the grid, in
+// lexicographic order.
 func (gd Grid) Iter(fn func(Position)) {
 	xmax, ymax := gd.Size()
 	for y := 0; y < ymax; y++ {
@@ -393,7 +395,6 @@ func (gd Grid) Frame() Frame {
 // Model. It is provided just in case you want to use a grid without an
 // application and a model.
 func (gd Grid) ComputeFrame() Grid {
-	// XXX: unexport?
 	if len(gd.ug.cellBackBuffer) != len(gd.ug.cellBuffer) {
 		gd.ug.cellBackBuffer = make([]Cell, len(gd.ug.cellBuffer))
 	}
@@ -422,10 +423,10 @@ func (gd Grid) Frames() []Frame {
 }
 
 // ClearCache clears internal cache buffers, forcing a complete redraw of the
-// screen with the next Draw call, even for cells that did not change. This can
-// be used in the case the physical display and the internal model are not in
-// sync: for example after a resize, or after a change of the GetImage function
-// of the driver (on the fly change of the tileset).
+// screen with the next Draw call, even for cells that did not change.  This
+// can be used in the case the physical display and the internal model are not
+// in sync: for example after a resize, or after a change of the GetImage
+// function of the driver (on the fly change of the tileset).
 func (gd Grid) ClearCache() {
 	for i := 0; i < len(gd.ug.cellBackBuffer); i++ {
 		gd.ug.cellBackBuffer[i] = Cell{}

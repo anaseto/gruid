@@ -31,7 +31,7 @@ const (
 
 type styler struct{}
 
-func (sty styler) GetStyle(st gruid.CellStyle) tc.Style {
+func (sty styler) GetStyle(st gruid.Style) tc.Style {
 	ts := tc.StyleDefault
 	switch st.Fg {
 	case ColorHeader:
@@ -60,7 +60,7 @@ func (m *model) Init() gruid.Cmd {
 		{Text: "(S)econd", Keys: []gruid.Key{"s", "S"}},
 		{Text: "(T)hird", Keys: []gruid.Key{"t", "T"}},
 	}
-	st := gruid.CellStyle{}
+	st := gruid.Style{}
 	style := ui.MenuStyle{
 		BgAlt:    ColorAltBg,
 		Selected: ColorSelected,

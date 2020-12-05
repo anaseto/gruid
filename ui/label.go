@@ -7,8 +7,8 @@ import (
 // LabelStyle describes styling options for a Label.
 type LabelStyle struct {
 	Boxed       bool            // draw a box around the label
-	Box         gruid.CellStyle // box style, if any
-	Title       gruid.CellStyle // box title style, if any
+	Box         gruid.Style // box style, if any
+	Title       gruid.Style // box title style, if any
 	AdjustWidth bool            // reduce the width of the box if possible
 }
 

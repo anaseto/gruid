@@ -10,8 +10,8 @@ import (
 // StyledText is a simple text formatter and styler.
 type StyledText struct {
 	text    string
-	style   gruid.CellStyle
-	markups map[rune]gruid.CellStyle
+	style   gruid.Style
+	markups map[rune]gruid.Style
 }
 
 // NewStyledText returns a new styled text with the default style.
@@ -53,18 +53,18 @@ func (stt StyledText) Size() (int, int) {
 }
 
 // Style returns the text default style.
-func (stt StyledText) Style() gruid.CellStyle {
+func (stt StyledText) Style() gruid.Style {
 	return stt.style
 }
 
 // WithStyle returns a derived styled text with a updated default style.
-func (stt StyledText) WithStyle(style gruid.CellStyle) StyledText {
+func (stt StyledText) WithStyle(style gruid.Style) StyledText {
 	stt.style = style
 	return stt
 }
 
 // With returns a derived styled text with new next and style.
-func (stt StyledText) With(text string, style gruid.CellStyle) StyledText {
+func (stt StyledText) With(text string, style gruid.Style) StyledText {
 	stt.text = text
 	stt.style = style
 	return stt
@@ -78,16 +78,16 @@ func (stt StyledText) With(text string, style gruid.CellStyle) StyledText {
 // different defaults: unless at least one non-default markup is registered,
 // markup commands processing is not activated, and @ is treated as any other
 // character.
-func (stt StyledText) WithMarkup(r rune, style gruid.CellStyle) StyledText {
+func (stt StyledText) WithMarkup(r rune, style gruid.Style) StyledText {
 	if r == ' ' || r == '\n' {
 		// avoid strange cases that can conflict with format
 		return stt
 	}
 	if len(stt.markups) == 0 {
-		stt.markups = map[rune]gruid.CellStyle{}
+		stt.markups = map[rune]gruid.Style{}
 	} else {
 		omarks := stt.markups
-		stt.markups = make(map[rune]gruid.CellStyle, len(omarks))
+		stt.markups = make(map[rune]gruid.Style, len(omarks))
 		for k, v := range omarks {
 			stt.markups[k] = v
 		}
@@ -103,7 +103,7 @@ func (stt StyledText) WithMarkup(r rune, style gruid.CellStyle) StyledText {
 
 // WithMarkups is the same as WithMarkup but passing a whole map of rune-style
 // associations.
-func (stt StyledText) WithMarkups(markups map[rune]gruid.CellStyle) StyledText {
+func (stt StyledText) WithMarkups(markups map[rune]gruid.Style) StyledText {
 	stt.markups = markups
 	return stt
 }
