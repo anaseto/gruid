@@ -1,56 +1,88 @@
 package ui
 
 import (
-	"strings"
-
 	"github.com/anaseto/gruid"
 )
 
 // LabelStyle describes styling options for a Label.
 type LabelStyle struct {
-	Content gruid.CellStyle
-	Title   gruid.CellStyle
+	Boxed       bool            // draw a box around the label
+	Box         gruid.CellStyle // box style, if any
+	Title       gruid.CellStyle // box title style, if any
+	AdjustWidth bool            // reduce the width of the box if possible
+}
+
+// LabelConfig describes configuration options for a creating a label.
+type LabelConfig struct {
+	Grid       gruid.Grid // grid slice where the label is drawn
+	StyledText StyledText // styled text with initial label text content
+	Title      string     // optional title, implies Boxed style
+	Style      LabelStyle
 }
 
 // Label represents a bunch of text in a grid. It may be boxed and provided
 // with a title.
 type Label struct {
-	Boxed bool
-	Grid  gruid.Grid
-	Title string
-	Text  string
-	Style LabelStyle
+	grid  gruid.Grid // grid slice where the label is drawn
+	stt   StyledText // styled text with label content
+	title string     // optional title, implies Boxed style
+	style LabelStyle
 }
 
-// Draw draws the label into the grid.
-func (l Label) Draw() gruid.Grid {
-	height := strings.Count(l.Text, "\n") + 1
-	gr := l.Grid
-	rg := gr.Range().Relative()
-	lh := height
-	if l.Boxed {
-		lh += 2
+// NewLabel returns a new label with given configuration options.
+func NewLabel(cfg LabelConfig) *Label {
+	lb := &Label{
+		grid:  cfg.Grid,
+		stt:   cfg.StyledText,
+		title: cfg.Title,
+		style: cfg.Style,
 	}
-	if rg.Height() > lh {
-		gr = gr.Slice(gruid.NewRange(0, 0, rg.Max.X, lh))
+	if lb.title != "" {
+		lb.style.Boxed = true
 	}
-	var tgrid gruid.Grid
-	if l.Boxed {
+	return lb
+}
+
+// SetStyledText updates the styled text for the label.
+func (lb *Label) SetText(text string) {
+	lb.stt = lb.stt.WithText(text)
+}
+
+// StyledText returns the styled text currently used by the label.
+func (lb *Label) Text() string {
+	return lb.stt.Text()
+}
+
+func (lb *Label) drawGrid() gruid.Grid {
+	w, h := lb.stt.Size() // text height
+	if !lb.style.AdjustWidth {
+		w = lb.grid.Range().Width()
+	}
+	if lb.style.Boxed {
+		h += 2 // borders height
+		w += 2
+	}
+	return lb.grid.Slice(gruid.NewRange(0, 0, w, h))
+}
+
+// Draw draws the label into the grid. It returns a sub-grid with the range
+// that was drawn.
+func (lb *Label) Draw() gruid.Grid {
+	grid := lb.drawGrid()
+	cgrid := grid
+	if lb.style.Boxed {
 		b := box{
-			grid:       gr,
-			title:      l.Title,
-			style:      l.Style.Content,
-			titleStyle: l.Style.Title,
+			grid:  grid,
+			title: lb.stt.With(lb.title, lb.style.Title),
+			style: lb.style.Box,
 		}
 		b.draw()
-		rg := gr.Range().Relative()
-		tgrid = gr.Slice(rg.Shift(1, 1, -1, -1))
-	} else {
-		tgrid = gr
+		rg := grid.Range().Relative()
+		cgrid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
-	tgrid.Iter(func(pos gruid.Position) {
-		tgrid.SetCell(pos, gruid.Cell{Rune: ' ', Style: l.Style.Content})
+	cgrid.Iter(func(pos gruid.Position) {
+		cgrid.SetCell(pos, gruid.Cell{Rune: ' ', Style: lb.stt.Style()})
 	})
-	NewStyledText(l.Text).WithStyle(l.Style.Content).Draw(tgrid)
-	return gr
+	lb.stt.Draw(cgrid)
+	return grid
 }

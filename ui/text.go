@@ -46,6 +46,9 @@ func (stt StyledText) Size() (int, int) {
 		}
 		x++
 	}
+	if x > xmax {
+		xmax = x
+	}
 	return xmax + 1, y + 1
 }
 
@@ -80,11 +83,6 @@ func (stt StyledText) WithMarkup(r rune, style gruid.CellStyle) StyledText {
 		// avoid strange cases that can conflict with format
 		return stt
 	}
-	if r == 'N' {
-		// N has a built-in meaning
-		stt.style = style
-		return stt
-	}
 	if len(stt.markups) == 0 {
 		stt.markups = map[rune]gruid.CellStyle{}
 	} else {
@@ -93,6 +91,11 @@ func (stt StyledText) WithMarkup(r rune, style gruid.CellStyle) StyledText {
 		for k, v := range omarks {
 			stt.markups[k] = v
 		}
+	}
+	if r == 'N' {
+		// N has a built-in meaning
+		stt.style = style
+		return stt
 	}
 	stt.markups[r] = style
 	return stt
@@ -111,12 +114,12 @@ func (stt StyledText) WithMarkups(markups map[rune]gruid.CellStyle) StyledText {
 func (stt StyledText) Format(width int) StyledText {
 	pbuf := bytes.Buffer{}
 	wordbuf := bytes.Buffer{}
-	col := 0                       // current column (without counting @r markups)
-	wantspace := false             // whether we expect currently space (start of a new word that is not at line start)
-	wlen := 0                      // current word length
-	markup := len(stt.markups) > 0 // whether markup is activated
-	procm := false                 // processing markup
-	start := true                  // whether at line start
+	col := 0                     // current column (without counting @r markups)
+	wantspace := false           // whether we expect currently space (start of a new word that is not at line start)
+	wlen := 0                    // current word length
+	markup := stt.markups != nil // whether markup is activated
+	procm := false               // processing markup
+	start := true                // whether at line start
 	for _, r := range stt.text {
 		if r == ' ' || r == '\n' {
 			if wlen == 0 && r == ' ' && !start {
@@ -188,8 +191,8 @@ func (stt StyledText) Format(width int) StyledText {
 func (stt StyledText) Draw(gd gruid.Grid) {
 	x, y := 0, 0
 	c := gruid.Cell{Style: stt.style}
-	markup := len(stt.markups) > 0 // whether markup is activated
-	procm := false                 // processing markup
+	markup := stt.markups != nil // whether markup is activated
+	procm := false               // processing markup
 	for _, r := range stt.text {
 		if markup {
 			if procm {
@@ -212,6 +215,7 @@ func (stt StyledText) Draw(gd gruid.Grid) {
 		if r == '\n' {
 			x = 0
 			y++
+			continue
 		}
 		c.Rune = r
 		gd.SetCell(gruid.Position{X: x, Y: y}, c)

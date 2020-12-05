@@ -80,12 +80,12 @@ func (m *model) Update(msg gruid.Msg) gruid.Cmd {
 }
 
 func (m *model) Draw() gruid.Grid {
-	st := gruid.CellStyle{} // default style
+	c := gruid.Cell{Rune: '.'} // default cell
 	m.grid.Iter(func(pos gruid.Position) {
 		if pos == m.playerPos {
-			m.grid.SetCell(pos, gruid.Cell{Rune: '@', Style: st.Foreground(ColorPlayer)})
+			m.grid.SetCell(pos, gruid.Cell{Rune: '@', Style: c.Style.WithFg(ColorPlayer)})
 		} else {
-			m.grid.SetCell(pos, gruid.Cell{Rune: '.', Style: st})
+			m.grid.SetCell(pos, c)
 		}
 	})
 	return m.grid

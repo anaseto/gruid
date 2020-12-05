@@ -7,10 +7,9 @@ import (
 )
 
 type box struct {
-	grid       gruid.Grid
-	title      string
-	style      gruid.CellStyle
-	titleStyle gruid.CellStyle
+	grid  gruid.Grid
+	title StyledText      // for the title
+	style gruid.CellStyle // for the borders
 }
 
 func (b box) draw() {
@@ -22,15 +21,14 @@ func (b box) draw() {
 	crg := cgrid.Range().Relative()
 	cell := gruid.Cell{Style: b.style}
 	cell.Rune = '─'
-	if b.title != "" {
-		nchars := utf8.RuneCountInString(b.title)
+	if b.title.Text() != "" {
+		nchars := utf8.RuneCountInString(b.title.Text())
 		dist := (crg.Width() - nchars) / 2
 		line := cgrid.Slice(crg.Line(0))
 		line.Iter(func(pos gruid.Position) {
 			line.SetCell(pos, cell)
 		})
-		stt := NewStyledText(b.title).WithStyle(b.titleStyle)
-		stt.Draw(cgrid.Slice(crg.Line(0).Shift(dist, 0, 0, 0)))
+		b.title.Draw(cgrid.Slice(crg.Line(0).Shift(dist, 0, 0, 0)))
 		line = cgrid.Slice(crg.Line(0).Shift(dist+nchars, 0, 0, 0))
 		line.Iter(func(pos gruid.Position) {
 			line.SetCell(pos, cell)
@@ -45,14 +43,10 @@ func (b box) draw() {
 	line.Iter(func(pos gruid.Position) {
 		line.SetCell(pos, cell)
 	})
-	cell.Rune = '┌'
-	b.grid.SetCell(rg.Min, cell)
-	cell.Rune = '┐'
-	b.grid.SetCell(gruid.Position{X: rg.Width() - 1}, cell)
-	cell.Rune = '└'
-	b.grid.SetCell(gruid.Position{Y: rg.Height() - 1}, cell)
-	cell.Rune = '┘'
-	b.grid.SetCell(rg.Max.Shift(-1, -1), cell)
+	b.grid.SetCell(rg.Min, cell.WithRune('┌'))
+	b.grid.SetCell(gruid.Position{X: rg.Width() - 1}, cell.WithRune('┐'))
+	b.grid.SetCell(gruid.Position{Y: rg.Height() - 1}, cell.WithRune('└'))
+	b.grid.SetCell(rg.Max.Shift(-1, -1), cell.WithRune('┘'))
 	cell.Rune = '│'
 	col := b.grid.Slice(rg.Shift(0, 1, 0, -1).Column(0))
 	col.Iter(func(pos gruid.Position) {

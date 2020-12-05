@@ -28,6 +28,18 @@ type Cell struct {
 	Style CellStyle // cell style
 }
 
+// WithRune returns a derived Cell with a new Rune.
+func (c Cell) WithRune(r rune) Cell {
+	c.Rune = r
+	return c
+}
+
+// WithStyle returns a derived Cell with a new Style.
+func (c Cell) WithStyle(st CellStyle) Cell {
+	c.Style = st
+	return c
+}
+
 // CellStyle represents the styling information of a cell.
 type CellStyle struct {
 	Fg    Color    // foreground color
@@ -35,21 +47,27 @@ type CellStyle struct {
 	Attrs AttrMask // custom styling attributes
 }
 
-// Foreground returns a derived style with a new foreground color.
-func (st CellStyle) Foreground(cl Color) CellStyle {
+// WithFg returns a derived style with a new foreground color.
+func (st CellStyle) WithFg(cl Color) CellStyle {
 	st.Fg = cl
 	return st
 }
 
-// Background returns a derived style with a new background color.
-func (st CellStyle) Background(cl Color) CellStyle {
+// WithBg returns a derived style with a new background color.
+func (st CellStyle) WithBg(cl Color) CellStyle {
 	st.Bg = cl
 	return st
 }
 
-// Attributes returns a derived style with new attributes.
-func (st CellStyle) Attributes(cl Color) CellStyle {
+// WithAttrs returns a derived style with new attributes.
+func (st CellStyle) WithAttrs(cl Color) CellStyle {
 	st.Bg = cl
+	return st
+}
+
+// Reverse returns a derived style with foreground and background colors reversed.
+func (st CellStyle) Reverse() CellStyle {
+	st.Fg, st.Bg = st.Bg, st.Fg
 	return st
 }
 

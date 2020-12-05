@@ -37,7 +37,7 @@ const (
 	MenuMove
 )
 
-// MenuStyle represents menu styles.
+// MenuStyle describes styling options for a menu.
 type MenuStyle struct {
 	BgAlt    gruid.Color     // alternate background on even choice lines
 	Selected gruid.Color     // foreground for selected entry
@@ -51,8 +51,8 @@ type MenuStyle struct {
 type MenuConfig struct {
 	Grid       gruid.Grid  // grid slice where the menu is drawn
 	Entries    []MenuEntry // menu entries
-	Title      string      // optional title
 	StyledText StyledText  // default styled text formatter for content
+	Title      string      // optional title, implies Boxed style
 	Style      MenuStyle
 }
 
@@ -65,6 +65,9 @@ func NewMenu(cfg MenuConfig) *Menu {
 		stt:     cfg.StyledText,
 		style:   cfg.Style,
 		draw:    true,
+	}
+	if m.title != "" {
+		m.style.Boxed = true
 	}
 	m.cursorAtFirstChoice()
 	return m
@@ -113,6 +116,9 @@ func (m *Menu) SetCursor(n int) {
 // Update implements gruid.Model.Update and updates the menu state in response to
 // user input messages.
 func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
+	grid := m.drawGrid()
+	rg := grid.Range()
+
 	l := len(m.entries)
 	m.action = MenuPass // no action still
 	switch msg := msg.(type) {
@@ -156,32 +162,29 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 			}
 		}
 	case gruid.MsgMouseMove:
-		rg := m.grid.Range()
+		crg := rg // content range
 		if m.style.Boxed {
-			rg = rg.Shift(1, 1, -1, -1)
+			crg = crg.Shift(1, 1, -1, -1)
 		}
-		pos := msg.MousePos.Relative(rg)
-		if !pos.In(rg.Relative()) || pos.Y >= len(m.entries) {
-			break
-		}
-		if pos.Y == m.cursor {
+		pos := msg.MousePos.Relative(crg)
+		if !pos.In(crg.Relative()) || pos.Y == m.cursor || pos.Y >= len(m.entries) {
 			break
 		}
 		m.cursor = pos.Y
 		m.action = MenuMove
 	case gruid.MsgMouseDown:
-		rg := m.grid.Range()
+		crg := rg // content range
 		if m.style.Boxed {
-			rg = rg.Shift(1, 1, -1, -1)
+			crg = crg.Shift(1, 1, -1, -1)
 		}
-		pos := msg.MousePos.Relative(rg)
+		pos := msg.MousePos.Relative(crg)
 		switch msg.Button {
 		case gruid.ButtonMain:
-			if !msg.MousePos.In(m.grid.Range()) || !m.style.Boxed && pos.Y >= len(m.entries) {
+			if !msg.MousePos.In(rg) || !m.style.Boxed && pos.Y >= len(m.entries) {
 				m.action = MenuCancel
 				break
 			}
-			if !pos.In(rg.Relative()) || pos.Y >= len(m.entries) {
+			if !pos.In(crg.Relative()) || pos.Y >= len(m.entries) {
 				break
 			}
 			m.cursor = pos.Y
@@ -192,6 +195,14 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 		}
 	}
 	return nil
+}
+
+func (m *Menu) drawGrid() gruid.Grid {
+	h := len(m.entries) // menu content height
+	if m.style.Boxed {
+		h += 2 // borders height
+	}
+	return m.grid.Slice(gruid.NewRange(0, 0, m.grid.Range().Width(), h))
 }
 
 func (m *Menu) cursorAtFirstChoice() {
@@ -213,22 +224,24 @@ func (m *Menu) cursorAtLastChoice() {
 	}
 }
 
-// Draw implements gruid.Model.Draw.
+// Draw implements gruid.Model.Draw. It returns the grid that was drawn, which
+// can be shorter (in height) than the one provided in the menu configuration.
 func (m *Menu) Draw() gruid.Grid {
+	grid := m.drawGrid()
+
 	if m.style.Boxed {
 		b := box{
-			grid:       m.grid,
-			title:      m.title,
-			style:      m.style.Box,
-			titleStyle: m.style.Title,
+			grid:  grid,
+			title: m.stt.With(m.title, m.style.Title),
+			style: m.style.Box,
 		}
 		b.draw()
 	}
 	alt := false
-	rg := m.grid.Range().Relative()
-	cgrid := m.grid.Slice(rg.Shift(1, 1, -1, -1))
-	if !m.style.Boxed {
-		cgrid = m.grid
+	rg := grid.Range().Relative()
+	cgrid := grid
+	if m.style.Boxed {
+		cgrid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
 	crg := cgrid.Range().Relative()
 	for i, c := range m.entries {
@@ -260,5 +273,5 @@ func (m *Menu) Draw() gruid.Grid {
 			})
 		}
 	}
-	return m.grid
+	return grid
 }

@@ -62,11 +62,10 @@ func (m *model) Init() gruid.Cmd {
 	}
 	st := gruid.CellStyle{}
 	style := ui.MenuStyle{
-		Boxed:    true,
 		BgAlt:    ColorAltBg,
 		Selected: ColorSelected,
-		Header:   st.Foreground(ColorHeader),
-		Title:    st.Foreground(ColorTitle),
+		Header:   st.WithFg(ColorHeader),
+		Title:    st.WithFg(ColorTitle),
 	}
 	menu := ui.NewMenu(ui.MenuConfig{
 		Grid:    m.grid.Slice(gruid.NewRange(0, 0, 20, len(entries)+2)),
@@ -75,13 +74,12 @@ func (m *model) Init() gruid.Cmd {
 		Style:   style,
 	})
 	m.menu = menu
-	label := &ui.Label{
-		Boxed: true,
-		Grid:  m.grid.Slice(gruid.NewRange(22, 0, 70, 5)),
-		Title: "Menu Last Action",
-		Text:  "",
-		Style: ui.LabelStyle{Content: st, Title: st.Foreground(ColorHeader)},
-	}
+	label := ui.NewLabel(ui.LabelConfig{
+		Grid:       m.grid.Slice(gruid.NewRange(22, 0, 70, 5)),
+		Title:      "Menu Last Action",
+		StyledText: ui.NewStyledText("Nothing done yet!"),
+		Style:      ui.LabelStyle{Title: st.WithFg(ColorHeader), AdjustWidth: true},
+	})
 	m.label = label
 	m.init = true
 	return nil
@@ -94,15 +92,18 @@ func (m *model) Update(msg gruid.Msg) gruid.Cmd {
 	case ui.MenuCancel:
 		return gruid.Quit
 	case ui.MenuMove:
-		m.label.Text = fmt.Sprintf("moved selection to entry number %d", m.menu.Selection())
+		m.label.SetText(fmt.Sprintf("moved selection to entry number %d", m.menu.Selection()))
 	case ui.MenuActivate:
-		m.label.Text = fmt.Sprintf("activated entry number %d", m.menu.Selection())
+		m.label.SetText(fmt.Sprintf("activated entry number %d", m.menu.Selection()))
 	}
 	return nil
 }
 
 func (m *model) Draw() gruid.Grid {
 	if m.menu.Action() != ui.MenuPass || m.init {
+		m.grid.Iter(func(pos gruid.Position) {
+			m.grid.SetCell(pos, gruid.Cell{Rune: ' '})
+		})
 		m.menu.Draw()
 		m.label.Draw()
 	}
