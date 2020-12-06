@@ -7,6 +7,46 @@
 // strongly inspired from the bubbletea module for building terminal apps (see
 // github.com/charmbracelet/bubbletea), which in turn is based on the Elm
 // Architecture (https://guide.elm-lang.org/architecture/).
+//
+// The typical usage looks like this:
+//
+//	// model implements gruid.Model interface and represents the
+//	// application's state.
+//	type model struct {
+//		grid: gruid.Grid // user interface grid
+//		// other fields with the state of the application
+//	}
+//
+//	func (m *model) Init() gruid.Cmd {
+//		// Write your model's initialization.
+//	}
+//
+//	func (m *model) Update(msg gruid.Msg) gruid.Cmd {
+//		// Update your application's state in response to messages.
+//	}
+//
+//	func (m *model) Draw() gruid.Grid {
+//		// Write your rendering into the grid and return it or a grid slice.
+//	}
+//
+//	func main() {
+//		grid := gruid.NewGrid(gruid.GridConfig{})
+//		m := &model{grid: grid}
+//		// Specify a driver among the provided ones.
+//		driver := &tcell.Driver{...}
+//		app := gruid.NewApp(gruid.AppConfig{
+//			Driver: driver,
+//			Model: m,
+//		})
+//		// Start the main loop of the application.
+//		if err := app.Start(); err != nil {
+//			log.Fatal(err)
+//		}
+//	}
+//
+// The values of type gruid.Cmd returned by Init and Update are optional and
+// represent concurrently executed functions that produce a message.  See the
+// API documentation for details and usage.
 package gruid
 
 import (

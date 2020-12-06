@@ -80,7 +80,7 @@ type MsgMouse struct {
 
 type msgQuit struct{}
 
-// MsgScreenSize is used to report the screen size.
+// MsgScreenSize is used to report the screen size, when it makes sense.
 type MsgScreenSize struct {
 	Width  int       // width in cells
 	Height int       // height in cells

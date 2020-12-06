@@ -109,7 +109,7 @@ func (pos Position) In(rg Range) bool {
 
 // Relative changes an absolute position into tho position relative a given
 // range. You may use it for example when dealing with mouse coordinates from a
-// MsgMouseDown or a MsgMouseMove message.
+// MsgMouse message.
 func (pos Position) Relative(rg Range) Position {
 	return Position{X: pos.X - rg.Min.X, Y: pos.Y - rg.Min.Y}
 }
