@@ -185,15 +185,15 @@ type rectangle struct {
 	xmin, xmax, ymin, ymax int
 }
 
-func (tk *Driver) Flush(gd gruid.Grid) {
-	w, h := gd.Size()
+func (tk *Driver) Flush(frame gruid.Frame) {
+	w, h := frame.Width, frame.Height
 	rects := []rectangle{}
 	r := rectangle{w - 1, 0, h - 1, 0}
 	n := 0
-	for _, cdraw := range gd.Frame().Cells {
+	for _, cdraw := range frame.Cells {
 		cs := cdraw.Cell
 		x, y := cdraw.Pos.X, cdraw.Pos.Y
-		tk.draw(gd, cs, x, y)
+		tk.draw(cs, x, y)
 		if n > 0 && y-r.ymax > 2 {
 			rects = append(rects, r)
 			n = 0
@@ -231,7 +231,7 @@ func (tk *Driver) UpdateRectangle(xmin, ymin, xmax, ymax int) {
 		xmin*tk.tw, ymin*tk.th, (xmax+1)*tk.tw, (ymax+1)*tk.th)
 }
 
-func (tk *Driver) draw(gd gruid.Grid, cs gruid.Cell, x, y int) {
+func (tk *Driver) draw(cs gruid.Cell, x, y int) {
 	var img *image.RGBA
 	if im, ok := tk.cache[cs]; ok {
 		img = im

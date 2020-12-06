@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"log"
 	"runtime/debug"
+	"time"
 )
 
 // App represents a message and model-driven application with a grid-based user
@@ -26,12 +27,25 @@ type App struct {
 
 	driver Driver
 	model  Model
+	rec    bool
+	fps    time.Duration
+
+	renderer renderer
 }
 
 // AppConfig contains the configuration for creating a new App.
 type AppConfig struct {
 	Model  Model  // application state
 	Driver Driver // input and rendering driver
+
+	// FrameRecording instructs the application to record the frames to
+	// enable replay. They can be retrieved after a successful Start()
+	// session with Frames().
+	FrameRecording bool
+
+	// FPS specifies the maximum number of frames per second. Should be a
+	// value between 60 and 240. Default is 60.
+	FPS time.Duration
 }
 
 // NewApp creates a new App.
@@ -39,6 +53,8 @@ func NewApp(cfg AppConfig) *App {
 	return &App{
 		model:       cfg.Model,
 		driver:      cfg.Driver,
+		rec:         cfg.FrameRecording,
+		fps:         cfg.FPS,
 		CatchPanics: true,
 	}
 }
@@ -82,8 +98,17 @@ func (app *App) Start() error {
 		}()
 	}
 
+	// initialize renderer
+	r := renderer{
+		driver: app.driver,
+		rec:    app.rec,
+		fps:    app.fps,
+	}
+	r.Init()
+	go r.Listen()
+
 	// first drawing
-	app.driver.Flush(app.model.Draw().ComputeFrame())
+	r.frames <- app.model.Draw().ComputeFrame()
 
 	// input messages queueing
 	go func() {
@@ -114,6 +139,8 @@ func (app *App) Start() error {
 
 		// Handle quit message
 		if _, ok := msg.(msgQuit); ok {
+			r.Stop()
+			<-r.done
 			close(done)
 			return err
 		}
@@ -126,10 +153,19 @@ func (app *App) Start() error {
 			continue
 		}
 
-		cmd := app.model.Update(msg)                      // run update
-		cmds <- cmd                                       // process command (if any)
-		app.driver.Flush(app.model.Draw().ComputeFrame()) // send drawings to driver
+		cmd := app.model.Update(msg) // run update
+		cmds <- cmd                  // process command (if any)
+		frame := app.model.Draw().ComputeFrame()
+		if len(frame.Cells) > 0 {
+			r.frames <- frame // send frame with changes to driver
+		}
 	}
+}
+
+// Frames returns the successive frames recorded by the application. It can be
+// used for a replay of the session.
+func (app *App) Frames() []Frame {
+	return app.renderer.framerec
 }
 
 // Msg represents an action and triggers the Update function of the model.
@@ -174,7 +210,7 @@ type Driver interface {
 	Init() error
 
 	// Flush sends last frame grid changes to the driver.
-	Flush(Grid)
+	Flush(Frame)
 
 	// PollMsg waits for user input messages.
 	PollMsg() Msg

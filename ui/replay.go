@@ -173,8 +173,9 @@ func (rep *Replay) tick() gruid.Cmd {
 		d = 2 * time.Second
 	}
 	d = d / rep.speed
-	if d <= 5*time.Millisecond {
-		d = 5 * time.Millisecond
+	mininterval := time.Second / 240
+	if d <= mininterval {
+		d = mininterval
 	}
 	n := rep.fidx
 	return func() gruid.Msg {

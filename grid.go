@@ -204,23 +204,21 @@ type grid struct {
 	cellBackBuffer []Cell
 	frame          Frame
 	frames         []Frame
-	recording      bool
 }
 
 // GridConfig is used to configure a new main grid with NewGrid.
 type GridConfig struct {
-	Width     int  // width in cells (default is 80)
-	Height    int  // height in cells (default is 24)
-	Recording bool // whether to record frames to enable replay
+	Width  int // width in cells (default is 80)
+	Height int // height in cells (default is 24)
 }
 
 // Frame contains the necessary information to draw the frame changes from a
-// frame to the next.
+// frame to the next. One is sent to the driver after every Draw.
 type Frame struct {
 	Cells  []FrameCell // cells that changed from previous frame
 	Time   time.Time   // time of frame drawing: used for replay
-	Width  int         // width of the grid when the frame was produced
-	Height int         // height of the grid when the frame was produced
+	Width  int         // width of the whole grid when the frame was issued
+	Height int         // height of the whole grid when the frame was issued
 }
 
 // FrameCell represents a cell drawing instruction at a specific position in
@@ -241,7 +239,6 @@ func NewGrid(cfg GridConfig) Grid {
 		cfg.Width = 80
 	}
 	gd = gd.Resize(cfg.Width, cfg.Height)
-	gd.ug.recording = cfg.Recording
 	return gd
 }
 
@@ -378,23 +375,13 @@ func idxToPos(i, w int) Position {
 	return Position{X: i - (i/w)*w, Y: i / w}
 }
 
-// Frame returns the drawing instructions produced by last Draw call.
-//
-// This function may be used to implement new drivers. You should normally not
-// call it by hand in your application code.
-func (gd Grid) Frame() Frame {
-	return gd.ug.frame
-}
-
-// ComputeFrame computes next frame changes which can be retrieved by calling
-// Frame().  If recording is activated the frame changes are recorded, and can
-// be retrieved later by calling Frames().
+// ComputeFrame computes next frame changes and returns them.
 //
 // This function is automatically called after each Draw of the Model. You
 // should normally not call it by hand when implementing an application using a
 // Model. It is provided just in case you want to use a grid without an
 // application and a model.
-func (gd Grid) ComputeFrame() Grid {
+func (gd Grid) ComputeFrame() Frame {
 	if len(gd.ug.cellBackBuffer) != len(gd.ug.cellBuffer) {
 		gd.ug.cellBackBuffer = make([]Cell, len(gd.ug.cellBuffer))
 	}
@@ -409,17 +396,7 @@ func (gd Grid) ComputeFrame() Grid {
 		gd.ug.frame.Cells = append(gd.ug.frame.Cells, cdraw)
 		gd.ug.cellBackBuffer[i] = c
 	}
-	if gd.ug.recording {
-		gd.ug.frames = append(gd.ug.frames, gd.ug.frame)
-	}
-	return gd
-}
-
-// Frames returns a recording of frame changes successively computed, if
-// recording was enabled for the grid. The frame recording can be used to watch
-// a replay of the application's session.
-func (gd Grid) Frames() []Frame {
-	return gd.ug.frames
+	return gd.ug.frame
 }
 
 // ClearCache clears internal cache buffers, forcing a complete redraw of the
