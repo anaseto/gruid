@@ -13,7 +13,7 @@
 //	// model implements gruid.Model interface and represents the
 //	// application's state.
 //	type model struct {
-//		grid: gruid.Grid // user interface grid
+//		grid gruid.Grid // user interface grid
 //		// other fields with the state of the application
 //	}
 //
@@ -30,8 +30,8 @@
 //	}
 //
 //	func main() {
-//		grid := gruid.NewGrid(gruid.GridConfig{})
-//		m := &model{grid: grid}
+//		gd := gruid.NewGrid(gruid.GridConfig{})
+//		m := &model{grid: gd}
 //		// Specify a driver among the provided ones.
 //		driver := &tcell.Driver{...}
 //		app := gruid.NewApp(gruid.AppConfig{

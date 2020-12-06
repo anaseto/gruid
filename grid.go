@@ -74,11 +74,10 @@ func (st Style) Reverse() Style {
 
 // Grid represents the grid that is used to draw a model logical contents that
 // are then sent to the driver. It is a slice type, so it represents a
-// rectangular range within the main grid of the application, which can be
-// smaller than the whole grid.
+// rectangular range within the whole grid of the application.
 type Grid struct {
-	ug *grid // underlying main grid
-	rg Range // range within the main grid
+	ug *grid // underlying whole grid
+	rg Range // range within the whole grid
 }
 
 // Position represents an (X,Y) position in a grid.
@@ -206,7 +205,7 @@ type grid struct {
 	frames         []Frame
 }
 
-// GridConfig is used to configure a new main grid with NewGrid.
+// GridConfig is used to configure a new grid with NewGrid.
 type GridConfig struct {
 	Width  int // width in cells (default is 80)
 	Height int // height in cells (default is 24)
@@ -222,7 +221,7 @@ type Frame struct {
 }
 
 // FrameCell represents a cell drawing instruction at a specific position in
-// the main grid.
+// the whole grid.
 type FrameCell struct {
 	Cell Cell
 	Pos  Position
@@ -243,7 +242,7 @@ func NewGrid(cfg GridConfig) Grid {
 }
 
 // Range returns the range that is represented by this grid within the
-// application's main grid.
+// application's whole grid.
 func (gd Grid) Range() Range {
 	return gd.rg
 }
