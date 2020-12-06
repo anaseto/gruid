@@ -32,6 +32,11 @@ func (t *Driver) Init() error {
 	}
 	t.screen.SetStyle(tcell.StyleDefault)
 	t.screen.EnableMouse()
+	t.screen.HideCursor()
+
+	// try to send initial size
+	w, h := t.screen.Size()
+	t.screen.PostEvent(tcell.NewEventResize(w, h))
 	return nil
 }
 
