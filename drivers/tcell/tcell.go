@@ -71,7 +71,7 @@ func (t *Driver) PollMsg() gruid.Msg {
 				msg.Key = gruid.KeyArrowRight
 			case tcell.KeyUp:
 				msg.Key = gruid.KeyArrowUp
-			case tcell.KeyBackspace:
+			case tcell.KeyBackspace, tcell.KeyBackspace2:
 				msg.Key = gruid.KeyBackspace
 			case tcell.KeyDelete:
 				msg.Key = gruid.KeyDelete
@@ -91,6 +91,9 @@ func (t *Driver) PollMsg() gruid.Msg {
 				msg.Key = gruid.KeyPageDown
 			case tcell.KeyTab:
 				msg.Key = gruid.KeyTab
+			case tcell.KeyBacktab:
+				msg.Key = gruid.KeyTab
+				msg.Shift = true
 			}
 			if tev.Rune() != 0 && msg.Key == "" {
 				msg.Key = gruid.Key(tev.Rune())
