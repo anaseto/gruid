@@ -231,8 +231,8 @@ type Frame struct {
 	Height int         // height of the whole grid when the frame was issued
 }
 
-// FrameCell represents a cell drawing instruction at a specific position in
-// the whole grid.
+// FrameCell represents a cell drawing instruction at a specific absolute
+// position in the whole grid.
 type FrameCell struct {
 	Cell Cell
 	Pos  Position
@@ -388,18 +388,19 @@ func (gd Grid) ComputeFrame() Frame {
 	if len(gd.ug.cellBackBuffer) != len(gd.ug.cellBuffer) {
 		gd.ug.cellBackBuffer = make([]Cell, len(gd.ug.cellBuffer))
 	}
-	gd.ug.frame = Frame{Time: time.Now(), Width: gd.ug.width, Height: gd.ug.height}
-	for i := 0; i < len(gd.ug.cellBuffer); i++ {
-		if gd.ug.cellBuffer[i] == gd.ug.cellBackBuffer[i] {
+	ug := gd.ug
+	ug.frame = Frame{Time: time.Now(), Width: ug.width, Height: ug.height}
+	for i := 0; i < len(ug.cellBuffer); i++ {
+		if ug.cellBuffer[i] == ug.cellBackBuffer[i] {
 			continue
 		}
-		c := gd.ug.cellBuffer[i]
-		pos := idxToPos(i, gd.ug.width)
+		c := ug.cellBuffer[i]
+		pos := idxToPos(i, ug.width)
 		cdraw := FrameCell{Cell: c, Pos: pos}
-		gd.ug.frame.Cells = append(gd.ug.frame.Cells, cdraw)
-		gd.ug.cellBackBuffer[i] = c
+		ug.frame.Cells = append(ug.frame.Cells, cdraw)
+		ug.cellBackBuffer[i] = c
 	}
-	return gd.ug.frame
+	return ug.frame
 }
 
 // ClearCache clears internal cache buffers, forcing a complete redraw of the

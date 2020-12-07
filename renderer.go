@@ -89,8 +89,9 @@ func (r *renderer) flush() {
 			}
 			for _, frame := range r.frameQueue {
 				r.grid.Resize(frame.Width, frame.Height)
+				ug := r.grid.ug
 				for _, c := range frame.Cells {
-					r.grid.SetCell(c.Pos, c.Cell)
+					ug.cellBuffer[c.Pos.X+ug.width*c.Pos.Y] = c.Cell
 				}
 			}
 			frame := r.grid.ComputeFrame()
