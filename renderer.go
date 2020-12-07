@@ -12,6 +12,7 @@ type renderer struct {
 	frames     chan Frame
 	ticker     *time.Ticker
 	done       chan bool
+	last       chan bool
 	grid       Grid
 	frameQueue []Frame
 }
@@ -30,6 +31,7 @@ func (r *renderer) Init() {
 		r.ticker = time.NewTicker(time.Second / r.fps)
 	}
 	r.done = make(chan bool)
+	r.last = make(chan bool)
 
 	// We buffer a few frames so that very fast input (such as mouse
 	// motion) does not produce a drag in display.
@@ -39,8 +41,7 @@ func (r *renderer) Init() {
 // Stop halts the renderer.
 func (r *renderer) Stop() {
 	r.ticker.Stop()
-	r.flush() // draw remaining frame if any
-	close(r.done)
+	close(r.last)
 }
 
 // Listen waits for drawing ticks or a message for the end of rendering.
@@ -49,7 +50,9 @@ func (r *renderer) Listen() {
 		select {
 		case <-r.ticker.C:
 			r.flush()
-		case <-r.done:
+		case <-r.last:
+			r.flush() // draw remaining frame if any
+			close(r.done)
 			return
 		}
 	}
