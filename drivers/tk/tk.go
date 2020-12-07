@@ -177,8 +177,11 @@ func getMsgKeyDown(s string) (gruid.MsgKeyDown, bool) {
 }
 
 func (tk *Driver) PollMsg() gruid.Msg {
-	msg := <-tk.msgs
-	return msg
+	msg, ok := <-tk.msgs
+	if ok {
+		return msg
+	}
+	return nil
 }
 
 type rectangle struct {
@@ -243,7 +246,11 @@ func (tk *Driver) draw(cs gruid.Cell, x, y int) {
 }
 
 func (tk *Driver) Close() {
-	// do nothing
+	tk.ir.Eval("exit 0")
+	<-tk.ir.Done
+	close(tk.msgs)
+	tk.ir = nil
+	tk.cache = nil
 }
 
 func (tk *Driver) ClearCache() {

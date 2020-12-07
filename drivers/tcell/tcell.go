@@ -55,7 +55,11 @@ func (t *Driver) Flush(frame gruid.Frame) {
 
 func (t *Driver) PollMsg() gruid.Msg {
 	for {
-		switch tev := t.screen.PollEvent().(type) {
+		ev := t.screen.PollEvent()
+		if ev == nil {
+			return nil
+		}
+		switch tev := ev.(type) {
 		case *tcell.EventKey:
 			msg := gruid.MsgKeyDown{}
 			if tev.Modifiers() == tcell.ModShift {

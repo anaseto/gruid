@@ -153,7 +153,12 @@ func (app *App) Start() error {
 	// input messages queueing
 	go func() {
 		for {
-			msgs <- app.driver.PollMsg()
+			msg := app.driver.PollMsg()
+			if msg == nil {
+				// Close has been sent the driver.
+				return
+			}
+			msgs <- msg
 		}
 	}()
 
@@ -252,7 +257,8 @@ type Driver interface {
 	// Flush sends last frame grid changes to the driver.
 	Flush(Frame)
 
-	// PollMsg waits for user input messages.
+	// PollMsg waits for user input messages. It returns nil after Close
+	// has been sent to the driver.
 	PollMsg() Msg
 
 	// Close may execute needed code to finalize the screen and release
