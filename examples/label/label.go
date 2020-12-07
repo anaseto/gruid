@@ -78,9 +78,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Cmd {
 }
 
 func (m *model) Draw() gruid.Grid {
-	m.grid.Iter(func(pos gruid.Position) {
-		m.grid.SetCell(pos, gruid.Cell{Rune: ' '})
-	})
+	m.grid.Fill(gruid.Cell{Rune: ' '})
 	m.label.Draw()
 	return m.grid
 }

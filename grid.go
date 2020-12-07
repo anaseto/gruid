@@ -196,6 +196,17 @@ func (rg Range) Relative() Range {
 	return rg
 }
 
+// Range calls a given function for all the positions of the range.
+func (rg Range) Iter(fn func(Position)) {
+	xmax, ymax := rg.Width(), rg.Height()
+	for y := 0; y < ymax; y++ {
+		for x := 0; x < xmax; x++ {
+			pos := Position{X: x, Y: y}
+			fn(pos)
+		}
+	}
+}
+
 type grid struct {
 	width          int
 	height         int
@@ -287,7 +298,7 @@ func (gd Grid) Resize(w, h int) Grid {
 	if gd.rg.Width() == w && gd.rg.Height() == h {
 		return gd
 	}
-	if w < 0 || h < 0 {
+	if w <= 0 || h <= 0 {
 		gd.rg.Max = gd.rg.Min
 		return gd
 	}
@@ -306,11 +317,9 @@ func (gd Grid) Resize(w, h int) Grid {
 	if grow {
 		newBuf := make([]Cell, gd.ug.width*gd.ug.height)
 		for i := 0; i < len(gd.ug.cellBuffer); i++ {
-			pos := idxToPos(i, uw) // old absolute position
-			idx := gd.getIdx(pos)
-			if idx >= 0 && idx < len(newBuf) { // should always be the case
-				newBuf[idx] = gd.ug.cellBuffer[i]
-			}
+			pos := idxToPos(i, uw)           // old absolute position
+			idx := pos.X + gd.ug.width*pos.Y // new index
+			newBuf[idx] = gd.ug.cellBuffer[i]
 		}
 		gd.ug.cellBuffer = newBuf
 		gd.ug.cellBackBuffer = make([]Cell, len(gd.ug.cellBuffer))
@@ -330,9 +339,6 @@ func (gd Grid) SetCell(pos Position, c Cell) {
 		return
 	}
 	i := gd.getIdx(pos)
-	if i >= len(gd.ug.cellBuffer) || i < 0 {
-		return
-	}
 	gd.ug.cellBuffer[i] = c
 }
 
@@ -345,20 +351,18 @@ func (gd Grid) GetCell(pos Position) Cell {
 		return Cell{}
 	}
 	i := gd.getIdx(pos)
-	if i >= len(gd.ug.cellBuffer) || i < 0 {
-		return Cell{}
-	}
 	return gd.ug.cellBuffer[i]
 }
 
-// Iter calls a given function for all the positions of the grid, in
-// lexicographic order.
-func (gd Grid) Iter(fn func(Position)) {
+// Fill sets the given cell as content for all the grid positions.
+func (gd Grid) Fill(c Cell) {
 	xmax, ymax := gd.Size()
+	upos := gd.Range().Min
 	for y := 0; y < ymax; y++ {
+		yidx := upos.Y + y
 		for x := 0; x < xmax; x++ {
-			pos := Position{X: x, Y: y}
-			fn(pos)
+			xidx := x + upos.X
+			gd.ug.cellBuffer[xidx+yidx*gd.ug.width] = c
 		}
 	}
 }

@@ -89,7 +89,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Cmd {
 	m.init = false
 	m.menu.Update(msg)
 	switch m.menu.Action() {
-	case ui.MenuCancel:
+	case ui.MenuQuit:
 		return gruid.Quit
 	case ui.MenuMove:
 		m.label.SetText(fmt.Sprintf("moved selection to entry number %d", m.menu.Selection()))
@@ -101,9 +101,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Cmd {
 
 func (m *model) Draw() gruid.Grid {
 	if m.menu.Action() != ui.MenuPass || m.init {
-		m.grid.Iter(func(pos gruid.Position) {
-			m.grid.SetCell(pos, gruid.Cell{Rune: ' '})
-		})
+		m.grid.Fill(gruid.Cell{Rune: ' '})
 		m.menu.Draw()
 		m.label.Draw()
 	}

@@ -9,3 +9,4 @@ add map generation utilities package ?
 compress replay frames?
 send MsgScreenSize at start and on resize (when sensible) [half done]
 add horizontal menu option, configuration for box color
+add key bindings configuration for widgets

@@ -122,7 +122,7 @@ func automoveCmd(posdiff gruid.Position, d time.Duration) gruid.Cmd {
 // grid.
 func (m *model) Draw() gruid.Grid {
 	c := gruid.Cell{Rune: '.'} // default cell
-	m.grid.Iter(func(pos gruid.Position) {
+	m.grid.Range().Relative().Iter(func(pos gruid.Position) {
 		if pos == m.playerPos {
 			m.grid.SetCell(pos, gruid.Cell{Rune: '@', Style: c.Style.WithFg(ColorPlayer)})
 		} else {

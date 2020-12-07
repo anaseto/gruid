@@ -23,18 +23,18 @@ const (
 	// mouse motion outside the menu, or within a same entry line).
 	MenuPass MenuAction = iota
 
+	// MenuMove reports that the user moved the selection cursor by using
+	// the arrow keys or a mouse motion.
+	MenuMove
+
 	// MenuActivate reports that the user clicked or pressed enter to
 	// activate/accept a selected entry, or used a shortcut key to select
 	// and activate/accept a specific entry.
 	MenuActivate
 
-	// MenuCancel reports that the user clicked outside the menu, or
+	// MenuQuit reports that the user clicked outside the menu, or
 	// pressed Esc, Space or X.
-	MenuCancel
-
-	// MenuMove reports that the user moved the selection cursor by using
-	// the arrow keys or a mouse motion.
-	MenuMove
+	MenuQuit
 )
 
 // MenuStyle describes styling options for a menu.
@@ -125,7 +125,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 	case gruid.MsgKeyDown:
 		switch {
 		case msg.Key == gruid.KeyEscape || msg.Key == gruid.KeySpace || msg.Key == "x" || msg.Key == "X":
-			m.action = MenuCancel
+			m.action = MenuQuit
 		case msg.Key == gruid.KeyArrowDown:
 			m.action = MenuMove
 			m.cursor++
@@ -176,7 +176,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
 			m.action = MenuMove
 		case gruid.MouseMain:
 			if !msg.MousePos.In(rg) || !m.style.Boxed && pos.Y >= len(m.entries) {
-				m.action = MenuCancel
+				m.action = MenuQuit
 				break
 			}
 			if !pos.In(crg.Relative()) || pos.Y >= len(m.entries) {
@@ -219,8 +219,7 @@ func (m *Menu) cursorAtLastChoice() {
 	}
 }
 
-// Draw implements gruid.Model.Draw. It returns the grid that was drawn, which
-// can be shorter (in height) than the one provided in the menu configuration.
+// Draw implements gruid.Model.Draw. It returns the grid slice that was drawn.
 func (m *Menu) Draw() gruid.Grid {
 	grid := m.drawGrid()
 
@@ -253,9 +252,7 @@ func (m *Menu) Draw() gruid.Grid {
 			m.stt.With(c.Text, st).Draw(cgrid.Slice(crg.Line(i)))
 			cell := gruid.Cell{Rune: ' ', Style: st}
 			line := cgrid.Slice(crg.Line(i).Shift(nchars, 0, 0, 0))
-			line.Iter(func(pos gruid.Position) {
-				line.SetCell(pos, cell)
-			})
+			line.Fill(cell)
 		} else {
 			alt = false
 			st := m.style.Header
@@ -263,9 +260,7 @@ func (m *Menu) Draw() gruid.Grid {
 			m.stt.With(c.Text, st).Draw(cgrid.Slice(crg.Line(i)))
 			cell := gruid.Cell{Rune: ' ', Style: st}
 			line := cgrid.Slice(crg.Line(i).Shift(nchars, 0, 0, 0))
-			line.Iter(func(pos gruid.Position) {
-				line.SetCell(pos, cell)
-			})
+			line.Fill(cell)
 		}
 	}
 	return grid
