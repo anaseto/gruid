@@ -19,7 +19,7 @@ type Color uint
 
 // ColorDefault gets special treatment by drivers and is mapped, when it makes
 // sense, to a default color, both for foreground and background.
-const ColorDefault = 0
+const ColorDefault Color = 0
 
 // Cell contains all the content and styling information to represent a cell in
 // the grid.
