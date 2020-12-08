@@ -279,10 +279,10 @@ type Cmd func() Msg
 // socket. The function should handle the context and terminate as appropiate.
 type Sub func(context.Context, chan<- Msg)
 
-// ImplementsEffect makes Cmd satisfy Effect.
+// ImplementsEffect makes Cmd satisfy Effect interface.
 func (cmd Cmd) ImplementsEffect() {}
 
-// ImplementsEffect makes Sub satisfy Effect.
+// ImplementsEffect makes Sub satisfy Effect interface.
 func (sub Sub) ImplementsEffect() {}
 
 // Batch peforms a bunch of effects concurrently with no ordering guarantees
