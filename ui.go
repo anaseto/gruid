@@ -264,6 +264,9 @@ func (app *App) Start(ctx context.Context) (err error) {
 // Frames returns the successive frames recorded by the application if frame
 // recording was enabled. It can be used for a replay of the session.
 func (app *App) Frames() []Frame {
+	if app.renderer == nil {
+		return nil
+	}
 	return app.renderer.framerec
 }
 
