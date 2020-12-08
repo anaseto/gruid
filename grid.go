@@ -96,7 +96,7 @@ func (pos Position) Add(p Position) Position {
 	return Position{X: pos.X + p.X, Y: pos.Y + p.Y}
 }
 
-// Sub returns vectur pos-p.
+// Sub returns vector pos-p.
 func (pos Position) Sub(p Position) Position {
 	return Position{X: pos.X - p.X, Y: pos.Y - p.Y}
 }
