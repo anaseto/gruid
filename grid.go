@@ -139,14 +139,9 @@ func NewRange(x0, y0, x1, y1 int) Range {
 	return Range{Min: Position{X: x0, Y: y0}, Max: Position{X: x1, Y: y1}}
 }
 
-// Width returns the width of the range.
-func (rg Range) Width() int {
-	return rg.Max.X - rg.Min.X
-}
-
-// Height returns the height of the range.
-func (rg Range) Height() int {
-	return rg.Max.Y - rg.Min.Y
+// Size returns the (width, height) of the range in cells.
+func (rg Range) Size() (int, int) {
+	return rg.Max.X - rg.Min.X, rg.Max.Y - rg.Min.Y
 }
 
 // Shift returns a new range with coordinates shifted by (x0,y0) and (x1,y1).
@@ -198,7 +193,7 @@ func (rg Range) Relative() Range {
 
 // Range calls a given function for all the positions of the range.
 func (rg Range) Iter(fn func(Position)) {
-	xmax, ymax := rg.Width(), rg.Height()
+	xmax, ymax := rg.Size()
 	for y := 0; y < ymax; y++ {
 		for x := 0; x < xmax; x++ {
 			pos := Position{X: x, Y: y}
@@ -271,11 +266,12 @@ func (gd Grid) Slice(rg Range) Grid {
 	if rg.Min.Y < 0 {
 		rg.Min.Y = 0
 	}
-	if rg.Max.X > gd.rg.Width() {
-		rg.Max.X = gd.rg.Width()
+	w, h := gd.rg.Size()
+	if rg.Max.X > w {
+		rg.Max.X = w
 	}
-	if rg.Max.Y > gd.rg.Height() {
-		rg.Max.Y = gd.rg.Height()
+	if rg.Max.Y > h {
+		rg.Max.Y = h
 	}
 	min := gd.rg.Min
 	rg.Min = rg.Min.Add(min)
@@ -285,7 +281,7 @@ func (gd Grid) Slice(rg Range) Grid {
 
 // Size returns the (width, height) parts of the grid range.
 func (gd Grid) Size() (int, int) {
-	return gd.rg.Width(), gd.rg.Height()
+	return gd.rg.Size()
 }
 
 // Resize is similar to Slice, but it only specifies new dimensions, and if the
@@ -295,7 +291,8 @@ func (gd Grid) Size() (int, int) {
 // Note that this only modifies the size of the grid, which may be different
 // than the window screen size.
 func (gd Grid) Resize(w, h int) Grid {
-	if gd.rg.Width() == w && gd.rg.Height() == h {
+	ow, oh := gd.Size()
+	if ow == w && oh == h {
 		return gd
 	}
 	if w <= 0 || h <= 0 {

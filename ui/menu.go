@@ -197,7 +197,8 @@ func (m *Menu) drawGrid() gruid.Grid {
 	if m.style.Boxed {
 		h += 2 // borders height
 	}
-	return m.grid.Slice(gruid.NewRange(0, 0, m.grid.Range().Width(), h))
+	w, _ := m.grid.Size()
+	return m.grid.Slice(gruid.NewRange(0, 0, w, h))
 }
 
 func (m *Menu) cursorAtFirstChoice() {
