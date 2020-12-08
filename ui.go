@@ -235,16 +235,27 @@ func (app *App) Start(ctx context.Context) (err error) {
 			// Process batched effects
 			if batchedEffects, ok := msg.(msgBatch); ok {
 				for _, eff := range batchedEffects {
-					effects <- eff
+					select {
+					case effects <- eff:
+					case <-ctx.Done():
+						break
+					}
 				}
 				continue
 			}
 
 			eff := app.model.Update(msg) // run update
-			effects <- eff               // process effect (if any)
+			select {
+			case effects <- eff: // process effect (if any)
+			case <-ctx.Done():
+				continue
+			}
 			frame := app.model.Draw().ComputeFrame()
 			if len(frame.Cells) > 0 {
-				app.renderer.frames <- frame // send frame with changes to driver
+				select {
+				case app.renderer.frames <- frame: // send frame with changes to driver
+				case <-ctx.Done():
+				}
 			}
 		}
 	}
