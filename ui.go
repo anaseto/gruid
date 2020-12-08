@@ -17,11 +17,11 @@
 //		// other fields with the state of the application
 //	}
 //
-//	func (m *model) Init() gruid.Cmd {
+//	func (m *model) Init() gruid.Effect {
 //		// Write your model's initialization.
 //	}
 //
-//	func (m *model) Update(msg gruid.Msg) gruid.Cmd {
+//	func (m *model) Update(msg gruid.Msg) gruid.Effect {
 //		// Update your application's state in response to messages.
 //	}
 //
@@ -39,17 +39,18 @@
 //			Model: m,
 //		})
 //		// Start the main loop of the application.
-//		if err := app.Start(); err != nil {
+//		if err := app.Start(nil); err != nil {
 //			log.Fatal(err)
 //		}
 //	}
 //
-// The values of type gruid.Cmd returned by Init and Update are optional and
-// represent concurrently executed functions that produce a message.  See the
+// The values of type gruid.Effect returned by Init and Update are optional and
+// represent concurrently executed functions that produce messages.  See the
 // API documentation for details and usage.
 package gruid
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"runtime/debug"
@@ -70,7 +71,7 @@ type App struct {
 	rec    bool
 	fps    time.Duration
 
-	renderer renderer
+	renderer *renderer
 }
 
 // AppConfig contains the configuration for creating a new App.
@@ -99,14 +100,21 @@ func NewApp(cfg AppConfig) *App {
 	}
 }
 
-// Start initializes the program and runs the application's main loop.
-func (app *App) Start() error {
-	var err error
+// Start initializes the application and runs its main loop. The context
+// argument can be used as a means to prematurely cancel the loop. You can
+// usually use nil here for client applications.
+func (app *App) Start(ctx context.Context) (err error) {
 	var (
-		cmds = make(chan Cmd)
-		msgs = make(chan Msg)
-		done = make(chan struct{})
+		effects = make(chan Effect)
+		msgs    = make(chan Msg)
+		errs    = make(chan error)
 	)
+
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	// driver initialization
 	err = app.driver.Init()
@@ -133,76 +141,111 @@ func (app *App) Start() error {
 	// model initialization
 	initCmd := app.model.Init()
 	if initCmd != nil {
-		go func() {
-			cmds <- initCmd
-		}()
+		go func(ctx context.Context) {
+			select {
+			case effects <- initCmd:
+			case <-ctx.Done():
+				return
+			}
+		}(ctx)
 	}
 
 	// initialize renderer
-	r := renderer{
+	app.renderer = &renderer{
 		driver: app.driver,
 		rec:    app.rec,
 		fps:    app.fps,
 	}
-	r.Init()
-	go r.Listen()
+	app.renderer.Init()
+	go app.renderer.Listen(ctx)
 
-	// first drawing
-	r.frames <- app.model.Draw().ComputeFrame()
+	// first drawing (buffered, non blocking)
+	app.renderer.frames <- app.model.Draw().ComputeFrame()
 
 	// input messages queueing
-	go func() {
+	go func(ctx context.Context) {
 		for {
-			msg := app.driver.PollMsg()
-			if msg == nil {
-				// Close has been sent the driver.
-				return
-			}
-			msgs <- msg
-		}
-	}()
-
-	// command processing
-	go func() {
-		for {
-			select {
-			case <-done:
-				return
-			case cmd := <-cmds:
-				if cmd != nil {
-					go func() {
-						msgs <- cmd()
-					}()
+			msg, err := app.driver.PollMsg()
+			if err != nil {
+				select {
+				case errs <- err:
+					return
+				case <-ctx.Done():
+					return
 				}
 			}
+			if msg == nil {
+				// Close has been sent to the driver.
+				return
+			}
+			select {
+			case msgs <- msg:
+			case <-ctx.Done():
+				return
+			}
 		}
-	}()
+	}(ctx)
+
+	// effect processing
+	go func(ctx context.Context) {
+		for {
+			select {
+			case eff := <-effects:
+				if eff != nil {
+					switch eff := eff.(type) {
+					case Cmd:
+						go func(ctx context.Context, cmd Cmd) {
+							select {
+							case msgs <- cmd():
+							case <-ctx.Done():
+							}
+						}(ctx, eff)
+					case Sub:
+						go eff(ctx, msgs)
+					}
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}(ctx)
 
 	// main loop
 	for {
-		msg := <-msgs
-
-		// Handle quit message
-		if _, ok := msg.(msgQuit); ok {
-			r.Stop()
-			<-r.done
-			close(done)
+		select {
+		case <-ctx.Done():
+			<-app.renderer.done
+			return ctx.Err()
+		case err := <-errs:
+			cancel()
+			<-app.renderer.done
 			return err
-		}
-
-		// Process batch commands
-		if batchedCmds, ok := msg.(msgBatch); ok {
-			for _, cmd := range batchedCmds {
-				cmds <- cmd
+		case msg := <-msgs:
+			if msg == nil {
+				continue
 			}
-			continue
-		}
 
-		cmd := app.model.Update(msg) // run update
-		cmds <- cmd                  // process command (if any)
-		frame := app.model.Draw().ComputeFrame()
-		if len(frame.Cells) > 0 {
-			r.frames <- frame // send frame with changes to driver
+			// Handle quit message
+			if _, ok := msg.(msgQuit); ok {
+				cancel()
+				<-app.renderer.done
+				return err
+			}
+
+			// Process batched effects
+			if batchedEffects, ok := msg.(msgBatch); ok {
+				for _, eff := range batchedEffects {
+					effects <- eff
+				}
+				continue
+			}
+
+			eff := app.model.Update(msg) // run update
+			effects <- eff               // process effect (if any)
+			frame := app.model.Draw().ComputeFrame()
+			if len(frame.Cells) > 0 {
+				app.renderer.frames <- frame // send frame with changes to driver
+			}
 		}
 	}
 }
@@ -213,34 +256,55 @@ func (app *App) Frames() []Frame {
 	return app.renderer.framerec
 }
 
-// Msg represents an action and triggers the Update function of the model.
+// Msg represents an action and triggers the Update function of the model. Note
+// that nil messages are discarded and do not trigger Update.
 type Msg interface{}
+
+// Effect is an interface value for representing either a Cmd or Sub type.
+// They generally represent IO operations, either producing a single message or
+// several. See Cmd and Sub documentation for details.
+type Effect interface {
+	ImplementsEffect()
+}
 
 // Cmd is a function that returns a message. Commands returned by Update are
 // executed on their own goroutine. You can use them for things like timers and
-// IO operations. A nil command acts as a no-op.
+// IO operations. A nil command is discarded and does nothing.
 type Cmd func() Msg
 
-// Batch peforms a bunch of commands concurrently with no ordering guarantees
-// about the results.
-func Batch(cmds ...Cmd) Cmd {
-	if len(cmds) == 0 {
+// Sub is similar to Cmd, but instead of returning a message, it sends messages
+// to a channel. Subscriptions should only be used for long running processes
+// where more than one message will be produced, for example to send messages
+// delivered by a time.Ticker, or to report messages from listening on a
+// socket. The function should handle the context and terminate as appropiate.
+type Sub func(context.Context, chan<- Msg)
+
+// ImplementsEffect makes Cmd satisfy Effect.
+func (cmd Cmd) ImplementsEffect() {}
+
+// ImplementsEffect makes Sub satisfy Effect.
+func (sub Sub) ImplementsEffect() {}
+
+// Batch peforms a bunch of effects concurrently with no ordering guarantees
+// about the potential results.
+func Batch(effs ...Effect) Effect {
+	if len(effs) == 0 {
 		return nil
 	}
-	return func() Msg {
-		return msgBatch(cmds)
-	}
+	return Cmd(func() Msg {
+		return msgBatch(effs)
+	})
 }
 
 // Model contains the application's state.
 type Model interface {
 	// Init will be called first by Start. It may return an initial command
-	// to perform.
-	Init() Cmd
+	// or subscription to perform.
+	Init() Effect
 
 	// Update is called when a message is received. Use it to update the
-	// model in response to messages and/or send commands.
-	Update(Msg) Cmd
+	// model in response to messages and/or send commands or subscriptions.
+	Update(Msg) Effect
 
 	// Draw is called after Init and then after every Update.  Use this
 	// function to draw the UI elements in a grid to be returned.  The
@@ -258,8 +322,9 @@ type Driver interface {
 	Flush(Frame)
 
 	// PollMsg waits for user input messages. It returns nil after Close
-	// has been sent to the driver.
-	PollMsg() Msg
+	// has been sent to the driver. It returns an error in case the driver
+	// input loop suffered a non recoverable error.
+	PollMsg() (Msg, error)
 
 	// Close may execute needed code to finalize the screen and release
 	// resources.

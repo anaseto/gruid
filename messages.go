@@ -87,11 +87,16 @@ type MsgScreenSize struct {
 	Time   time.Time // time when the event was generated
 }
 
-// Quit is a special command that signals the application to exit.
-func Quit() Msg {
-	return msgQuit{}
+// Quit returns a special command that signals the application to exit. Note
+// that the application does not wait for pending effects to complete before
+// exiting the Start loop, so you have to wait for those command messages
+// before using Quit.
+func Quit() Cmd {
+	return func() Msg {
+		return msgQuit{}
+	}
 }
 
-// msgBatch is an internal message used to perform a bunch of commands. You can
+// msgBatch is an internal message used to perform a bunch of effects. You can
 // send a msgBatch with Batch.
-type msgBatch []Cmd
+type msgBatch []Effect

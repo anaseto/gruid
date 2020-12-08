@@ -176,12 +176,12 @@ func getMsgKeyDown(s string) (gruid.MsgKeyDown, bool) {
 	return gruid.MsgKeyDown{Key: key, Time: time.Now()}, true
 }
 
-func (tk *Driver) PollMsg() gruid.Msg {
+func (tk *Driver) PollMsg() (gruid.Msg, error) {
 	msg, ok := <-tk.msgs
 	if ok {
-		return msg
+		return msg, nil
 	}
-	return nil
+	return nil, nil
 }
 
 type rectangle struct {

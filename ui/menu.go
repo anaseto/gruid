@@ -115,7 +115,7 @@ func (m *Menu) SetCursor(n int) {
 
 // Update implements gruid.Model.Update and updates the menu state in response to
 // user input messages.
-func (m *Menu) Update(msg gruid.Msg) gruid.Cmd {
+func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 	grid := m.drawGrid()
 	rg := grid.Range()
 

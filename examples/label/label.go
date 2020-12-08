@@ -18,7 +18,7 @@ func main() {
 		Driver: dri,
 		Model:  m,
 	})
-	app.Start()
+	app.Start(nil)
 	fmt.Printf("Successful quit.\n")
 }
 
@@ -52,7 +52,7 @@ type model struct {
 	init  bool
 }
 
-func (m *model) Init() gruid.Cmd {
+func (m *model) Init() gruid.Effect {
 	st := gruid.Style{}
 	m.grid = m.grid.Slice(gruid.NewRange(0, 0, 80, 5))
 	label := ui.NewLabel(ui.LabelConfig{
@@ -66,11 +66,11 @@ func (m *model) Init() gruid.Cmd {
 	return nil
 }
 
-func (m *model) Update(msg gruid.Msg) gruid.Cmd {
+func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	if msg, ok := msg.(gruid.MsgKeyDown); ok {
 		switch msg.Key {
 		case gruid.KeyEscape, "Q", "q":
-			return gruid.Quit
+			return gruid.Quit()
 		}
 	}
 	m.label.SetStyledText(ui.NewStyledText(fmt.Sprintf("%+v", msg)).Format(78))

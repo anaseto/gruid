@@ -53,13 +53,16 @@ func (t *Driver) Flush(frame gruid.Frame) {
 	t.screen.Show()
 }
 
-func (t *Driver) PollMsg() gruid.Msg {
+func (t *Driver) PollMsg() (gruid.Msg, error) {
 	for {
 		ev := t.screen.PollEvent()
 		if ev == nil {
-			return nil
+			// screen is finished
+			return nil, nil
 		}
 		switch tev := ev.(type) {
+		case *tcell.EventError:
+			return nil, tev
 		case *tcell.EventKey:
 			msg := gruid.MsgKeyDown{}
 			if tev.Modifiers() == tcell.ModShift {
@@ -102,7 +105,7 @@ func (t *Driver) PollMsg() gruid.Msg {
 			if tev.Rune() != 0 && msg.Key == "" {
 				msg.Key = gruid.Key(tev.Rune())
 			}
-			return msg
+			return msg, nil
 		case *tcell.EventMouse:
 			x, y := tev.Position()
 			switch tev.Buttons() {
@@ -116,7 +119,7 @@ func (t *Driver) PollMsg() gruid.Msg {
 					msg.Action = gruid.MouseMain
 					t.mousedrag = true
 				}
-				return msg
+				return msg, nil
 			case tcell.Button3:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
@@ -127,7 +130,7 @@ func (t *Driver) PollMsg() gruid.Msg {
 					msg.Action = gruid.MouseAuxiliary
 					t.mousedrag = true
 				}
-				return msg
+				return msg, nil
 			case tcell.Button2:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
@@ -138,7 +141,7 @@ func (t *Driver) PollMsg() gruid.Msg {
 					msg.Action = gruid.MouseSecondary
 					t.mousedrag = true
 				}
-				return msg
+				return msg, nil
 			case tcell.ButtonNone:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
@@ -153,13 +156,13 @@ func (t *Driver) PollMsg() gruid.Msg {
 					msg.Action = gruid.MouseMove
 					t.mousePos = msg.MousePos
 				}
-				return msg
+				return msg, nil
 			}
 		case *tcell.EventResize:
 			msg := gruid.MsgScreenSize{}
 			msg.Time = tev.When()
 			msg.Width, msg.Height = tev.Size()
-			return msg
+			return msg, nil
 		}
 	}
 }

@@ -18,7 +18,7 @@ func main() {
 		Driver: dri,
 		Model:  m,
 	})
-	app.Start()
+	app.Start(nil)
 	fmt.Printf("Successful quit.\n")
 }
 
@@ -53,7 +53,7 @@ type model struct {
 	init  bool
 }
 
-func (m *model) Init() gruid.Cmd {
+func (m *model) Init() gruid.Effect {
 	entries := []ui.MenuEntry{
 		{Header: true, Text: "Header"},
 		{Text: "(F)irst", Keys: []gruid.Key{"f", "F"}},
@@ -85,12 +85,12 @@ func (m *model) Init() gruid.Cmd {
 	return nil
 }
 
-func (m *model) Update(msg gruid.Msg) gruid.Cmd {
+func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	m.init = false
 	m.menu.Update(msg)
 	switch m.menu.Action() {
 	case ui.MenuQuit:
-		return gruid.Quit
+		return gruid.Quit()
 	case ui.MenuMove:
 		m.label.SetText(fmt.Sprintf("moved selection to entry number %d", m.menu.Selection()))
 	case ui.MenuActivate:

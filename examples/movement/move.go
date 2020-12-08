@@ -26,7 +26,7 @@ func main() {
 	})
 
 	// start application
-	app.Start()
+	app.Start(nil)
 }
 
 const (
@@ -53,11 +53,11 @@ type model struct {
 }
 
 // Init implements gruid.Model.Init. It does nothing.
-func (m *model) Init() gruid.Cmd {
+func (m *model) Init() gruid.Effect {
 	return nil
 }
 
-func (m *model) Update(msg gruid.Msg) gruid.Cmd {
+func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	d := time.Millisecond * 30 // automatic movement time interval
 	switch msg := msg.(type) {
 	case gruid.MsgKeyDown:
@@ -79,7 +79,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Cmd {
 		case gruid.KeyArrowUp, "k", "K":
 			posdiff = posdiff.Shift(0, -1)
 		case "Q", "q", gruid.KeyEscape:
-			return gruid.Quit
+			return gruid.Quit()
 		}
 		if posdiff.X != 0 || posdiff.Y != 0 {
 			newpos := m.playerPos.Add(posdiff) //

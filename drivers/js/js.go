@@ -196,12 +196,12 @@ func getMsgKeyDown(s, code string) (gruid.MsgKeyDown, bool) {
 	return gruid.MsgKeyDown{Key: key, Time: time.Now()}, true
 }
 
-func (dr *Driver) PollMsg() gruid.Msg {
+func (dr *Driver) PollMsg() (gruid.Msg, error) {
 	msg, ok := <-dr.msgs
 	if ok {
-		return msg
+		return msg, nil
 	}
-	return nil
+	return nil, nil
 }
 
 func (dr *Driver) Flush(frame gruid.Frame) {
