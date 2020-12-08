@@ -279,7 +279,8 @@ func (gd Grid) Slice(rg Range) Grid {
 	return Grid{ug: gd.ug, rg: rg}
 }
 
-// Size returns the (width, height) parts of the grid range.
+// Size returns the grid (width, height) in celles, and is a shorthand for
+// gd.Range().Size().
 func (gd Grid) Size() (int, int) {
 	return gd.rg.Size()
 }
