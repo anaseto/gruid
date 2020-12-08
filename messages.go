@@ -71,7 +71,7 @@ func (ma MouseAction) String() string {
 	return s
 }
 
-// MsgMouse represents a mouse user event.
+// MsgMouse represents a mouse user input event.
 type MsgMouse struct {
 	Action   MouseAction // mouse action (click, release, move)
 	MousePos Position    // mouse position in the grid
@@ -80,7 +80,8 @@ type MsgMouse struct {
 
 type msgQuit struct{}
 
-// MsgScreenSize is used to report the screen size, when it makes sense.
+// MsgScreenSize is used by some drivers to report the screen size, either
+// initially or on resize.
 type MsgScreenSize struct {
 	Width  int       // width in cells
 	Height int       // height in cells
