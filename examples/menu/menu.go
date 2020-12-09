@@ -50,7 +50,6 @@ type model struct {
 	grid  gruid.Grid
 	menu  *ui.Menu
 	label *ui.Label
-	init  bool
 }
 
 func NewModel(gd gruid.Grid) *model {
@@ -86,10 +85,8 @@ func NewModel(gd gruid.Grid) *model {
 }
 
 func (m *model) Update(msg gruid.Msg) gruid.Effect {
-	m.init = false
 	switch msg := msg.(type) {
 	case gruid.MsgInit:
-		m.init = true
 	default:
 		m.menu.Update(msg)
 	}
@@ -105,10 +102,8 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 }
 
 func (m *model) Draw() gruid.Grid {
-	if m.menu.Action() != ui.MenuPass || m.init {
-		m.grid.Fill(gruid.Cell{Rune: ' '})
-		m.menu.Draw()
-		m.label.Draw()
-	}
+	m.grid.Fill(gruid.Cell{Rune: ' '})
+	m.menu.Draw()
+	m.label.Draw()
 	return m.grid
 }

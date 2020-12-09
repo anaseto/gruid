@@ -68,6 +68,9 @@ func NewModel(gd gruid.Grid) *model {
 }
 
 func (m *model) Update(msg gruid.Msg) gruid.Effect {
+	if _, ok := msg.(gruid.MsgDraw); ok {
+		return nil
+	}
 	if msg, ok := msg.(gruid.MsgKeyDown); ok {
 		switch msg.Key {
 		case gruid.KeyEscape, "Q", "q":

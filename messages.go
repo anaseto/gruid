@@ -92,6 +92,10 @@ type MsgScreenSize struct {
 // calling Start on the application.
 type MsgInit struct{}
 
+// MsgDraw reports that this Update will be followed by a call to Draw. It is
+// regularly reported at the FPS rate.
+type MsgDraw time.Time
+
 // Quit returns a special command that signals the application to exit. Note
 // that the application does not wait for pending effects to complete before
 // exiting the Start loop, so you have to wait for those command messages

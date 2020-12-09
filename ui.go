@@ -66,6 +66,7 @@ type App struct {
 	model  Model
 	rec    bool
 	fps    time.Duration
+	frames []Frame
 
 	renderer *renderer
 }
@@ -87,13 +88,22 @@ type AppConfig struct {
 
 // NewApp creates a new App.
 func NewApp(cfg AppConfig) *App {
-	return &App{
+	app := &App{
 		model:       cfg.Model,
 		driver:      cfg.Driver,
 		rec:         cfg.FrameRecording,
 		fps:         cfg.FPS,
 		CatchPanics: true,
 	}
+	if app.fps <= 60 {
+		// Use always at least 60 FPS.
+		app.fps = 60
+	}
+	if app.fps >= 240 {
+		// More than 240 FPS does not make any sense.
+		app.fps = 240
+	}
+	return app
 }
 
 // Start initializes the application and runs its main loop. The context
@@ -134,14 +144,12 @@ func (app *App) Start(ctx context.Context) (err error) {
 		}()
 	}
 
-	// initialize renderer
-	app.renderer = &renderer{
-		driver: app.driver,
-		rec:    app.rec,
-		fps:    app.fps,
-	}
-	app.renderer.Init()
-	go app.renderer.Listen(ctx)
+	// initialize the renderer
+	app.renderer = &renderer{driver: app.driver}
+	go app.renderer.ListenAndRender(ctx)
+
+	// subscribe to MsgDraw
+	go MsgDrawSubscription(ctx, msgs, app.fps)
 
 	// initialization message (non-blocking, buffered)
 	msgs <- MsgInit{}
@@ -198,11 +206,9 @@ func (app *App) Start(ctx context.Context) (err error) {
 	for {
 		select {
 		case <-ctx.Done():
-			<-app.renderer.done
-			return ctx.Err()
+			return err
 		case err := <-errs:
 			cancel()
-			<-app.renderer.done
 			return err
 		case msg := <-msgs:
 			if msg == nil {
@@ -212,7 +218,6 @@ func (app *App) Start(ctx context.Context) (err error) {
 			// Handle quit message
 			if _, ok := msg.(msgQuit); ok {
 				cancel()
-				<-app.renderer.done
 				return err
 			}
 
@@ -234,11 +239,16 @@ func (app *App) Start(ctx context.Context) (err error) {
 			case <-ctx.Done():
 				continue
 			}
-			frame := app.model.Draw().ComputeFrame()
-			if len(frame.Cells) > 0 {
-				select {
-				case app.renderer.frames <- frame: // send frame with changes to driver
-				case <-ctx.Done():
+			if _, ok := msg.(MsgDraw); ok {
+				frame := app.model.Draw().ComputeFrame()
+				if len(frame.Cells) > 0 {
+					if app.rec {
+						app.frames = append(app.frames, frame)
+					}
+					select {
+					case app.renderer.frames <- frame:
+					case <-ctx.Done():
+					}
 				}
 			}
 		}
@@ -248,10 +258,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 // Frames returns the successive frames recorded by the application if frame
 // recording was enabled. It can be used for a replay of the session.
 func (app *App) Frames() []Frame {
-	if app.renderer == nil {
-		return nil
-	}
-	return app.renderer.framerec
+	return app.frames
 }
 
 // Msg represents an action and triggers the Update function of the model. Note
@@ -301,9 +308,10 @@ type Model interface {
 	// It is always called the first time with a MsgInit message.
 	Update(Msg) Effect
 
-	// Draw is called after every Update. Use this function to draw the UI
-	// elements in a grid to be returned. The returned grid will then
-	// automatically be sent to the driver for immediate display.
+	// Draw is called after every Update that received a MsgDraw message.
+	// Use this function to draw the UI elements in a grid to be returned.
+	// The returned grid will then automatically be sent to the driver for
+	// immediate display.
 	Draw() Grid
 }
 
@@ -323,4 +331,20 @@ type Driver interface {
 	// Close may execute needed code to finalize the screen and release
 	// resources.
 	Close()
+}
+
+// MsgDrawSubscription sends a MsgDraw message at an fps rate.
+func MsgDrawSubscription(ctx context.Context, msgs chan<- Msg, fps time.Duration) {
+	ticker := time.NewTicker(time.Second / fps)
+	for {
+		select {
+		case t := <-ticker.C:
+			select {
+			case msgs <- MsgDraw(t):
+			case <-ctx.Done():
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
 }

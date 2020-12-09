@@ -34,7 +34,7 @@ type Replay struct {
 	auto   bool
 	speed  time.Duration
 	action repAction
-	app    bool // whether running as main gruid.App model
+	init   bool // Update received MsgInit
 }
 
 type repAction int
@@ -55,13 +55,15 @@ type msgTick int // frame number
 func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 	rep.action = replayNone
 	switch msg := msg.(type) {
+	case gruid.MsgDraw:
+		return nil
 	case gruid.MsgInit:
-		rep.app = true
+		rep.init = true
 		return rep.tick()
 	case gruid.MsgKeyDown:
 		switch msg.Key {
 		case "Q", "q", gruid.KeyEscape:
-			if rep.app {
+			if rep.init {
 				rep.action = replayQuit
 			}
 		case "p", "P", gruid.KeySpace:
@@ -126,14 +128,16 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 			rep.speed = 1
 		}
 	}
+	rep.draw()
 	if !rep.auto || rep.fidx > len(rep.frames)-1 || rep.fidx < 0 || rep.action == replayNone {
 		return nil
 	}
 	return rep.tick()
 }
 
-// Draw implements Model.Draw for Replay.
-func (rep *Replay) Draw() gruid.Grid {
+// The grid state is actually the replay state so we draw the grid on Update
+// instead of Draw.
+func (rep *Replay) draw() {
 	switch rep.action {
 	case replayNext:
 		frame := rep.frames[rep.fidx-1]
@@ -155,6 +159,10 @@ func (rep *Replay) Draw() gruid.Grid {
 		}
 		rep.undo = rep.undo[:len(rep.undo)-1]
 	}
+}
+
+// Draw implements Model.Draw for Replay.
+func (rep *Replay) Draw() gruid.Grid {
 	return rep.gd
 }
 

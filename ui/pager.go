@@ -32,7 +32,7 @@ type Pager struct {
 	style  PagerStyle
 	index  int // current index
 	action PagerAction
-	app    bool // running as main model
+	init   bool // Update received MsgInit
 }
 
 // NewPager returns a new pager with given configuration options.
@@ -75,7 +75,7 @@ func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 	pg.action = PagerPass
 	switch msg := msg.(type) {
 	case gruid.MsgInit:
-		pg.app = true
+		pg.init = true
 		return nil
 	case gruid.MsgKeyDown:
 		switch msg.Key {
@@ -125,7 +125,7 @@ func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 			}
 		case gruid.KeyEscape, "q", "Q":
 			pg.action = PagerQuit
-			if pg.app {
+			if pg.init {
 				return gruid.Quit()
 			}
 		}
@@ -141,7 +141,7 @@ func (pg *Pager) Action() PagerAction {
 // Update implements gruid.Model.Draw for Pager. It returns the grid slice that
 // was drawn.
 func (pg *Pager) Draw() gruid.Grid {
-	if pg.app {
+	if pg.init {
 		pg.grid.Fill(gruid.Cell{Rune: ' '})
 	}
 	grid := pg.grid
