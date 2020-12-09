@@ -78,11 +78,10 @@ func (r *renderer) flush() {
 					Width:  r.frameQueue[0].Width,
 					Height: r.frameQueue[0].Height,
 				})
-			} else {
-				r.grid.ClearCache()
-				for i := 0; i < len(r.grid.ug.cellBuffer); i++ {
-					r.grid.ug.cellBuffer[i] = Cell{}
-				}
+			}
+			r.grid.ClearCache()
+			for i := 0; i < len(r.grid.ug.cellBuffer); i++ {
+				r.grid.ug.cellBuffer[i] = Cell{}
 			}
 			for _, frame := range r.frameQueue {
 				r.grid.Resize(frame.Width, frame.Height)

@@ -17,10 +17,6 @@
 //		// other fields with the state of the application
 //	}
 //
-//	func (m *model) Init() gruid.Effect {
-//		// Write your model's initialization.
-//	}
-//
 //	func (m *model) Update(msg gruid.Msg) gruid.Effect {
 //		// Update your application's state in response to messages.
 //	}
@@ -31,7 +27,7 @@
 //
 //	func main() {
 //		gd := gruid.NewGrid(gruid.GridConfig{})
-//		m := &model{grid: gd}
+//		m := &model{grid: gd, ...}
 //		// Specify a driver among the provided ones.
 //		driver := &tcell.Driver{...}
 //		app := gruid.NewApp(gruid.AppConfig{
@@ -106,7 +102,7 @@ func NewApp(cfg AppConfig) *App {
 func (app *App) Start(ctx context.Context) (err error) {
 	var (
 		effects = make(chan Effect)
-		msgs    = make(chan Msg)
+		msgs    = make(chan Msg, 1)
 		errs    = make(chan error)
 	)
 
@@ -138,18 +134,6 @@ func (app *App) Start(ctx context.Context) (err error) {
 		}()
 	}
 
-	// model initialization
-	initCmd := app.model.Init()
-	if initCmd != nil {
-		go func(ctx context.Context) {
-			select {
-			case effects <- initCmd:
-			case <-ctx.Done():
-				return
-			}
-		}(ctx)
-	}
-
 	// initialize renderer
 	app.renderer = &renderer{
 		driver: app.driver,
@@ -159,8 +143,8 @@ func (app *App) Start(ctx context.Context) (err error) {
 	app.renderer.Init()
 	go app.renderer.Listen(ctx)
 
-	// first drawing (buffered, non blocking)
-	app.renderer.frames <- app.model.Draw().ComputeFrame()
+	// initialization message (non-blocking, buffered)
+	msgs <- MsgInit{}
 
 	// input messages queueing
 	go func(ctx context.Context) {
@@ -312,18 +296,14 @@ func Batch(effs ...Effect) Effect {
 
 // Model contains the application's state.
 type Model interface {
-	// Init will be called first by Start. It may return an initial command
-	// or subscription to perform.
-	Init() Effect
-
 	// Update is called when a message is received. Use it to update the
 	// model in response to messages and/or send commands or subscriptions.
+	// It is always called the first time with a MsgInit message.
 	Update(Msg) Effect
 
-	// Draw is called after Init and then after every Update.  Use this
-	// function to draw the UI elements in a grid to be returned.  The
-	// returned grid will then automatically be sent to the driver for
-	// immediate display.
+	// Draw is called after every Update. Use this function to draw the UI
+	// elements in a grid to be returned. The returned grid will then
+	// automatically be sent to the driver for immediate display.
 	Draw() Grid
 }
 

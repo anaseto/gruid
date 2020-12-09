@@ -51,17 +51,13 @@ const (
 
 type msgTick int // frame number
 
-// Init implements Model.Init for Replay. It returns a timer command for
-// starting automatic replay.
-func (rep *Replay) Init() gruid.Effect {
-	rep.app = true
-	return rep.tick()
-}
-
 // Update implements Model.Update for Replay.
 func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 	rep.action = replayNone
 	switch msg := msg.(type) {
+	case gruid.MsgInit:
+		rep.app = true
+		return rep.tick()
 	case gruid.MsgKeyDown:
 		switch msg.Key {
 		case "Q", "q", gruid.KeyEscape:

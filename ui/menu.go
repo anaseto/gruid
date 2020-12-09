@@ -84,6 +84,7 @@ type Menu struct {
 	cursor  int
 	action  MenuAction
 	draw    bool
+	app     bool // main application model
 }
 
 // Selection return the index of the currently selected entry.
@@ -122,10 +123,15 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 	l := len(m.entries)
 	m.action = MenuPass // no action still
 	switch msg := msg.(type) {
+	case gruid.MsgInit:
+		m.app = true
 	case gruid.MsgKeyDown:
 		switch {
 		case msg.Key == gruid.KeyEscape || msg.Key == gruid.KeySpace || msg.Key == "x" || msg.Key == "X":
 			m.action = MenuQuit
+			if m.app {
+				return gruid.Quit()
+			}
 		case msg.Key == gruid.KeyArrowDown:
 			m.action = MenuMove
 			m.cursor++
@@ -177,6 +183,9 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 		case gruid.MouseMain:
 			if !msg.MousePos.In(rg) || !m.style.Boxed && pos.Y >= len(m.entries) {
 				m.action = MenuQuit
+				if m.app {
+					return gruid.Quit()
+				}
 				break
 			}
 			if !pos.In(crg.Relative()) || pos.Y >= len(m.entries) {
@@ -222,6 +231,9 @@ func (m *Menu) cursorAtLastChoice() {
 
 // Draw implements gruid.Model.Draw. It returns the grid slice that was drawn.
 func (m *Menu) Draw() gruid.Grid {
+	if m.app {
+		m.grid.Fill(gruid.Cell{Rune: ' '})
+	}
 	grid := m.drawGrid()
 
 	if m.style.Boxed {

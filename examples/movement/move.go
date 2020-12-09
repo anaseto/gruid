@@ -52,11 +52,6 @@ type model struct {
 	autodir   gruid.Position // automatic movement in a given direction
 }
 
-// Init implements gruid.Model.Init. It does nothing.
-func (m *model) Init() gruid.Effect {
-	return nil
-}
-
 func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	d := time.Millisecond * 30 // automatic movement time interval
 	switch msg := msg.(type) {

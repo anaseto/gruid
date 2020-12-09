@@ -27,21 +27,17 @@ func main() {
 		s := strings.TrimRight(strings.ReplaceAll(string(bytes), "\t", "    "), "\n")
 		lines = strings.Split(s, "\n")
 	} else {
-		fmt.Println("Usage: go run . file-to-read")
+		fmt.Println("Usage: go run ./pager.go file")
 		os.Exit(1)
 	}
 
 	var gd = gruid.NewGrid(gruid.GridConfig{})
 	st := styler{}
 	var dri = &tcell.Driver{StyleManager: st}
-	m := &model{
-		grid:  gd,
-		lines: lines,
-		fname: args[0],
-	}
+	pager := NewPager(gd, lines, args[0])
 	app := gruid.NewApp(gruid.AppConfig{
 		Driver: dri,
-		Model:  m,
+		Model:  pager,
 	})
 	app.Start(nil)
 	fmt.Printf("Successful quit.\n")
@@ -65,46 +61,18 @@ func (sty styler) GetStyle(st gruid.Style) tc.Style {
 	return ts
 }
 
-type model struct {
-	grid  gruid.Grid
-	lines []string
-	pager *ui.Pager
-	init  bool
-	fname string
-}
-
-func (m *model) Init() gruid.Effect {
+func NewPager(grid gruid.Grid, lines []string, fname string) *ui.Pager {
 	st := gruid.Style{}
 	style := ui.PagerStyle{
 		Title:   st.WithFg(ColorTitle),
 		LineNum: st.WithFg(ColorLnum),
 	}
 	pager := ui.NewPager(ui.PagerConfig{
-		Grid:       m.grid,
+		Grid:       grid,
 		StyledText: ui.StyledText{},
-		Lines:      m.lines,
-		Title:      m.fname,
+		Lines:      lines,
+		Title:      fname,
 		Style:      style,
 	})
-	m.init = true
-	m.pager = pager
-	return nil
-}
-
-func (m *model) Update(msg gruid.Msg) gruid.Effect {
-	m.init = false
-	m.pager.Update(msg)
-	switch m.pager.Action() {
-	case ui.PagerQuit:
-		return gruid.Quit()
-	}
-	return nil
-}
-
-func (m *model) Draw() gruid.Grid {
-	if m.pager.Action() != ui.PagerPass || m.init {
-		m.grid.Fill(gruid.Cell{Rune: ' '})
-		m.pager.Draw()
-	}
-	return m.grid
+	return pager
 }

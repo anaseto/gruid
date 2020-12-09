@@ -13,7 +13,7 @@ func main() {
 	var gd = gruid.NewGrid(gruid.GridConfig{})
 	st := styler{}
 	var dri = &tcell.Driver{StyleManager: st}
-	m := &model{grid: gd}
+	m := NewModel(gd)
 	app := gruid.NewApp(gruid.AppConfig{
 		Driver: dri,
 		Model:  m,
@@ -52,7 +52,8 @@ type model struct {
 	init  bool
 }
 
-func (m *model) Init() gruid.Effect {
+func NewModel(gd gruid.Grid) *model {
+	m := &model{grid: gd}
 	st := gruid.Style{}
 	m.grid = m.grid.Slice(gruid.NewRange(0, 0, 80, 5))
 	label := ui.NewLabel(ui.LabelConfig{
@@ -63,7 +64,7 @@ func (m *model) Init() gruid.Effect {
 	})
 	m.label = label
 	m.init = true
-	return nil
+	return m
 }
 
 func (m *model) Update(msg gruid.Msg) gruid.Effect {

@@ -13,7 +13,7 @@ func main() {
 	var gd = gruid.NewGrid(gruid.GridConfig{})
 	st := styler{}
 	var dri = &tcell.Driver{StyleManager: st}
-	m := &model{grid: gd}
+	m := NewModel(gd)
 	app := gruid.NewApp(gruid.AppConfig{
 		Driver: dri,
 		Model:  m,
@@ -53,7 +53,8 @@ type model struct {
 	init  bool
 }
 
-func (m *model) Init() gruid.Effect {
+func NewModel(gd gruid.Grid) *model {
+	m := &model{grid: gd}
 	entries := []ui.MenuEntry{
 		{Header: true, Text: "Header"},
 		{Text: "(F)irst", Keys: []gruid.Key{"f", "F"}},
@@ -81,13 +82,17 @@ func (m *model) Init() gruid.Effect {
 		Style:      ui.LabelStyle{Title: st.WithFg(ColorHeader), AdjustWidth: true},
 	})
 	m.label = label
-	m.init = true
-	return nil
+	return m
 }
 
 func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	m.init = false
-	m.menu.Update(msg)
+	switch msg := msg.(type) {
+	case gruid.MsgInit:
+		m.init = true
+	default:
+		m.menu.Update(msg)
+	}
 	switch m.menu.Action() {
 	case ui.MenuQuit:
 		return gruid.Quit()
