@@ -65,6 +65,42 @@ func (pf *PathFinder) DijkstraMap(dij Dijkstrer, sources []gruid.Position, maxCo
 	}
 }
 
+// Node represents a position in a dijkstra map with a related cost.
+type Node struct {
+	Pos  gruid.Position
+	Cost int
+}
+
+// Iter iterates last computed dijkstra map from a given position.
+func (pf *PathFinder) Iter(pos gruid.Position, f func(Node)) {
+	if pf.dijkstrer == nil || !pos.In(pf.rg) {
+		return
+	}
+	nm := pf.nodeCache
+	var qstart, qend int
+	pf.iterQueueCache[qend] = pf.idx(pos)
+	pf.iterVisitedCache[qend] = nm.Index
+	qend++
+	_, w := pf.rg.Size()
+	for qstart < qend {
+		pos = idxToPos(pf.iterQueueCache[qstart], w)
+		qstart++
+		nb := pf.dijkstrer.Neighbors(pos)
+		for _, npos := range nb {
+			if !npos.In(pf.rg) {
+				continue
+			}
+			n := &nm.Nodes[pf.idx(npos)]
+			if n.CacheIndex == nm.Index && pf.iterVisitedCache[pf.idx(npos)] != nm.Index {
+				f(Node{Pos: n.Pos, Cost: n.Cost})
+				pf.iterQueueCache[qend] = pf.idx(npos)
+				qend++
+				pf.iterVisitedCache[pf.idx(npos)] = nm.Index
+			}
+		}
+	}
+}
+
 const unreachable = 9999
 
 // AutoExploreDijkstra is an optimized version of the dijkstra algorithm for

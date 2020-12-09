@@ -89,36 +89,6 @@ func (pf *PathFinder) at(p gruid.Position) (*node, bool) {
 	return n, true
 }
 
-// Iter iterates last computed dijkstra map from a given position.
-func (pf *PathFinder) Iter(pos gruid.Position, f func(*node)) {
-	if pf.dijkstrer == nil || !pos.In(pf.rg) {
-		return
-	}
-	nm := pf.nodeCache
-	var qstart, qend int
-	pf.iterQueueCache[qend] = pf.idx(pos)
-	pf.iterVisitedCache[qend] = nm.Index
-	qend++
-	_, w := pf.rg.Size()
-	for qstart < qend {
-		pos = idxToPos(pf.iterQueueCache[qstart], w)
-		qstart++
-		nb := pf.dijkstrer.Neighbors(pos)
-		for _, npos := range nb {
-			if !npos.In(pf.rg) {
-				continue
-			}
-			n := &nm.Nodes[pf.idx(npos)]
-			if n.CacheIndex == nm.Index && pf.iterVisitedCache[pf.idx(npos)] != nm.Index {
-				f(n)
-				pf.iterQueueCache[qend] = pf.idx(npos)
-				qend++
-				pf.iterVisitedCache[pf.idx(npos)] = nm.Index
-			}
-		}
-	}
-}
-
 // idxToPos returns a grid position given an index and the width of the grid.
 func idxToPos(i, w int) gruid.Position {
 	return gruid.Position{X: i - (i/w)*w, Y: i / w}
