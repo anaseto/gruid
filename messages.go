@@ -88,8 +88,8 @@ type MsgScreenSize struct {
 	Time   time.Time // time when the event was generated
 }
 
-// MsgInit is always the first message sent to Update after calling Start on
-// the application.
+// MsgInit is a special message that is always sent first to Update after
+// calling Start on the application.
 type MsgInit struct{}
 
 // Quit returns a special command that signals the application to exit. Note
