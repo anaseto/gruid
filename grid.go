@@ -314,13 +314,18 @@ func (gd Grid) Resize(w, h int) Grid {
 	}
 	if grow {
 		newBuf := make([]Cell, gd.ug.width*gd.ug.height)
+		for i := 0; i < len(newBuf); i++ {
+			newBuf[i] = Cell{Rune: ' '}
+		}
+		newBackBuf := make([]Cell, len(newBuf))
 		for i := 0; i < len(gd.ug.cellBuffer); i++ {
 			pos := idxToPos(i, uw)           // old absolute position
 			idx := pos.X + gd.ug.width*pos.Y // new index
 			newBuf[idx] = gd.ug.cellBuffer[i]
+			newBackBuf[idx] = gd.ug.cellBackBuffer[i]
 		}
 		gd.ug.cellBuffer = newBuf
-		gd.ug.cellBackBuffer = make([]Cell, len(gd.ug.cellBuffer))
+		gd.ug.cellBackBuffer = newBackBuf
 	}
 	return gd
 }
