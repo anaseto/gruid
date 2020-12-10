@@ -29,71 +29,6 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-type node struct {
-	Pos        gruid.Position
-	Cost       int
-	Rank       int
-	Parent     *gruid.Position
-	Open       bool
-	Closed     bool
-	Index      int
-	Num        int
-	CacheIndex int
-}
-
-type nodeMap struct {
-	Nodes []node
-	Index int
-}
-
-// PathFinder allows for efficient path finding within a range.
-type PathFinder struct {
-	rg               gruid.Range
-	nodeCache        *nodeMap
-	queueCache       priorityQueue
-	iterVisitedCache []int
-	iterQueueCache   []int
-	dijkstrer        Dijkstrer
-}
-
-// NewPathFinder returns a new PathFinder for positions in a given range.
-func NewPathFinder(rg gruid.Range) *PathFinder {
-	pf := &PathFinder{}
-	pf.rg = rg
-	w, h := rg.Size()
-	pf.nodeCache.Nodes = make([]node, w*h)
-	pf.queueCache = make(priorityQueue, 0, w*h)
-	return pf
-}
-
-func (pf *PathFinder) idx(pos gruid.Position) int {
-	w, _ := pf.rg.Size()
-	return pos.Y*w + pos.X
-}
-
-func (pf *PathFinder) get(p gruid.Position) *node {
-	nm := pf.nodeCache
-	n := &nm.Nodes[pf.idx(p)]
-	if n.CacheIndex != nm.Index {
-		nm.Nodes[pf.idx(p)] = node{Pos: p, CacheIndex: nm.Index}
-	}
-	return n
-}
-
-func (pf *PathFinder) at(p gruid.Position) (*node, bool) {
-	nm := pf.nodeCache
-	n := &nm.Nodes[pf.idx(p)]
-	if n.CacheIndex != nm.Index {
-		return nil, false
-	}
-	return n, true
-}
-
-// idxToPos returns a grid position given an index and the width of the grid.
-func idxToPos(i, w int) gruid.Position {
-	return gruid.Position{X: i - (i/w)*w, Y: i / w}
-}
-
 // Astar is the interface that has to be satisfied in order to use the A*
 // algorithm used by the AstarPath function.
 type Astar interface {
@@ -114,14 +49,20 @@ type Astar interface {
 // AstarPath return a path from a position to another, including thoses
 // positions. It returns nil if no path was found.
 func (pf *PathFinder) AstarPath(ast Astar, from, to gruid.Position) []gruid.Position {
+	if pf.astarNodes.Nodes == nil {
+		w, h := pf.rg.Size()
+		pf.astarNodes.Nodes = make([]node, w*h)
+		pf.astarQueue = make(priorityQueue, 0, w*h)
+	}
 	if !from.In(pf.rg) || !to.In(pf.rg) {
 		return nil
 	}
-	pf.nodeCache.Index++
-	nqs := pf.queueCache[:0]
+	nm := pf.astarNodes
+	nm.Index++
+	nqs := pf.astarQueue[:0]
 	nq := &nqs
 	heap.Init(nq)
-	fromNode := pf.get(from)
+	fromNode := nm.get(pf, from)
 	fromNode.Open = true
 	num := 0
 	fromNode.Num = num
@@ -144,14 +85,17 @@ func (pf *PathFinder) AstarPath(ast Astar, from, to gruid.Position) []gruid.Posi
 				if curr.Parent == nil {
 					break
 				}
-				curr, _ = pf.at(*curr.Parent)
+				curr, _ = nm.at(pf, *curr.Parent)
 			}
 			return p
 		}
 
 		for _, neighbor := range ast.Neighbors(current.Pos) {
+			if !neighbor.In(pf.rg) {
+				continue
+			}
 			cost := current.Cost + ast.Cost(current.Pos, neighbor)
-			neighborNode := pf.get(neighbor)
+			neighborNode := nm.get(pf, neighbor)
 			if cost < neighborNode.Cost {
 				if neighborNode.Open {
 					heap.Remove(nq, neighborNode.Index)
@@ -170,39 +114,4 @@ func (pf *PathFinder) AstarPath(ast Astar, from, to gruid.Position) []gruid.Posi
 			}
 		}
 	}
-}
-
-// A priorityQueue implements heap.Interface and holds Nodes.  The
-// priorityQueue is used to track open nodes by rank.
-type priorityQueue []*node
-
-func (pq priorityQueue) Len() int {
-	return len(pq)
-}
-
-func (pq priorityQueue) Less(i, j int) bool {
-	//return pq[i].Rank < pq[j].Rank
-	return pq[i].Rank < pq[j].Rank || pq[i].Rank == pq[j].Rank && pq[i].Num < pq[j].Num
-}
-
-func (pq priorityQueue) Swap(i, j int) {
-	pq[i], pq[j] = pq[j], pq[i]
-	pq[i].Index = i
-	pq[j].Index = j
-}
-
-func (pq *priorityQueue) Push(x interface{}) {
-	n := len(*pq)
-	no := x.(*node)
-	no.Index = n
-	*pq = append(*pq, no)
-}
-
-func (pq *priorityQueue) Pop() interface{} {
-	old := *pq
-	n := len(old)
-	no := old[n-1]
-	no.Index = -1
-	*pq = old[0 : n-1]
-	return no
 }

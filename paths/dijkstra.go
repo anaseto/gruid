@@ -6,9 +6,9 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-// Dijkstrer is the interface that has to be satisfied in order to build a
+// Dijkstra is the interface that has to be satisfied in order to build a
 // dijkstra map using the DijkstraMap function.
-type Dijkstrer interface {
+type Dijkstra interface {
 	// Neighbors returns the available neighbor positions of a given
 	// position. Implementations may use a cache to avoid allocations.
 	Neighbors(gruid.Position) []gruid.Position
@@ -21,14 +21,23 @@ type Dijkstrer interface {
 // Dijkstra computes a dijkstra map given a list of source positions and a
 // maximal cost from those sources. The resulting map can then be iterated with
 // Iter.
-func (pf *PathFinder) DijkstraMap(dij Dijkstrer, sources []gruid.Position, maxCost int) {
-	pf.dijkstrer = dij
-	pf.nodeCache.Index++
-	nqs := pf.queueCache[:0]
+func (pf *PathFinder) DijkstraMap(dij Dijkstra, sources []gruid.Position, maxCost int) {
+	if pf.dijkstraNodes.Nodes == nil {
+		w, h := pf.rg.Size()
+		pf.dijkstraNodes.Nodes = make([]node, w*h)
+		pf.dijkstraQueue = make(priorityQueue, 0, w*h)
+	}
+	nm := pf.dijkstraNodes
+	pf.dijkstra = dij
+	nm.Index++
+	nqs := pf.dijkstraQueue[:0]
 	nq := &nqs
 	heap.Init(nq)
 	for _, f := range sources {
-		n := pf.get(f)
+		if !f.In(pf.rg) {
+			continue
+		}
+		n := nm.get(pf, f)
 		n.Open = true
 		heap.Push(nq, n)
 	}
@@ -45,7 +54,7 @@ func (pf *PathFinder) DijkstraMap(dij Dijkstrer, sources []gruid.Position, maxCo
 				continue
 			}
 			cost := current.Cost + dij.Cost(current.Pos, neighbor)
-			neighborNode := pf.get(neighbor)
+			neighborNode := nm.get(pf, neighbor)
 			if cost < neighborNode.Cost {
 				if neighborNode.Open {
 					heap.Remove(nq, neighborNode.Index)
@@ -65,18 +74,26 @@ func (pf *PathFinder) DijkstraMap(dij Dijkstrer, sources []gruid.Position, maxCo
 	}
 }
 
-// Node represents a position in a dijkstra map with a related cost.
+// Node represents a position in a dijkstra map with a related distance cost
+// relative to the most close source.
 type Node struct {
 	Pos  gruid.Position
 	Cost int
 }
 
-// Iter iterates last computed dijkstra map from a given position.
+// idxToPos returns a grid position given an index and the width of the grid.
+func idxToPos(i, w int) gruid.Position {
+	return gruid.Position{X: i - (i/w)*w, Y: i / w}
+}
+
+// Iter iterates last computed dijkstra map from a given position. Note that
+// you should not call Iter or other pathfinding methods on the same PathFinder
+// within the iteration function, as that could invalidate the iteration state.
 func (pf *PathFinder) Iter(pos gruid.Position, f func(Node)) {
-	if pf.dijkstrer == nil || !pos.In(pf.rg) {
+	if pf.dijkstra == nil || !pos.In(pf.rg) {
 		return
 	}
-	nm := pf.nodeCache
+	nm := pf.dijkstraNodes
 	var qstart, qend int
 	pf.iterQueueCache[qend] = pf.idx(pos)
 	pf.iterVisitedCache[qend] = nm.Index
@@ -85,7 +102,7 @@ func (pf *PathFinder) Iter(pos gruid.Position, f func(Node)) {
 	for qstart < qend {
 		pos = idxToPos(pf.iterQueueCache[qstart], w)
 		qstart++
-		nb := pf.dijkstrer.Neighbors(pos)
+		nb := pf.dijkstra.Neighbors(pos)
 		for _, npos := range nb {
 			if !npos.In(pf.rg) {
 				continue
