@@ -48,7 +48,7 @@ type Astar interface {
 
 // AstarPath return a path from a position to another, including thoses
 // positions. It returns nil if no path was found.
-func (pf *PathFinder) AstarPath(ast Astar, from, to gruid.Position) []gruid.Position {
+func (pf *PathRange) AstarPath(ast Astar, from, to gruid.Position) []gruid.Position {
 	if !from.In(pf.rg) || !to.In(pf.rg) {
 		return nil
 	}

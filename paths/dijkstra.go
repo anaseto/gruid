@@ -21,7 +21,7 @@ type Dijkstra interface {
 // DijkstraMap computes a dijkstra map given a list of source positions and a
 // maximal cost from those sources. The resulting map can then be iterated with
 // Iter.
-func (pf *PathFinder) DijkstraMap(dij Dijkstra, sources []gruid.Position, maxCost int) {
+func (pf *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Position, maxCost int) {
 	if pf.dijkstraNodes == nil {
 		pf.dijkstraNodes = &nodeMap{}
 		w, h := pf.rg.Size()
@@ -91,7 +91,7 @@ func idxToPos(i, w int) gruid.Position {
 // first order. Note that you should not call the MapIter or DijkstraMap
 // methods on the same PathFinder within the iteration function, as that could
 // invalidate the iteration state.
-func (pf *PathFinder) MapIter(pos gruid.Position, f func(Node)) {
+func (pf *PathRange) MapIter(pos gruid.Position, f func(Node)) {
 	if pf.dijkstra == nil || !pos.In(pf.rg) {
 		return
 	}

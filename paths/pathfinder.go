@@ -3,8 +3,8 @@ package paths
 
 import "github.com/anaseto/gruid"
 
-// PathFinder allows for efficient path finding within a range.
-type PathFinder struct {
+// PathRange allows for efficient path finding within a range.
+type PathRange struct {
 	rg               gruid.Range
 	astarNodes       *nodeMap
 	astarQueue       priorityQueue
@@ -18,16 +18,16 @@ type PathFinder struct {
 	bfqueue          []int
 }
 
-// NewPathFinder returns a new PathFinder for positions in a given range.
-func NewPathFinder(rg gruid.Range) *PathFinder {
-	pf := &PathFinder{}
+// NewPathRange returns a new PathFinder for positions in a given range.
+func NewPathRange(rg gruid.Range) *PathRange {
+	pf := &PathRange{}
 	pf.rg = rg
 	return pf
 }
 
 // SetRange updates the range used by the PathFinder. If the size is the same,
 // cached structures will be preserved, otherwise they will be reinitialized.
-func (pf *PathFinder) SetRange(rg gruid.Range) {
+func (pf *PathRange) SetRange(rg gruid.Range) {
 	org := pf.rg
 	pf.rg = rg
 	w, h := rg.Size()
@@ -35,15 +35,15 @@ func (pf *PathFinder) SetRange(rg gruid.Range) {
 	if w == ow && h == oh {
 		return
 	}
-	*pf = PathFinder{rg: rg}
+	*pf = PathRange{rg: rg}
 }
 
-func (pf *PathFinder) idx(pos gruid.Position) int {
+func (pf *PathRange) idx(pos gruid.Position) int {
 	w, _ := pf.rg.Size()
 	return pos.Y*w + pos.X
 }
 
-func (nm nodeMap) get(pf *PathFinder, p gruid.Position) *node {
+func (nm nodeMap) get(pf *PathRange, p gruid.Position) *node {
 	n := &nm.Nodes[pf.idx(p)]
 	if n.CacheIndex != nm.Index {
 		nm.Nodes[pf.idx(p)] = node{Pos: p, CacheIndex: nm.Index}
@@ -51,7 +51,7 @@ func (nm nodeMap) get(pf *PathFinder, p gruid.Position) *node {
 	return n
 }
 
-func (nm nodeMap) at(pf *PathFinder, p gruid.Position) (*node, bool) {
+func (nm nodeMap) at(pf *PathRange, p gruid.Position) (*node, bool) {
 	n := &nm.Nodes[pf.idx(p)]
 	if n.CacheIndex != nm.Index {
 		return nil, false

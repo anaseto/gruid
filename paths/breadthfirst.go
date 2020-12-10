@@ -16,7 +16,7 @@ type BreadthFirst interface {
 // first map. It returns a false boolean if the position is outside the range.
 // MapAt used a cached breadth first map, that will be invalidated in case a
 // new one is computed using the same PathFinder.
-func (pf *PathFinder) MapAt(pos gruid.Position) (cost int, ok bool) {
+func (pf *PathRange) MapAt(pos gruid.Position) (cost int, ok bool) {
 	if !pos.In(pf.rg) || pf.bfmap == nil {
 		return cost, false
 	}
@@ -27,7 +27,7 @@ func (pf *PathFinder) MapAt(pos gruid.Position) (cost int, ok bool) {
 // source positions to all the positions in the PathFinder range up to a
 // maximal cost. Other positions will have the value maxCost+1, including
 // unreachable ones.
-func (pf *PathFinder) BreadthFirstMap(bf BreadthFirst, sources []gruid.Position, maxCost int) {
+func (pf *PathRange) BreadthFirstMap(bf BreadthFirst, sources []gruid.Position, maxCost int) {
 	if pf.bfvisited == nil {
 		w, h := pf.rg.Size()
 		pf.bfvisited = make([]bool, w*h)

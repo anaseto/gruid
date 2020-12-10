@@ -2,16 +2,16 @@ package paths
 
 import "github.com/anaseto/gruid"
 
-// NeighborFinder returns neighboring positions. It returns a cached slice for
+// NeighborSearch searches adjacent positions. It returns a cached slice for
 // efficiency, so results are invalidated by next method calls. It is suitable
 // for use in the provided Dijkstra and Astar algorithms.
-type NeighborFinder struct {
+type NeighborSearch struct {
 	nb []gruid.Position
 }
 
-// Neighbors returns 8 adjacent positions, including diagonal ones, filtered by
-// keep function.
-func (nf NeighborFinder) Neighbors(pos gruid.Position, keep func(gruid.Position) bool) []gruid.Position {
+// All returns 8 adjacent positions, including diagonal ones, filtered by keep
+// function.
+func (nf *NeighborSearch) All(pos gruid.Position, keep func(gruid.Position) bool) []gruid.Position {
 	nf.nb = nf.nb[:0]
 	for y := -1; y <= 1; y++ {
 		for x := -1; x <= 1; x++ {
@@ -27,9 +27,9 @@ func (nf NeighborFinder) Neighbors(pos gruid.Position, keep func(gruid.Position)
 	return nf.nb
 }
 
-// CardinalNeighbors returns 4 adjacent cardinal positions, excluding diagonal
-// ones, filtered by keep function.
-func (nf NeighborFinder) CardinalNeighbors(pos gruid.Position, keep func(gruid.Position) bool) []gruid.Position {
+// Cardinal returns 4 adjacent cardinal positions, excluding diagonal ones,
+// filtered by keep function.
+func (nf *NeighborSearch) Cardinal(pos gruid.Position, keep func(gruid.Position) bool) []gruid.Position {
 	nf.nb = nf.nb[:0]
 	for i := -1; i <= 1; i += 2 {
 		npos := pos.Shift(i, 0)
@@ -44,9 +44,9 @@ func (nf NeighborFinder) CardinalNeighbors(pos gruid.Position, keep func(gruid.P
 	return nf.nb
 }
 
-// DiagonalNeighbors returns 4 adjacent diagonal positions, filtered by keep
-// function.
-func (nf NeighborFinder) DiagonalNeighbors(pos gruid.Position, keep func(gruid.Position) bool) []gruid.Position {
+// Diagonal returns 4 adjacent diagonal (inter-cardinal) positions, filtered by
+// keep function.
+func (nf *NeighborSearch) Diagonal(pos gruid.Position, keep func(gruid.Position) bool) []gruid.Position {
 	nf.nb = nf.nb[:0]
 	for y := -1; y <= 1; y += 2 {
 		for x := -1; x <= 1; x += 2 {
