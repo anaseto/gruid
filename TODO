@@ -1,11 +1,13 @@
+----- TODO
+add key bindings configuration for widgets [wip]
 add MouseWheelUp and MouseWheelDown
 add sdl driver
-add paths package with dijkstra, astar
-add game events queue package ?
-add animation utilities package ? synchronize with renderer?
 add tiles package with utilities for drawing fonts
-add map generation utilities package ?
-compress replay frames? (special "video" format?)
-send MsgScreenSize at start and on resize (when sensible) [done for tcell]
 add horizontal menu option/status bar
-add key bindings configuration for widgets
+add tests
+add animation utilities package ? synchronize with renderer?
+compress replay frames? (add special "video" format?)
+add game events queue package ?
+add map generation utilities package ?
+----- Partial
+send MsgScreenSize at start and on resize (when sensible) [done for tcell]
