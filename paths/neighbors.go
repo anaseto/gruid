@@ -4,7 +4,7 @@ import "github.com/anaseto/gruid"
 
 // NeighborSearch searches adjacent positions. It returns a cached slice for
 // efficiency, so results are invalidated by next method calls. It is suitable
-// for use in the provided Dijkstra and Astar algorithms.
+// for use in satisfying the Dijkstra, Astar and BreadthFirst interfaces.
 type NeighborSearch struct {
 	nb []gruid.Position
 }
