@@ -66,12 +66,6 @@ func (st Style) WithAttrs(cl Color) Style {
 	return st
 }
 
-// Reverse returns a derived style with foreground and background colors reversed.
-func (st Style) Reverse() Style {
-	st.Fg, st.Bg = st.Bg, st.Fg
-	return st
-}
-
 // Grid represents the grid that is used to draw a model logical contents that
 // are then sent to the driver. It is a slice type, so it represents a
 // rectangular range within the whole grid of the application.
