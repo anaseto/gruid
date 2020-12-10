@@ -70,11 +70,6 @@ type autoMove struct {
 	path bool // whether following a path (instead of a simple direction)
 }
 
-func (m *model) StopAutoMove() {
-	m.move.diff = gruid.Position{}
-	m.move.path = false
-}
-
 func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	switch msg := msg.(type) {
 	case gruid.MsgKeyDown:
@@ -148,6 +143,11 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	return nil
 }
 
+func (m *model) StopAutoMove() {
+	m.move.diff = gruid.Position{}
+	m.move.path = false
+}
+
 // pathAt updates the path from player to a new position.
 func (m *model) pathAt(pos gruid.Position) {
 	p := &pather{}
@@ -181,24 +181,6 @@ func automoveCmd(posdiff gruid.Position) gruid.Cmd {
 	}
 }
 
-// Draw implements gruid.Model.Draw. It draws a simple map that spans the whole
-// grid.
-func (m *model) Draw() gruid.Grid {
-	c := gruid.Cell{Rune: '.'} // default cell
-	m.grid.Range().Relative().Iter(func(pos gruid.Position) {
-		if pos == m.playerPos {
-			m.grid.SetCell(pos, gruid.Cell{Rune: '@', Style: c.Style.WithFg(ColorPlayer)})
-		} else {
-			m.grid.SetCell(pos, c)
-		}
-	})
-	for _, pos := range m.path {
-		c := m.grid.GetCell(pos)
-		m.grid.SetCell(pos, c.WithStyle(c.Style.WithBg(ColorPath)))
-	}
-	return m.grid
-}
-
 // pather implements paths.Astar interface.
 type pather struct {
 	neighbors *paths.NeighborSearch
@@ -224,4 +206,22 @@ func abs(x int) int {
 		return -x
 	}
 	return x
+}
+
+// Draw implements gruid.Model.Draw. It draws a simple map that spans the whole
+// grid.
+func (m *model) Draw() gruid.Grid {
+	c := gruid.Cell{Rune: '.'} // default cell
+	m.grid.Range().Relative().Iter(func(pos gruid.Position) {
+		if pos == m.playerPos {
+			m.grid.SetCell(pos, gruid.Cell{Rune: '@', Style: c.Style.WithFg(ColorPlayer)})
+		} else {
+			m.grid.SetCell(pos, c)
+		}
+	})
+	for _, pos := range m.path {
+		c := m.grid.GetCell(pos)
+		m.grid.SetCell(pos, c.WithStyle(c.Style.WithBg(ColorPath)))
+	}
+	return m.grid
 }
