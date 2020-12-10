@@ -5,6 +5,16 @@ import "time"
 // Key represents the name of a key press.
 type Key string
 
+// In reports whether the key is found among a given list of keys.
+func (k Key) In(keys []Key) bool {
+	for _, key := range keys {
+		if k == key {
+			return true
+		}
+	}
+	return false
+}
+
 // This is the list of the supported non single-character named keys. The
 // drivers that support non-numerical keypad may report some KP_* keypad keys
 // as one of this list, as specified in the comments.

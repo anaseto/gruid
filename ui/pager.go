@@ -14,12 +14,26 @@ type PagerStyle struct {
 	LineNum gruid.Style // line num display style
 }
 
+// PagerKeys contains key bindings configuration for the pager.
+type PagerKeys struct {
+	Down         []gruid.Key // go one line down
+	Up           []gruid.Key // go one line up
+	PageDown     []gruid.Key // go one page down
+	PageUp       []gruid.Key // go one page up
+	HalfPageDown []gruid.Key // go half page down
+	HalfPageUp   []gruid.Key // go half page up
+	Top          []gruid.Key // go to the top
+	Bottom       []gruid.Key // go to the bottom
+	Quit         []gruid.Key // quit pager
+}
+
 // PagerConfig describes configuration options for creating a pager.
 type PagerConfig struct {
 	Grid       gruid.Grid // grid slice where the viewable content is drawn
 	StyledText StyledText // styled text for markup rendering
 	Lines      []string   // content lines to be read
 	Title      string     // optional title, implies Boxed style
+	Keys       PagerKeys  // optional custom key bindings for the pager
 	Style      PagerStyle
 }
 
@@ -33,6 +47,7 @@ type Pager struct {
 	index  int // current index
 	action PagerAction
 	init   bool // Update received MsgInit
+	keys   PagerKeys
 }
 
 // NewPager returns a new pager with given configuration options.
@@ -43,6 +58,34 @@ func NewPager(cfg PagerConfig) *Pager {
 		title: cfg.Title,
 		lines: cfg.Lines,
 		style: cfg.Style,
+		keys:  cfg.Keys,
+	}
+	if pg.keys.Down == nil {
+		pg.keys.Down = []gruid.Key{gruid.KeyArrowDown, "j"}
+	}
+	if pg.keys.Up == nil {
+		pg.keys.Up = []gruid.Key{gruid.KeyArrowUp, "k"}
+	}
+	if pg.keys.PageDown == nil {
+		pg.keys.PageDown = []gruid.Key{gruid.KeyPageDown, "f"}
+	}
+	if pg.keys.PageUp == nil {
+		pg.keys.Up = []gruid.Key{gruid.KeyPageUp, "b"}
+	}
+	if pg.keys.HalfPageDown == nil {
+		pg.keys.HalfPageDown = []gruid.Key{gruid.KeyEnter, "d"}
+	}
+	if pg.keys.HalfPageUp == nil {
+		pg.keys.HalfPageUp = []gruid.Key{gruid.KeyBackspace, "u"}
+	}
+	if pg.keys.Top == nil {
+		pg.keys.Top = []gruid.Key{gruid.KeyHome, "g"}
+	}
+	if pg.keys.Bottom == nil {
+		pg.keys.Bottom = []gruid.Key{gruid.KeyEnd, "G"}
+	}
+	if pg.keys.Quit == nil {
+		pg.keys.Quit = []gruid.Key{gruid.KeyEscape, "q", "Q"}
 	}
 	if pg.title != "" {
 		pg.style.Boxed = true
@@ -78,20 +121,21 @@ func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 		pg.init = true
 		return nil
 	case gruid.MsgKeyDown:
-		switch msg.Key {
-		case gruid.KeyArrowDown, "j":
+		key := msg.Key
+		switch {
+		case key.In(pg.keys.Down):
 			if pg.index+nlines < len(pg.lines) {
 				pg.action = PagerMove
 				pg.index++
 			}
-		case gruid.KeyArrowUp, "k":
+		case key.In(pg.keys.Up):
 			if pg.index > 0 {
 				pg.action = PagerMove
 				pg.index--
 			}
-		case gruid.KeyPageDown, gruid.KeySpace, "f", "d":
+		case key.In(pg.keys.PageDown), key.In(pg.keys.HalfPageDown):
 			shift := nlines - 1
-			if msg.Key == "d" {
+			if key.In(pg.keys.HalfPageDown) {
 				shift /= 2
 			}
 			if pg.index+nlines+shift-1 >= len(pg.lines) {
@@ -101,9 +145,9 @@ func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 				pg.action = PagerMove
 				pg.index += shift
 			}
-		case gruid.KeyPageUp, gruid.KeyBackspace, "b", "u":
+		case key.In(pg.keys.PageUp), key.In(pg.keys.HalfPageUp):
 			shift := nlines - 1
-			if msg.Key == "u" {
+			if key.In(pg.keys.HalfPageUp) {
 				shift /= 2
 			}
 			if pg.index-shift < 0 {
@@ -113,17 +157,17 @@ func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 				pg.action = PagerMove
 				pg.index -= shift
 			}
-		case "g":
+		case key.In(pg.keys.Top):
 			if pg.index != 0 {
 				pg.index = 0
 				pg.action = PagerMove
 			}
-		case "G":
+		case key.In(pg.keys.Bottom):
 			if pg.index != len(pg.lines)-nlines {
 				pg.index = len(pg.lines) - nlines
 				pg.action = PagerMove
 			}
-		case gruid.KeyEscape, "q", "Q":
+		case key.In(pg.keys.Quit):
 			pg.action = PagerQuit
 			if pg.init {
 				return gruid.Quit()
