@@ -74,7 +74,10 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	switch msg := msg.(type) {
 	case gruid.MsgKeyDown:
 		// cancel automatic movement on any key
-		m.StopAutoMove()
+		if m.autoMove() {
+			m.stopAuto()
+			break
+		}
 
 		// remove mouse path highlighting
 		m.path = nil
@@ -106,9 +109,8 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	case gruid.MsgMouse:
 		switch msg.Action {
 		case gruid.MouseMain:
-			pos := gruid.Position{}
-			if m.move.path && m.move.diff != pos {
-				m.StopAutoMove()
+			if m.autoMove() {
+				m.stopAuto()
 				m.pathAt(msg.MousePos)
 				break
 			}
@@ -116,8 +118,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 				return m.pathNext()
 			}
 		case gruid.MouseMove:
-			pos := gruid.Position{}
-			if m.move.path && m.move.diff != pos {
+			if m.autoMove() {
 				break
 			}
 			m.pathAt(msg.MousePos)
@@ -138,14 +139,21 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 				return automoveCmd(msg.diff)
 			}
 		}
-		m.StopAutoMove()
+		m.stopAuto()
 	}
 	return nil
 }
 
-func (m *model) StopAutoMove() {
-	m.move.diff = gruid.Position{}
-	m.move.path = false
+// autoMove checks whether automatic movement is activated.
+func (m *model) autoMove() bool {
+	pos := gruid.Position{}
+	return m.move.diff != pos
+}
+
+// stopAuto resets automatic movement information.
+func (m *model) stopAuto() {
+	m.move = autoMove{}
+	m.path = nil
 }
 
 // pathAt updates the path from player to a new position.
@@ -188,6 +196,9 @@ type pather struct {
 
 func (p *pather) Neighbors(pos gruid.Position) []gruid.Position {
 	return p.neighbors.All(pos, func(pos gruid.Position) bool {
+		// This is were in a real game we would filter non passable
+		// neighbors, such as walls. For this example, we return always
+		// true, as there are no obstacles.
 		return true
 	})
 }
@@ -197,6 +208,8 @@ func (p *pather) Cost(pos, npos gruid.Position) int {
 }
 
 func (p *pather) Estimation(pos, npos gruid.Position) int {
+	// The manhattan distance corresponds here to the optimal distance and
+	// is hence an acceptable estimation for astar.
 	pos = pos.Sub(npos)
 	return abs(pos.X) + abs(pos.Y)
 }
