@@ -193,9 +193,8 @@ func (rg Range) Relative() Range {
 
 // Iter calls a given function for all the positions of the range.
 func (rg Range) Iter(fn func(Position)) {
-	xmax, ymax := rg.Size()
-	for y := 0; y < ymax; y++ {
-		for x := 0; x < xmax; x++ {
+	for y := rg.Min.Y; y < rg.Max.Y; y++ {
+		for x := rg.Min.X; x < rg.Max.X; x++ {
 			pos := Position{X: x, Y: y}
 			fn(pos)
 		}
