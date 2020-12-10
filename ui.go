@@ -186,14 +186,18 @@ func (app *App) Start(ctx context.Context) (err error) {
 				if eff != nil {
 					switch eff := eff.(type) {
 					case Cmd:
-						go func(ctx context.Context, cmd Cmd) {
-							select {
-							case msgs <- cmd():
-							case <-ctx.Done():
-							}
-						}(ctx, eff)
+						if eff != nil {
+							go func(ctx context.Context, cmd Cmd) {
+								select {
+								case msgs <- cmd():
+								case <-ctx.Done():
+								}
+							}(ctx, eff)
+						}
 					case Sub:
-						go eff(ctx, msgs)
+						if eff != nil {
+							go eff(ctx, msgs)
+						}
 					}
 				}
 			case <-ctx.Done():
@@ -267,14 +271,19 @@ type Msg interface{}
 
 // Effect is an interface value for representing either a Cmd or Sub type.
 // They generally represent IO operations, either producing a single message or
-// several. See Cmd and Sub documentation for details.
+// several. A nil effect is discarded and does nothing.
+//
+// The types Cmd and Sub implement the Effect interface. See their respective
+// documentation for specific usage details.
 type Effect interface {
-	ImplementsEffect()
+	implementsEffect()
 }
 
 // Cmd is a function that returns a message. Commands returned by Update are
 // executed on their own goroutine. You can use them for things like timers and
 // IO operations. A nil command is discarded and does nothing.
+//
+// It implements the Effect interface.
 type Cmd func() Msg
 
 // Sub is similar to Cmd, but instead of returning a message, it sends messages
@@ -282,13 +291,15 @@ type Cmd func() Msg
 // where more than one message will be produced, for example to send messages
 // delivered by a time.Ticker, or to report messages from listening on a
 // socket. The function should handle the context and terminate as appropiate.
+//
+// It implements the Effect interface.
 type Sub func(context.Context, chan<- Msg)
 
-// ImplementsEffect makes Cmd satisfy Effect interface.
-func (cmd Cmd) ImplementsEffect() {}
+// implementsEffect makes Cmd satisfy Effect interface.
+func (cmd Cmd) implementsEffect() {}
 
-// ImplementsEffect makes Sub satisfy Effect interface.
-func (sub Sub) ImplementsEffect() {}
+// implementsEffect makes Sub satisfy Effect interface.
+func (sub Sub) implementsEffect() {}
 
 // Batch peforms a bunch of effects concurrently with no ordering guarantees
 // about the potential results.
