@@ -199,6 +199,7 @@ func (m *model) Draw() gruid.Grid {
 	return m.grid
 }
 
+// pather implements paths.Astar interface.
 type pather struct {
 	neighbors *paths.NeighborSearch
 }
