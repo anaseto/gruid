@@ -6,8 +6,8 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-// Dijkstra is the interface that has to be satisfied in order to build a
-// dijkstra map using the DijkstraMap function.
+// Dijkstra is the interface that allows to build a dijkstra map using the
+// DijkstraMap function.
 type Dijkstra interface {
 	// Neighbors returns the available neighbor positions of a given
 	// position. Implementations may use a cache to avoid allocations.
@@ -18,11 +18,12 @@ type Dijkstra interface {
 	Cost(gruid.Position, gruid.Position) int
 }
 
-// Dijkstra computes a dijkstra map given a list of source positions and a
+// DijkstraMap computes a dijkstra map given a list of source positions and a
 // maximal cost from those sources. The resulting map can then be iterated with
 // Iter.
 func (pf *PathFinder) DijkstraMap(dij Dijkstra, sources []gruid.Position, maxCost int) {
-	if pf.dijkstraNodes.Nodes == nil {
+	if pf.dijkstraNodes == nil {
+		pf.dijkstraNodes = &nodeMap{}
 		w, h := pf.rg.Size()
 		pf.dijkstraNodes.Nodes = make([]node, w*h)
 		pf.dijkstraQueue = make(priorityQueue, 0, w*h)
@@ -86,12 +87,18 @@ func idxToPos(i, w int) gruid.Position {
 	return gruid.Position{X: i - (i/w)*w, Y: i / w}
 }
 
-// Iter iterates last computed dijkstra map from a given position. Note that
-// you should not call Iter or other pathfinding methods on the same PathFinder
-// within the iteration function, as that could invalidate the iteration state.
-func (pf *PathFinder) Iter(pos gruid.Position, f func(Node)) {
+// MapIter iterates last computed dijkstra map from a given position in breadth
+// first order. Note that you should not call the MapIter or DijkstraMap
+// methods on the same PathFinder within the iteration function, as that could
+// invalidate the iteration state.
+func (pf *PathFinder) MapIter(pos gruid.Position, f func(Node)) {
 	if pf.dijkstra == nil || !pos.In(pf.rg) {
 		return
+	}
+	if pf.iterQueueCache == nil {
+		w, h := pf.rg.Size()
+		pf.iterQueueCache = make([]int, w*h)
+		pf.iterVisitedCache = make([]int, w*h)
 	}
 	nm := pf.dijkstraNodes
 	var qstart, qend int
@@ -117,38 +124,3 @@ func (pf *PathFinder) Iter(pos gruid.Position, f func(Node)) {
 		}
 	}
 }
-
-const unreachable = 9999
-
-// AutoExploreDijkstra is an optimized version of the dijkstra algorithm for
-// auto-exploration.
-//func (pf *PathFinder) AutoExploreDijkstra(dij Dijkstrer, sources []int) {
-//dmap := DijkstraMapCache[:]
-//var visited [DungeonNCells]bool
-//var queue [DungeonNCells]int
-//var qstart, qend int
-//w, h := pf.rg.Size()
-//for i := 0; i < w*h; i++ {
-//dmap[i] = unreachable
-//}
-//for _, s := range sources {
-//dmap[s] = 0
-//queue[qend] = s
-//qend++
-//visited[s] = true
-//}
-//for qstart < qend {
-//cidx := queue[qstart]
-//qstart++
-//cpos := idxtopos(cidx)
-//for _, npos := range dij.Neighbors(cpos) {
-//nidx := pf.idx(npos)
-//if !visited[nidx] {
-//queue[qend] = nidx
-//qend++
-//visited[nidx] = true
-//dmap[nidx] = 1 + dmap[cidx]
-//}
-//}
-//}
-//}

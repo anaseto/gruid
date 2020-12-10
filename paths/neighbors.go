@@ -27,8 +27,8 @@ func (nf NeighborFinder) Neighbors(pos gruid.Position, keep func(gruid.Position)
 	return nf.nb
 }
 
-// Neighbors returns 4 adjacent cardinal positions, excluding diagonal ones,
-// filtered by keep function.
+// CardinalNeighbors returns 4 adjacent cardinal positions, excluding diagonal
+// ones, filtered by keep function.
 func (nf NeighborFinder) CardinalNeighbors(pos gruid.Position, keep func(gruid.Position) bool) []gruid.Position {
 	nf.nb = nf.nb[:0]
 	for i := -1; i <= 1; i += 2 {
@@ -44,7 +44,8 @@ func (nf NeighborFinder) CardinalNeighbors(pos gruid.Position, keep func(gruid.P
 	return nf.nb
 }
 
-// Neighbors returns 4 adjacent diagonal positions, filtered by keep function.
+// DiagonalNeighbors returns 4 adjacent diagonal positions, filtered by keep
+// function.
 func (nf NeighborFinder) DiagonalNeighbors(pos gruid.Position, keep func(gruid.Position) bool) []gruid.Position {
 	nf.nb = nf.nb[:0]
 	for y := -1; y <= 1; y += 2 {

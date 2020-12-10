@@ -8,11 +8,14 @@ type PathFinder struct {
 	rg               gruid.Range
 	astarNodes       *nodeMap
 	astarQueue       priorityQueue
-	dijkstraNodes    *nodeMap
+	dijkstraNodes    *nodeMap // dijkstra map
 	dijkstraQueue    priorityQueue
 	iterVisitedCache []int
 	iterQueueCache   []int
-	dijkstra         Dijkstra
+	dijkstra         Dijkstra // used by MapIter
+	bfmap            []int    // breadth first map
+	bfvisited        []bool
+	bfqueue          []int
 }
 
 // NewPathFinder returns a new PathFinder for positions in a given range.
@@ -20,6 +23,19 @@ func NewPathFinder(rg gruid.Range) *PathFinder {
 	pf := &PathFinder{}
 	pf.rg = rg
 	return pf
+}
+
+// SetRange updates the range used by the PathFinder. If the size is the same,
+// cached structures will be preserved, otherwise they will be reinitialized.
+func (pf *PathFinder) SetRange(rg gruid.Range) {
+	org := pf.rg
+	pf.rg = rg
+	w, h := rg.Size()
+	ow, oh := org.Size()
+	if w == ow && h == oh {
+		return
+	}
+	*pf = PathFinder{rg: rg}
 }
 
 func (pf *PathFinder) idx(pos gruid.Position) int {

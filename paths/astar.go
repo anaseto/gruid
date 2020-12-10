@@ -29,8 +29,8 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-// Astar is the interface that has to be satisfied in order to use the A*
-// algorithm used by the AstarPath function.
+// Astar is the interface that allows to use the A* algorithm used by the
+// AstarPath function.
 type Astar interface {
 	// Neighbors returns the available neighbor positions of a given
 	// position. Implementations may use a cache to avoid allocations.
@@ -49,13 +49,14 @@ type Astar interface {
 // AstarPath return a path from a position to another, including thoses
 // positions. It returns nil if no path was found.
 func (pf *PathFinder) AstarPath(ast Astar, from, to gruid.Position) []gruid.Position {
-	if pf.astarNodes.Nodes == nil {
+	if !from.In(pf.rg) || !to.In(pf.rg) {
+		return nil
+	}
+	if pf.astarNodes == nil {
+		pf.astarNodes = &nodeMap{}
 		w, h := pf.rg.Size()
 		pf.astarNodes.Nodes = make([]node, w*h)
 		pf.astarQueue = make(priorityQueue, 0, w*h)
-	}
-	if !from.In(pf.rg) || !to.In(pf.rg) {
-		return nil
 	}
 	nm := pf.astarNodes
 	nm.Index++
