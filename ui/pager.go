@@ -182,7 +182,7 @@ func (pg *Pager) Action() PagerAction {
 	return pg.action
 }
 
-// Update implements gruid.Model.Draw for Pager. It returns the grid slice that
+// Draw implements gruid.Model.Draw for Pager. It returns the grid slice that
 // was drawn.
 func (pg *Pager) Draw() gruid.Grid {
 	if pg.init {

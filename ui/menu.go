@@ -9,9 +9,21 @@ import (
 // MenuEntry represents an entry in the menu. It is displayed on one line, and
 // for example can be a choice or a header.
 type MenuEntry struct {
-	Text   string      // displayed text on the entry line
-	Keys   []gruid.Key // accept entry shortcuts, if any and activable
-	Header bool        // not an activable entry, but a sub-header entry
+	Text   string // displayed text on the entry line
+	Header bool   // not an activable entry, but a sub-header entry
+
+	// Keys contains entry shortcuts, if any, and only for non-header
+	// activable entries. Other menu key bindings take precedence over
+	// those.
+	Keys []gruid.Key
+}
+
+// MenuKeys contains key bindings configuration for the menu.
+type MenuKeys struct {
+	Up       []gruid.Key // move selection up
+	Down     []gruid.Key // move selection down
+	Activate []gruid.Key // activate selection
+	Quit     []gruid.Key // quit menu
 }
 
 // MenuAction represents an user action with the menu.
@@ -53,6 +65,7 @@ type MenuConfig struct {
 	Entries    []MenuEntry // menu entries
 	StyledText StyledText  // default styled text formatter for content
 	Title      string      // optional title, implies Boxed style
+	Keys       MenuKeys    // optional custom key bindings
 	Style      MenuStyle
 }
 
@@ -64,10 +77,23 @@ func NewMenu(cfg MenuConfig) *Menu {
 		title:   cfg.Title,
 		stt:     cfg.StyledText,
 		style:   cfg.Style,
+		keys:    cfg.Keys,
 		draw:    true,
 	}
 	if m.title != "" {
 		m.style.Boxed = true
+	}
+	if m.keys.Activate == nil {
+		m.keys.Activate = []gruid.Key{gruid.KeyEnter}
+	}
+	if m.keys.Down == nil {
+		m.keys.Down = []gruid.Key{gruid.KeyArrowDown, "j"}
+	}
+	if m.keys.Up == nil {
+		m.keys.Up = []gruid.Key{gruid.KeyArrowUp, "k"}
+	}
+	if m.keys.Quit == nil {
+		m.keys.Quit = []gruid.Key{gruid.KeyEscape, "q", "Q"}
 	}
 	m.cursorAtFirstChoice()
 	return m
@@ -85,6 +111,7 @@ type Menu struct {
 	action  MenuAction
 	draw    bool
 	init    bool // Update received MsgInit
+	keys    MenuKeys
 }
 
 // Selection return the index of the currently selected entry.
@@ -126,12 +153,12 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 		m.init = true
 	case gruid.MsgKeyDown:
 		switch {
-		case msg.Key == gruid.KeyEscape || msg.Key == gruid.KeySpace || msg.Key == "x" || msg.Key == "X":
+		case msg.Key.In(m.keys.Quit):
 			m.action = MenuQuit
 			if m.init {
 				return gruid.Quit()
 			}
-		case msg.Key == gruid.KeyArrowDown:
+		case msg.Key.In(m.keys.Down):
 			m.action = MenuMove
 			m.cursor++
 			for m.cursor < l && m.entries[m.cursor].Header {
@@ -140,7 +167,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 			if m.cursor >= l {
 				m.cursorAtFirstChoice()
 			}
-		case msg.Key == gruid.KeyArrowUp:
+		case msg.Key.In(m.keys.Up):
 			m.action = MenuMove
 			m.cursor--
 			for m.cursor >= 0 && m.entries[m.cursor].Header {
@@ -150,7 +177,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 				m.cursor = 0
 				m.cursorAtLastChoice()
 			}
-		case msg.Key == gruid.KeyEnter && m.cursor < l && !m.entries[m.cursor].Header:
+		case msg.Key.In(m.keys.Activate) && m.cursor < l && !m.entries[m.cursor].Header:
 			m.action = MenuActivate
 		default:
 			nchars := utf8.RuneCountInString(string(msg.Key))

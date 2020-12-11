@@ -9,19 +9,50 @@ import (
 
 // NewReplay returns a new Replay with a given configuration.
 func NewReplay(cfg ReplayConfig) *Replay {
-	return &Replay{
+	rep := &Replay{
 		gd:     cfg.Grid,
 		frames: cfg.Frames,
 		auto:   true,
 		speed:  1,
 		undo:   [][]gruid.FrameCell{},
+		keys:   cfg.Keys,
 	}
+	if rep.keys.Quit == nil {
+		rep.keys.Quit = []gruid.Key{gruid.KeyEscape, "Q", "q"}
+	}
+	if rep.keys.Pause == nil {
+		rep.keys.Pause = []gruid.Key{gruid.KeySpace, "P", "p"}
+	}
+	if rep.keys.SpeedMore == nil {
+		rep.keys.SpeedMore = []gruid.Key{"+", ">"}
+	}
+	if rep.keys.SpeedLess == nil {
+		rep.keys.SpeedLess = []gruid.Key{"-", "<"}
+	}
+	if rep.keys.FrameNext == nil {
+		rep.keys.FrameNext = []gruid.Key{gruid.KeyArrowRight, gruid.KeyArrowDown, gruid.KeyEnter, "j", "n", "f"}
+	}
+	if rep.keys.FramePrev == nil {
+		rep.keys.FramePrev = []gruid.Key{gruid.KeyArrowLeft, gruid.KeyArrowUp, gruid.KeyBackspace, "k", "N", "b"}
+	}
+	return rep
+}
+
+// ReplayKeys contains key bindings configuration for the replay.
+type ReplayKeys struct {
+	Quit      []gruid.Key // quit replay
+	Pause     []gruid.Key // pause replay
+	SpeedMore []gruid.Key // increase replay speed
+	SpeedLess []gruid.Key // decrease replay speed
+	FrameNext []gruid.Key // manually go to next frame
+	FramePrev []gruid.Key // manually go to previous frame
 }
 
 // ReplayConfig contains replay configuration.
 type ReplayConfig struct {
 	Grid   gruid.Grid    // grid to use for drawing
 	Frames []gruid.Frame // recorded frames to replay
+	Keys   ReplayKeys    // optional custom key bindings
 }
 
 // Replay represents an application's session with the given recorded frames.
@@ -35,6 +66,7 @@ type Replay struct {
 	speed  time.Duration
 	action repAction
 	init   bool // Update received MsgInit
+	keys   ReplayKeys
 }
 
 type repAction int
@@ -61,21 +93,22 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 		rep.init = true
 		return rep.tick()
 	case gruid.MsgKeyDown:
-		switch msg.Key {
-		case "Q", "q", gruid.KeyEscape:
+		key := msg.Key
+		switch {
+		case key.In(rep.keys.Quit):
 			if rep.init {
 				rep.action = replayQuit
 			}
-		case "p", "P", gruid.KeySpace:
+		case key.In(rep.keys.Pause):
 			rep.action = replayTogglePause
-		case "+", ">":
+		case key.In(rep.keys.SpeedMore):
 			rep.action = replaySpeedMore
-		case "-", "<":
+		case key.In(rep.keys.SpeedLess):
 			rep.action = replaySpeedLess
-		case gruid.KeyArrowRight, gruid.KeyArrowDown, gruid.KeyEnter, "j", "n", "f":
+		case key.In(rep.keys.FrameNext):
 			rep.action = replayNext
 			rep.auto = false
-		case gruid.KeyArrowLeft, gruid.KeyArrowUp, gruid.KeyBackspace, "k", "N", "b":
+		case key.In(rep.keys.FramePrev):
 			rep.action = replayPrevious
 			rep.auto = false
 		}
@@ -85,7 +118,6 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 			rep.action = replayTogglePause
 		case gruid.MouseAuxiliary:
 			rep.action = replayNext
-			rep.action = replayTogglePause
 			rep.auto = false
 		case gruid.MouseSecondary:
 			rep.action = replayPrevious
