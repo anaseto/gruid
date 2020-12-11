@@ -269,9 +269,11 @@ func (app *App) Frames() []Frame {
 // that nil messages are discarded and do not trigger Update.
 type Msg interface{}
 
-// Effect is an interface value for representing either a Cmd or Sub type.
-// They generally represent IO operations, either producing a single message or
-// several. A nil effect is discarded and does nothing.
+// Effect is an interface type for representing either command or subscription
+// functions.  Those functions generally represent IO operations, either
+// producing a single message or several. They are executed on their own
+// goroutine after being returned by the Update method of the model. A nil
+// effect is discarded and does nothing.
 //
 // The types Cmd and Sub implement the Effect interface. See their respective
 // documentation for specific usage details.
@@ -279,15 +281,16 @@ type Effect interface {
 	implementsEffect()
 }
 
-// Cmd is a function that returns a message. Commands returned by Update are
-// executed on their own goroutine. You can use them for things like timers and
-// IO operations. A nil command is discarded and does nothing.
+// Cmd is an Effect that returns a message. Commands returned by Update are
+// executed on their own goroutine. You can use them for things like single
+// event timers and short-lived IO operations with a single result. A nil
+// command is discarded and does nothing.
 //
 // It implements the Effect interface.
 type Cmd func() Msg
 
 // Sub is similar to Cmd, but instead of returning a message, it sends messages
-// to a channel. Subscriptions should only be used for long running processes
+// to a channel. Subscriptions should only be used for long running functions
 // where more than one message will be produced, for example to send messages
 // delivered by a time.Ticker, or to report messages from listening on a
 // socket. The function should handle the context and terminate as appropiate.
