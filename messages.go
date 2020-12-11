@@ -32,7 +32,7 @@ const (
 	KeyInsert     Key = "Insert"
 	KeyPageDown   Key = "PageDown" // can be KP_3
 	KeyPageUp     Key = "PageUp"   // can be KP_9
-	KeySpace      Key = " "
+	KeySpace      Key = " "        // constant for clarity (single character)
 	KeyTab        Key = "Tab"
 )
 
