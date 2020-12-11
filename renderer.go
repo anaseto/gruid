@@ -15,7 +15,7 @@ type renderer struct {
 // ListenAndRender waits for frames and sends them to the driver.
 func (r *renderer) ListenAndRender(ctx context.Context) {
 	r.done = make(chan bool)
-	r.frames = make(chan Frame)
+	r.frames = make(chan Frame, 4) // buffered
 	for {
 		r.frameQueue = r.frameQueue[:0]
 		select {
