@@ -174,7 +174,7 @@ func (ti *TextInput) Draw() gruid.Grid {
 	start := 0
 	w, _ := crg.Size()
 	w -= ti.cursorMin
-	if ti.cursor >= w {
+	if ti.cursor >= w-1 {
 		if w > 2 {
 			start = ti.cursor - w + 2
 		} else {
