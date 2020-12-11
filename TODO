@@ -1,8 +1,7 @@
 ----- TODO
-add key bindings configuration for widgets [wip]
 add MouseWheelUp and MouseWheelDown
-add sdl driver
 add tiles package with utilities for drawing fonts
+add sdl driver
 add horizontal menu option/status bar
 add tests
 add animation utilities package ? synchronize with renderer?

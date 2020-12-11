@@ -63,6 +63,10 @@ func (lb *Label) drawGrid() gruid.Grid {
 	if !lb.style.AdjustWidth {
 		w, _ = lb.grid.Range().Size()
 	}
+	tw, _ := lb.stt.WithText(lb.title).Size()
+	if w < tw {
+		w = tw
+	}
 	if lb.style.Boxed {
 		h += 2 // borders height
 		w += 2

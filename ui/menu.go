@@ -181,14 +181,15 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 			m.action = MenuActivate
 		default:
 			nchars := utf8.RuneCountInString(string(msg.Key))
-			if nchars == 1 {
-				for i, e := range m.entries {
-					for _, k := range e.Keys {
-						if k == msg.Key {
-							m.cursor = i
-							m.action = MenuActivate
-							break
-						}
+			if nchars != 1 {
+				break
+			}
+			for i, e := range m.entries {
+				for _, k := range e.Keys {
+					if k == msg.Key {
+						m.cursor = i
+						m.action = MenuActivate
+						break
 					}
 				}
 			}
