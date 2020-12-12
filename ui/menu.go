@@ -288,10 +288,11 @@ func (m *Menu) Draw() gruid.Grid {
 			if i == m.cursor {
 				st.Fg = m.style.Selected
 			}
-			nchars := utf8.RuneCountInString(c.Text)
+			text := m.stt.With(c.Text, st)
+			w, _ := text.Size()
 			m.stt.With(c.Text, st).Draw(cgrid.Slice(crg.Line(i)))
 			cell := gruid.Cell{Rune: ' ', Style: st}
-			line := cgrid.Slice(crg.Line(i).Shift(nchars, 0, 0, 0))
+			line := cgrid.Slice(crg.Line(i).Shift(w, 0, 0, 0))
 			line.Fill(cell)
 		} else {
 			alt = false

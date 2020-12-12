@@ -27,6 +27,7 @@ const (
 	ColorSelected
 	ColorAltBg
 	ColorTitle
+	ColorKey
 )
 
 type styler struct{}
@@ -36,6 +37,8 @@ func (sty styler) GetStyle(st gruid.Style) tc.Style {
 	switch st.Fg {
 	case ColorHeader:
 		ts = ts.Foreground(tc.ColorNavy)
+	case ColorKey:
+		ts = ts.Foreground(tc.ColorGreen)
 	case ColorSelected, ColorTitle:
 		ts = ts.Foreground(tc.ColorOlive)
 	}
@@ -56,9 +59,9 @@ func NewModel(gd gruid.Grid) *model {
 	m := &model{grid: gd}
 	entries := []ui.MenuEntry{
 		{Header: true, Text: "Header"},
-		{Text: "(F)irst", Keys: []gruid.Key{"f", "F"}},
-		{Text: "(S)econd", Keys: []gruid.Key{"s", "S"}},
-		{Text: "(T)hird", Keys: []gruid.Key{"t", "T"}},
+		{Text: "(@kF@N)irst", Keys: []gruid.Key{"f", "F"}},
+		{Text: "(@kS@N)econd", Keys: []gruid.Key{"s", "S"}},
+		{Text: "(@kT@N)hird", Keys: []gruid.Key{"t", "T"}},
 	}
 	st := gruid.Style{}
 	style := ui.MenuStyle{
@@ -68,10 +71,11 @@ func NewModel(gd gruid.Grid) *model {
 		Title:    st.WithFg(ColorTitle),
 	}
 	menu := ui.NewMenu(ui.MenuConfig{
-		Grid:    m.grid.Slice(gruid.NewRange(0, 0, 20, len(entries)+2)),
-		Entries: entries,
-		Title:   "Menu",
-		Style:   style,
+		Grid:       m.grid.Slice(gruid.NewRange(0, 0, 20, len(entries)+2)),
+		Entries:    entries,
+		StyledText: ui.NewStyledText("").WithMarkup('k', st.WithFg(ColorKey)),
+		Title:      "Menu",
+		Style:      style,
 	})
 	m.menu = menu
 	label := ui.NewLabel(ui.LabelConfig{

@@ -35,7 +35,20 @@ func (stt StyledText) Size() (int, int) {
 	x := 0
 	xmax := 0
 	y := 0
+	markup := stt.markups != nil // whether markup is activated
+	procm := false               // processing markup
 	for _, r := range stt.text {
+		if markup {
+			if procm {
+				procm = false
+				if r != '@' {
+					continue
+				}
+			} else if r == '@' {
+				procm = true
+				continue
+			}
+		}
 		if r == '\n' {
 			if x > xmax {
 				xmax = x
@@ -49,7 +62,10 @@ func (stt StyledText) Size() (int, int) {
 	if x > xmax {
 		xmax = x
 	}
-	return xmax + 1, y + 1
+	if xmax > 0 {
+		y++ // at least one line
+	}
+	return xmax, y
 }
 
 // Style returns the text default style.
@@ -210,6 +226,7 @@ func (stt StyledText) Draw(gd gruid.Grid) {
 				}
 			} else if r == '@' {
 				procm = true
+				continue
 			}
 		}
 		if r == '\n' {
