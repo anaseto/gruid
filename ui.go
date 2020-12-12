@@ -40,7 +40,7 @@
 //		}
 //	}
 //
-// The values of type gruid.Effect returned by Init and Update are optional and
+// The values of type gruid.Effect returned by Update are optional and
 // represent concurrently executed functions that produce messages.  See the
 // API documentation for details and usage.
 package gruid
