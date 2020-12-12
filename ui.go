@@ -67,7 +67,6 @@ type App struct {
 	model  Model
 	enc    *frameEncoder
 	fps    time.Duration
-	frames []Frame
 
 	renderer *renderer
 }
@@ -261,12 +260,6 @@ func (app *App) Start(ctx context.Context) (err error) {
 			}
 		}
 	}
-}
-
-// Frames returns the successive frames recorded by the application if frame
-// recording was enabled. It can be used for a replay of the session.
-func (app *App) Frames() []Frame {
-	return app.frames
 }
 
 // Msg represents an action and triggers the Update function of the model. Note
