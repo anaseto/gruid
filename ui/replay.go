@@ -7,37 +7,6 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-// NewReplay returns a new Replay with a given configuration.
-func NewReplay(cfg ReplayConfig) *Replay {
-	rep := &Replay{
-		gd:      cfg.Grid,
-		decoder: cfg.FrameDecoder,
-		auto:    true,
-		speed:   1,
-		undo:    [][]gruid.FrameCell{},
-		keys:    cfg.Keys,
-	}
-	if rep.keys.Quit == nil {
-		rep.keys.Quit = []gruid.Key{gruid.KeyEscape, "Q", "q"}
-	}
-	if rep.keys.Pause == nil {
-		rep.keys.Pause = []gruid.Key{gruid.KeySpace, "P", "p"}
-	}
-	if rep.keys.SpeedMore == nil {
-		rep.keys.SpeedMore = []gruid.Key{"+", ">"}
-	}
-	if rep.keys.SpeedLess == nil {
-		rep.keys.SpeedLess = []gruid.Key{"-", "<"}
-	}
-	if rep.keys.FrameNext == nil {
-		rep.keys.FrameNext = []gruid.Key{gruid.KeyArrowRight, gruid.KeyArrowDown, gruid.KeyEnter, "j", "n", "f"}
-	}
-	if rep.keys.FramePrev == nil {
-		rep.keys.FramePrev = []gruid.Key{gruid.KeyArrowLeft, gruid.KeyArrowUp, gruid.KeyBackspace, "k", "N", "b"}
-	}
-	return rep
-}
-
 // ReplayKeys contains key bindings configuration for the replay.
 type ReplayKeys struct {
 	Quit      []gruid.Key // quit replay
@@ -68,6 +37,37 @@ type Replay struct {
 	action  repAction
 	init    bool // Update received MsgInit
 	keys    ReplayKeys
+}
+
+// NewReplay returns a new Replay with a given configuration.
+func NewReplay(cfg ReplayConfig) *Replay {
+	rep := &Replay{
+		gd:      cfg.Grid,
+		decoder: cfg.FrameDecoder,
+		auto:    true,
+		speed:   1,
+		undo:    [][]gruid.FrameCell{},
+		keys:    cfg.Keys,
+	}
+	if rep.keys.Quit == nil {
+		rep.keys.Quit = []gruid.Key{gruid.KeyEscape, "Q", "q"}
+	}
+	if rep.keys.Pause == nil {
+		rep.keys.Pause = []gruid.Key{gruid.KeySpace, "P", "p"}
+	}
+	if rep.keys.SpeedMore == nil {
+		rep.keys.SpeedMore = []gruid.Key{"+", ">"}
+	}
+	if rep.keys.SpeedLess == nil {
+		rep.keys.SpeedLess = []gruid.Key{"-", "<"}
+	}
+	if rep.keys.FrameNext == nil {
+		rep.keys.FrameNext = []gruid.Key{gruid.KeyArrowRight, gruid.KeyArrowDown, gruid.KeyEnter, "j", "n", "f"}
+	}
+	if rep.keys.FramePrev == nil {
+		rep.keys.FramePrev = []gruid.Key{gruid.KeyArrowLeft, gruid.KeyArrowUp, gruid.KeyBackspace, "k", "N", "b"}
+	}
+	return rep
 }
 
 type repAction int
