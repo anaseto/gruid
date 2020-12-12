@@ -25,6 +25,9 @@ func (r *renderer) ListenAndRender(ctx context.Context) {
 			r.flushFrames()
 		case <-ctx.Done():
 			r.flushFrames()
+			if r.enc != nil {
+				r.enc.gzw.Close()
+			}
 			return
 		}
 	}
@@ -40,7 +43,7 @@ func (r *renderer) flushFrames() {
 				// the most common case
 				r.driver.Flush(r.frameQueue[0])
 				if r.enc != nil {
-					r.enc.encode(r.frameQueue[0])
+					r.enc.encode(r.frameQueue[0]) // XXX: report errors ?
 				}
 				return
 			}

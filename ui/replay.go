@@ -50,15 +50,15 @@ type ReplayKeys struct {
 
 // ReplayConfig contains replay configuration.
 type ReplayConfig struct {
-	Grid         gruid.Grid         // grid to use for drawing
-	FrameDecoder gruid.FrameDecoder // frame decoder
-	Keys         ReplayKeys         // optional custom key bindings
+	Grid         gruid.Grid          // grid to use for drawing
+	FrameDecoder *gruid.FrameDecoder // frame decoder
+	Keys         ReplayKeys          // optional custom key bindings
 }
 
 // Replay represents an application's session with the given recorded frames.
 // It implements the gruid.Model interface.
 type Replay struct {
-	decoder gruid.FrameDecoder
+	decoder *gruid.FrameDecoder
 	frames  []gruid.Frame
 	gd      gruid.Grid
 	undo    [][]gruid.FrameCell
@@ -101,6 +101,7 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 		return nil
 	case gruid.MsgInit:
 		rep.init = true
+		rep.decodeNext()
 		return rep.tick()
 	case gruid.MsgKeyDown:
 		key := msg.Key
@@ -144,16 +145,12 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 		if rep.fidx >= len(rep.frames) {
 			rep.action = replayNone
 			break
-		} else if rep.fidx < 0 {
-			rep.fidx = 0
 		}
 		rep.fidx++
 	case replayPrevious:
-		if rep.fidx <= 1 {
+		if rep.fidx <= 0 {
 			rep.action = replayNone
 			break
-		} else if rep.fidx >= len(rep.frames) {
-			rep.fidx = len(rep.frames)
 		}
 		rep.fidx--
 	case replayQuit:
@@ -172,7 +169,7 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 		}
 	}
 	rep.draw()
-	if !rep.auto || rep.fidx > len(rep.frames)-1 || rep.fidx < 0 || rep.action == replayNone {
+	if !rep.auto || rep.fidx > len(rep.frames)-1 || rep.action == replayNone {
 		return nil
 	}
 	return rep.tick()

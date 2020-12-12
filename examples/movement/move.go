@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bytes"
+	"log"
 	"strings"
 	"time"
 
 	"github.com/anaseto/gruid"
 	"github.com/anaseto/gruid/drivers/tcell"
 	"github.com/anaseto/gruid/paths"
+	"github.com/anaseto/gruid/ui"
 	tc "github.com/gdamore/tcell/v2"
 )
 
@@ -20,15 +23,37 @@ func main() {
 	gd := gruid.NewGrid(gruid.GridConfig{})
 	pr := paths.NewPathRange(gd.Range())
 	m := &model{grid: gd, pr: pr}
+	framebuf := &bytes.Buffer{} // for compressed recording
 
 	// define new application
 	app := gruid.NewApp(gruid.AppConfig{
-		Driver: dri,
-		Model:  m,
+		Driver:      dri,
+		Model:       m,
+		FrameWriter: framebuf,
 	})
 
 	// start application
-	app.Start(nil)
+	if err := app.Start(nil); err != nil {
+		log.Fatal(err)
+	}
+
+	// launch replay just after the previous session
+	fd, err := gruid.NewFrameDecoder(framebuf)
+	if err != nil {
+		log.Fatal(err)
+	}
+	gd = gruid.NewGrid(gruid.GridConfig{})
+	rep := ui.NewReplay(ui.ReplayConfig{
+		Grid:         gd,
+		FrameDecoder: fd,
+	})
+	app = gruid.NewApp(gruid.AppConfig{
+		Driver: dri,
+		Model:  rep,
+	})
+	if err := app.Start(nil); err != nil {
+		log.Fatal(err)
+	}
 }
 
 const (
