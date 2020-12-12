@@ -7,6 +7,25 @@ import (
 	"github.com/anaseto/gruid"
 )
 
+func TestSize(t *testing.T) {
+	text := ""
+	stt := NewStyledText(text)
+	w, h := stt.Size()
+	if w != 0 || h != 0 {
+		t.Errorf("bad text size: %d, %d", w, h)
+	}
+	stt = stt.WithText("word")
+	w, h = stt.Size()
+	if w != 4 || h != 1 {
+		t.Errorf("bad text size: %d, %d", w, h)
+	}
+	stt = stt.WithText("word\nword")
+	w, h = stt.Size()
+	if w != 4 || h != 2 {
+		t.Errorf("bad text size: %d, %d", w, h)
+	}
+}
+
 func TestFormat(t *testing.T) {
 	text := "word word word word word"
 	stt := NewStyledText(text)
