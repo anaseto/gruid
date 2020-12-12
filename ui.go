@@ -77,9 +77,9 @@ type AppConfig struct {
 	Driver Driver // input and rendering driver
 
 	// FrameWriter is an optional io.Writer for recording frames. They can
-	// be decoded after a successful Start() session with a FrameDecoder.
-	// If nil, no frame recording will be done. It is your responsibility
-	// to call Close on the Writer after Start returns.
+	// be decoded after a successful Start session with a FrameDecoder. If
+	// nil, no frame recording will be done. It is your responsibility to
+	// call Close on the Writer after Start returns.
 	FrameWriter io.Writer
 
 	// FPS specifies the maximum number of frames per second. Should be a
@@ -314,7 +314,7 @@ func Batch(effs ...Effect) Effect {
 
 // Model contains the application's state.
 type Model interface {
-	// Update is called when a message is received. Use it to update the
+	// Update is called when a message is received. Use it to update your
 	// model in response to messages and/or send commands or subscriptions.
 	// It is always called the first time with a MsgInit message.
 	Update(Msg) Effect
@@ -327,8 +327,12 @@ type Model interface {
 }
 
 // Driver handles both user input and rendering. When creating an App and using
-// the Start main loop, you will not have to call those methods directly.
+// the Start main loop, you will not have to call those methods directly. You
+// may reuse the same driver for another application after the current
+// application's Start loop ends.
 type Driver interface {
+	// Init initializes the driver, so that you can then call its other
+	// methods.
 	Init() error
 
 	// Flush sends last frame grid changes to the driver.
@@ -340,7 +344,8 @@ type Driver interface {
 	PollMsg() (Msg, error)
 
 	// Close may execute needed code to finalize the screen and release
-	// resources.
+	// resources. After Close, the driver can be initialized again in order
+	// to be used in another application.
 	Close()
 }
 
