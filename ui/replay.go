@@ -10,12 +10,12 @@ import (
 // NewReplay returns a new Replay with a given configuration.
 func NewReplay(cfg ReplayConfig) *Replay {
 	rep := &Replay{
-		gd:     cfg.Grid,
-		frames: cfg.Frames,
-		auto:   true,
-		speed:  1,
-		undo:   [][]gruid.FrameCell{},
-		keys:   cfg.Keys,
+		gd:      cfg.Grid,
+		decoder: cfg.FrameDecoder,
+		auto:    true,
+		speed:   1,
+		undo:    [][]gruid.FrameCell{},
+		keys:    cfg.Keys,
 	}
 	if rep.keys.Quit == nil {
 		rep.keys.Quit = []gruid.Key{gruid.KeyEscape, "Q", "q"}
@@ -50,23 +50,24 @@ type ReplayKeys struct {
 
 // ReplayConfig contains replay configuration.
 type ReplayConfig struct {
-	Grid   gruid.Grid    // grid to use for drawing
-	Frames []gruid.Frame // recorded frames to replay
-	Keys   ReplayKeys    // optional custom key bindings
+	Grid         gruid.Grid         // grid to use for drawing
+	FrameDecoder gruid.FrameDecoder // frame decoder
+	Keys         ReplayKeys         // optional custom key bindings
 }
 
 // Replay represents an application's session with the given recorded frames.
 // It implements the gruid.Model interface.
 type Replay struct {
-	frames []gruid.Frame
-	gd     gruid.Grid
-	undo   [][]gruid.FrameCell
-	fidx   int // frame index
-	auto   bool
-	speed  time.Duration
-	action repAction
-	init   bool // Update received MsgInit
-	keys   ReplayKeys
+	decoder gruid.FrameDecoder
+	frames  []gruid.Frame
+	gd      gruid.Grid
+	undo    [][]gruid.FrameCell
+	fidx    int // frame index
+	auto    bool
+	speed   time.Duration
+	action  repAction
+	init    bool // Update received MsgInit
+	keys    ReplayKeys
 }
 
 type repAction int
@@ -82,6 +83,15 @@ const (
 )
 
 type msgTick int // frame number
+
+func (rep *Replay) decodeNext() {
+	if rep.fidx >= len(rep.frames)-1 {
+		frame, err := rep.decoder.Decode()
+		if err == nil {
+			rep.frames = append(rep.frames, frame)
+		}
+	}
+}
 
 // Update implements Model.Update for Replay.
 func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
@@ -130,6 +140,7 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 	}
 	switch rep.action {
 	case replayNext:
+		rep.decodeNext()
 		if rep.fidx >= len(rep.frames) {
 			rep.action = replayNone
 			break

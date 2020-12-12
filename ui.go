@@ -48,6 +48,7 @@ package gruid
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"runtime/debug"
 	"time"
@@ -64,7 +65,7 @@ type App struct {
 
 	driver Driver
 	model  Model
-	rec    bool
+	enc    *frameEncoder
 	fps    time.Duration
 	frames []Frame
 
@@ -76,10 +77,11 @@ type AppConfig struct {
 	Model  Model  // application state
 	Driver Driver // input and rendering driver
 
-	// FrameRecording instructs the application to record the frames to
-	// enable replay. They can be retrieved after a successful Start()
-	// session with Frames().
-	FrameRecording bool
+	// FrameWriter is an optional io.Writer for recording frames. They can
+	// be decoded after a successful Start() session with a FrameDecoder.
+	// If nil, no frame recording will be done. It is your responsibility
+	// to call Close on the Writer after Start returns.
+	FrameWriter io.Writer
 
 	// FPS specifies the maximum number of frames per second. Should be a
 	// value between 60 and 240. Default is 60.
@@ -91,9 +93,11 @@ func NewApp(cfg AppConfig) *App {
 	app := &App{
 		model:       cfg.Model,
 		driver:      cfg.Driver,
-		rec:         cfg.FrameRecording,
 		fps:         cfg.FPS,
 		CatchPanics: true,
+	}
+	if cfg.FrameWriter != nil {
+		app.enc = newFrameEncoder(cfg.FrameWriter)
 	}
 	if app.fps <= 60 {
 		// Use always at least 60 FPS.
@@ -145,7 +149,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 	}
 
 	// initialize the renderer
-	app.renderer = &renderer{driver: app.driver}
+	app.renderer = &renderer{driver: app.driver, enc: app.enc}
 	go app.renderer.ListenAndRender(ctx)
 
 	// subscribe to MsgDraw
@@ -246,9 +250,6 @@ func (app *App) Start(ctx context.Context) (err error) {
 			if _, ok := msg.(MsgDraw); ok {
 				frame := app.model.Draw().ComputeFrame()
 				if len(frame.Cells) > 0 {
-					if app.rec {
-						app.frames = append(app.frames, frame)
-					}
 					select {
 					case app.renderer.frames <- frame:
 					case <-ctx.Done():

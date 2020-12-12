@@ -10,6 +10,7 @@ type renderer struct {
 	done       chan bool
 	frameQueue []Frame
 	grid       Grid
+	enc        *frameEncoder
 }
 
 // ListenAndRender waits for frames and sends them to the driver.
@@ -38,6 +39,9 @@ func (r *renderer) flushFrames() {
 			if len(r.frameQueue) == 1 {
 				// the most common case
 				r.driver.Flush(r.frameQueue[0])
+				if r.enc != nil {
+					r.enc.encode(r.frameQueue[0])
+				}
 				return
 			}
 			if len(r.frameQueue) == 0 {
@@ -68,6 +72,11 @@ func (r *renderer) flushFrames() {
 			}
 			frame := r.grid.ComputeFrame()
 			r.driver.Flush(frame)
+			if r.enc != nil {
+				for _, fr := range r.frameQueue {
+					r.enc.encode(fr)
+				}
+			}
 			return
 		}
 	}
