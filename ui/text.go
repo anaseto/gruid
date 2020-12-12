@@ -62,7 +62,7 @@ func (stt StyledText) Size() (int, int) {
 	if x > xmax {
 		xmax = x
 	}
-	if xmax > 0 {
+	if xmax > 0 || y > 0 {
 		y++ // at least one line
 	}
 	return xmax, y
@@ -142,15 +142,15 @@ func (stt StyledText) Format(width int) StyledText {
 			case start:
 				pbuf.WriteRune(' ')
 				col++
-			case wantspace:
-				pbuf.WriteRune(' ')
-				col++
-				wantspace = false
-			}
-			if wlen > 0 {
+				continue
+			case wlen > 0:
 				if col+wlen > width && wantspace {
 					pbuf.WriteRune('\n')
 					col = 0
+				} else if wantspace {
+					pbuf.WriteRune(' ')
+					col++
+					wantspace = false
 				}
 				pbuf.Write(wordbuf.Bytes())
 				col += wlen
@@ -202,7 +202,7 @@ func (stt StyledText) Format(width int) StyledText {
 		wordbuf.WriteRune(r)
 		wlen++
 	}
-	if wordbuf.Len() > 0 {
+	if wlen > 0 {
 		if wantspace {
 			if wlen+col+1 > width {
 				pbuf.WriteRune('\n')
