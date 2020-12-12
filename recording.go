@@ -7,6 +7,9 @@ import (
 	"io"
 )
 
+// FrameDecoder manages the decoding of the frame recording stream produced by
+// the running of an application, in case a FrameWriter was provided. It can be
+// used to replay an application session.
 type FrameDecoder struct {
 	gzr *gzip.Reader
 	gbd *gob.Decoder
