@@ -214,9 +214,11 @@ func (app *App) Start(ctx context.Context) (err error) {
 	for {
 		select {
 		case <-ctx.Done():
+			<-app.renderer.done
 			return err
 		case err := <-errs:
 			cancel()
+			<-app.renderer.done
 			return err
 		case msg := <-msgs:
 			if msg == nil {
@@ -226,6 +228,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 			// Handle quit message
 			if _, ok := msg.(msgQuit); ok {
 				cancel()
+				<-app.renderer.done
 				return err
 			}
 

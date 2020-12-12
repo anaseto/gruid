@@ -7,7 +7,7 @@ import (
 type renderer struct {
 	driver     Driver
 	frames     chan Frame
-	done       chan bool
+	done       chan struct{}
 	frameQueue []Frame
 	grid       Grid
 	enc        *frameEncoder
@@ -15,7 +15,7 @@ type renderer struct {
 
 // ListenAndRender waits for frames and sends them to the driver.
 func (r *renderer) ListenAndRender(ctx context.Context) {
-	r.done = make(chan bool)
+	r.done = make(chan struct{})
 	r.frames = make(chan Frame, 4) // buffered
 	for {
 		r.frameQueue = r.frameQueue[:0]
@@ -28,6 +28,7 @@ func (r *renderer) ListenAndRender(ctx context.Context) {
 			if r.enc != nil {
 				r.enc.gzw.Close()
 			}
+			close(r.done)
 			return
 		}
 	}
