@@ -137,47 +137,60 @@ func (stt StyledText) Format(width int) StyledText {
 	procm := false               // processing markup
 	start := true                // whether at line start
 	for _, r := range stt.text {
-		if r == ' ' || r == '\n' {
-			if wlen == 0 && r == ' ' && !start {
-				continue
+		if r == ' ' {
+			switch {
+			case start:
+				pbuf.WriteRune(' ')
+				col++
+			case wantspace:
+				pbuf.WriteRune(' ')
+				col++
+				wantspace = false
 			}
-			if col+wlen > width {
-				if wantspace {
+			if wlen > 0 {
+				if col+wlen > width && wantspace {
 					pbuf.WriteRune('\n')
 					col = 0
 				}
-			} else if wantspace || start {
-				pbuf.WriteRune(' ')
-				col++
+				pbuf.Write(wordbuf.Bytes())
+				col += wlen
+				wordbuf.Reset()
+				wlen = 0
+				wantspace = true
 			}
+			continue
+		}
+		if r == '\n' {
 			if wlen > 0 {
+				if col+wlen > width && wantspace {
+					pbuf.WriteRune('\n')
+					col = 0
+				}
 				pbuf.Write(wordbuf.Bytes())
 				col += wlen
 				wordbuf.Reset()
 				wlen = 0
 			}
-			if r == '\n' {
-				pbuf.WriteRune('\n')
-				col = 0
-				wantspace = false
-				start = true
-			} else if !start {
-				wantspace = true
-			}
+			pbuf.WriteRune('\n')
+			col = 0
+			wantspace = false
+			start = true
 			continue
 		}
 		if markup {
 			if procm {
 				procm = false
-				if wordbuf.Len() == 0 {
-					pbuf.WriteRune(r)
-				} else {
-					wordbuf.WriteRune(r)
+				if r != '@' {
+					if wlen == 0 {
+						pbuf.WriteRune(r)
+					} else {
+						wordbuf.WriteRune(r)
+					}
+					continue
 				}
-				continue
 			} else if r == '@' {
 				procm = true
-				if wordbuf.Len() == 0 {
+				if wlen == 0 {
 					pbuf.WriteRune(r)
 				} else {
 					wordbuf.WriteRune(r)
@@ -191,7 +204,7 @@ func (stt StyledText) Format(width int) StyledText {
 	}
 	if wordbuf.Len() > 0 {
 		if wantspace {
-			if wlen+col > width {
+			if wlen+col+1 > width {
 				pbuf.WriteRune('\n')
 			} else {
 				pbuf.WriteRune(' ')

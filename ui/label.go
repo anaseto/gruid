@@ -60,9 +60,6 @@ func (lb *Label) Text() string {
 
 func (lb *Label) drawGrid() gruid.Grid {
 	w, h := lb.stt.Size() // text height
-	if !lb.style.AdjustWidth {
-		w, _ = lb.grid.Range().Size()
-	}
 	tw, _ := lb.stt.WithText(lb.title).Size()
 	if w < tw {
 		w = tw
@@ -70,6 +67,9 @@ func (lb *Label) drawGrid() gruid.Grid {
 	if lb.style.Boxed {
 		h += 2 // borders height
 		w += 2
+	}
+	if !lb.style.AdjustWidth {
+		w, _ = lb.grid.Range().Size()
 	}
 	return lb.grid.Slice(gruid.NewRange(0, 0, w, h))
 }
