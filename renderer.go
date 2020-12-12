@@ -2,6 +2,7 @@ package gruid
 
 import (
 	"context"
+	"log"
 )
 
 type renderer struct {
@@ -11,6 +12,13 @@ type renderer struct {
 	frameQueue []Frame
 	grid       Grid
 	enc        *frameEncoder
+	logger     *log.Logger
+}
+
+func (r *renderer) logf(format string, v ...interface{}) {
+	if r.logger != nil {
+		r.logger.Printf(format, v...)
+	}
 }
 
 // ListenAndRender waits for frames and sends them to the driver.
@@ -26,7 +34,10 @@ func (r *renderer) ListenAndRender(ctx context.Context) {
 		case <-ctx.Done():
 			r.flushFrames()
 			if r.enc != nil {
-				r.enc.gzw.Close()
+				err := r.enc.gzw.Close()
+				if err != nil {
+					r.logf("renderer: %v", err)
+				}
 			}
 			close(r.done)
 			return
@@ -44,7 +55,10 @@ func (r *renderer) flushFrames() {
 				// the most common case
 				r.driver.Flush(r.frameQueue[0])
 				if r.enc != nil {
-					r.enc.encode(r.frameQueue[0]) // XXX: report errors ?
+					err := r.enc.encode(r.frameQueue[0]) // XXX: report errors ?
+					if err != nil {
+						r.logf("frame encoding: %v", err)
+					}
 				}
 				return
 			}

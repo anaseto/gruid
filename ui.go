@@ -69,6 +69,7 @@ type App struct {
 	fps    time.Duration
 
 	renderer *renderer
+	logger   *log.Logger
 }
 
 // AppConfig contains the configuration for creating a new App.
@@ -85,6 +86,9 @@ type AppConfig struct {
 	// FPS specifies the maximum number of frames per second. Should be a
 	// value between 60 and 240. Default is 60.
 	FPS time.Duration
+
+	// Logger is optional and is used to log non-fatal IO errors.
+	Logger *log.Logger
 }
 
 // NewApp creates a new App.
@@ -93,6 +97,7 @@ func NewApp(cfg AppConfig) *App {
 		model:       cfg.Model,
 		driver:      cfg.Driver,
 		fps:         cfg.FPS,
+		logger:      cfg.Logger,
 		CatchPanics: true,
 	}
 	if cfg.FrameWriter != nil {
@@ -148,7 +153,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 	}
 
 	// initialize the renderer
-	app.renderer = &renderer{driver: app.driver, enc: app.enc}
+	app.renderer = &renderer{driver: app.driver, enc: app.enc, logger: app.logger}
 	go app.renderer.ListenAndRender(ctx)
 
 	// subscribe to MsgDraw
