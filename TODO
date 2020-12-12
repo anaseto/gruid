@@ -3,9 +3,8 @@ add MouseWheelUp and MouseWheelDown
 add tiles package with utilities for drawing fonts
 add sdl driver
 add horizontal menu option/status bar
-add tests
+add more tests
 add animation utilities package ? synchronize with renderer?
-compress replay frames? (add special "video" format?)
 add game events queue package ?
 add map generation utilities package ?
 ----- Partial
