@@ -17,7 +17,8 @@ type PathRange struct {
 	bfqueue       []int
 }
 
-// NewPathRange returns a new PathFinder for positions in a given range.
+// NewPathRange returns a new PathFinder for positions in a given range,
+// such as the range occupied by the whole map, or a part of it.
 func NewPathRange(rg gruid.Range) *PathRange {
 	pf := &PathRange{}
 	pf.rg = rg
@@ -38,20 +39,21 @@ func (pf *PathRange) SetRange(rg gruid.Range) {
 }
 
 func (pf *PathRange) idx(pos gruid.Position) int {
+	pos = pos.Relative(pf.rg)
 	w, _ := pf.rg.Size()
 	return pos.Y*w + pos.X
 }
 
-func (nm nodeMap) get(pf *PathRange, p gruid.Position) *node {
-	n := &nm.Nodes[pf.idx(p)]
+func (nm nodeMap) get(pf *PathRange, pos gruid.Position) *node {
+	n := &nm.Nodes[pf.idx(pos)]
 	if n.CacheIndex != nm.Index {
-		nm.Nodes[pf.idx(p)] = node{Pos: p, CacheIndex: nm.Index}
+		nm.Nodes[pf.idx(pos)] = node{Pos: pos, CacheIndex: nm.Index}
 	}
 	return n
 }
 
-func (nm nodeMap) at(pf *PathRange, p gruid.Position) (*node, bool) {
-	n := &nm.Nodes[pf.idx(p)]
+func (nm nodeMap) at(pf *PathRange, pos gruid.Position) (*node, bool) {
+	n := &nm.Nodes[pf.idx(pos)]
 	if n.CacheIndex != nm.Index {
 		return nil, false
 	}
