@@ -1,3 +1,5 @@
+// Package tiles provides common utilities for manipulation of graphical tiles,
+// such as drawing fonts.
 package tiles
 
 import (

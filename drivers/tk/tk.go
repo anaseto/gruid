@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/draw"
 	"image/png"
+	//"log"
 	"time"
 	"unicode/utf8"
 
@@ -56,13 +57,12 @@ $can create image 0 0 -anchor nw -image appscreen
 `, tk.tw, tk.Width, tk.th, tk.Height))
 	tk.ir.RegisterCommand("GetKey", func(c, keysym, mod string) {
 		var s string
-		if c != "" {
+		s = keysym
+		if c != "" && s == "" {
 			s = c
-		} else {
-			s = keysym
 		}
 		if len(tk.msgs) < cap(tk.msgs) {
-			if msg, ok := getMsgKeyDown(s); ok {
+			if msg, ok := getMsgKeyDown(s, c); ok {
 				if mod == "Shift" {
 					msg.Mod |= gruid.ModShift
 				}
@@ -163,24 +163,25 @@ wm protocol . WM_DELETE_WINDOW OnClosing
 	return nil
 }
 
-func getMsgKeyDown(s string) (gruid.MsgKeyDown, bool) {
+func getMsgKeyDown(s, c string) (gruid.MsgKeyDown, bool) {
 	var key gruid.Key
+	//log.Printf("%#v", s)
 	switch s {
-	case "Down", "KP_2":
+	case "Down", "KP_Down":
 		key = gruid.KeyArrowDown
-	case "Left", "KP_4":
+	case "Left", "KP_Left":
 		key = gruid.KeyArrowLeft
-	case "Right", "KP_6":
+	case "Right", "KP_Right":
 		key = gruid.KeyArrowRight
-	case "Up", "KP_8":
+	case "Up", "KP_Up":
 		key = gruid.KeyArrowUp
 	case "BackSpace":
 		key = gruid.KeyBackspace
-	case "Delete", "KP_7":
+	case "Delete", "KP_Home":
 		key = gruid.KeyDelete
-	case "End", "KP_1":
+	case "End", "KP_End":
 		key = gruid.KeyEnd
-	case "KP_Enter", "Return", "KP_5":
+	case "KP_Enter", "Return", "KP_Begin":
 		key = gruid.KeyEnter
 	case "Escape":
 		key = gruid.KeyEscape
@@ -188,15 +189,19 @@ func getMsgKeyDown(s string) (gruid.MsgKeyDown, bool) {
 		key = gruid.KeyHome
 	case "Insert":
 		key = gruid.KeyInsert
-	case "KP_9", "Prior":
+	case "Prior", "KP_Prior":
 		key = gruid.KeyPageUp
-	case "KP_3", "Next":
+	case "Next", "KP_Next":
 		key = gruid.KeyPageDown
 	case "space":
 		key = gruid.KeySpace
 	case "Tab":
 		key = gruid.KeyTab
 	default:
+		l := utf8.RuneCountInString(s)
+		if l > 1 && c != "" {
+			s = c
+		}
 		if utf8.RuneCountInString(s) != 1 {
 			return gruid.MsgKeyDown{}, false
 		}

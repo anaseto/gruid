@@ -18,12 +18,14 @@ import (
 var driver gruid.Driver
 
 func init() {
-	tile := &Tile{}
+	t := &TileDrawer{}
 	var err error
+	// We get a monospace font TTF.
 	font, err := opentype.Parse(gomono.TTF)
 	if err != nil {
 		log.Fatal(err)
 	}
+	// We retrieve a font face.
 	face, err := opentype.NewFace(font, &opentype.FaceOptions{
 		Size: 24,
 		DPI:  72,
@@ -31,22 +33,27 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	tile.drawer, err = tiles.NewDrawer(face)
+	// We create a new drawer for tiles using the previous face. Note that
+	// if more than one face is wanted (such as an italic or bold variant),
+	// you would have to create drawers for thoses faces too, and then use
+	// the relevant one accordingly in the GetImage method.
+	t.drawer, err = tiles.NewDrawer(face)
 	if err != nil {
 		log.Fatal(err)
 	}
 	driver = &tk.Driver{
-		TileManager: tile,
+		TileManager: t,
 		Width:       80,
 		Height:      24,
 	}
 }
 
-type Tile struct {
+// Tile implements tk.TileManager.
+type TileDrawer struct {
 	drawer *tiles.Drawer
 }
 
-func (t *Tile) GetImage(c gruid.Cell) *image.RGBA {
+func (t *TileDrawer) GetImage(c gruid.Cell) *image.RGBA {
 	// we use some selenized colors
 	fg := image.NewUniform(color.RGBA{0xad, 0xbc, 0xbc, 255})
 	switch c.Style.Fg {
@@ -57,6 +64,6 @@ func (t *Tile) GetImage(c gruid.Cell) *image.RGBA {
 	return t.drawer.Draw(c.Rune, fg, bg)
 }
 
-func (t *Tile) TileSize() (int, int) {
+func (t *TileDrawer) TileSize() (int, int) {
 	return t.drawer.Size()
 }
