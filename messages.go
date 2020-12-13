@@ -45,7 +45,7 @@ type ModMask int16
 // for key presses corresponding to upper case letters. Modifiers may conflict
 // in some cases with browser or system shortcuts too.  If you want portability
 // accross platforms and drivers, your application should not depend on them
-// for core functionality of your application.
+// for its core functionality.
 const (
 	ModShift ModMask = 1 << iota
 	ModCtrl
@@ -56,13 +56,14 @@ const (
 
 // MsgKeyDown represents a key press.
 type MsgKeyDown struct {
-	Key  Key       // name of the key in MsgKeyDown event
-	Time time.Time // time when the event was generated
+	Key Key // name of the key in MsgKeyDown event
 
 	// Mod represents modifier keys. They are not portable accross
 	// different platforms and drivers. Avoid using them for core
 	// functionality in portable applications.
 	Mod ModMask
+
+	Time time.Time // time when the event was generated
 }
 
 // MouseAction represents mouse buttons.
