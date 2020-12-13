@@ -14,7 +14,7 @@ type BreadthFirst interface {
 
 // MapAt returns the cost associated to a position in the last computed breadth
 // first map. It returns a false boolean if the position is outside the range.
-// MapAt used a cached breadth first map, that will be invalidated in case a
+// MapAt uses a cached breadth first map, that will be invalidated in case a
 // new one is computed using the same PathFinder.
 func (pf *PathRange) MapAt(pos gruid.Position) (cost int, ok bool) {
 	if !pos.In(pf.rg) || pf.bfmap == nil {

@@ -5,17 +5,16 @@ import "github.com/anaseto/gruid"
 
 // PathRange allows for efficient path finding within a range.
 type PathRange struct {
-	rg               gruid.Range
-	astarNodes       *nodeMap
-	astarQueue       priorityQueue
-	dijkstraNodes    *nodeMap // dijkstra map
-	dijkstraQueue    priorityQueue
-	iterVisitedCache []int
-	iterQueueCache   []int
-	dijkstra         Dijkstra // used by MapIter
-	bfmap            []int    // breadth first map
-	bfvisited        []bool
-	bfqueue          []int
+	rg            gruid.Range
+	astarNodes    *nodeMap
+	astarQueue    priorityQueue
+	dijkstraNodes *nodeMap // dijkstra map
+	dijkstraQueue priorityQueue
+	iterNodeCache []Node
+	dijkstra      Dijkstra // used by MapIter
+	bfmap         []int    // breadth first map
+	bfvisited     []bool
+	bfqueue       []int
 }
 
 // NewPathRange returns a new PathFinder for positions in a given range.

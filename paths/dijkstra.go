@@ -27,7 +27,9 @@ func (pf *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Position, maxCost
 		w, h := pf.rg.Size()
 		pf.dijkstraNodes.Nodes = make([]node, w*h)
 		pf.dijkstraQueue = make(priorityQueue, 0, w*h)
+		pf.iterNodeCache = []Node{}
 	}
+	pf.iterNodeCache = pf.iterNodeCache[:0]
 	nm := pf.dijkstraNodes
 	pf.dijkstra = dij
 	nm.Index++
@@ -49,6 +51,7 @@ func (pf *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Position, maxCost
 		current := heap.Pop(nq).(*node)
 		current.Open = false
 		current.Closed = true
+		pf.iterNodeCache = append(pf.iterNodeCache, Node{Pos: current.Pos, Cost: current.Cost})
 
 		for _, neighbor := range dij.Neighbors(current.Pos) {
 			if !neighbor.In(pf.rg) {
@@ -87,40 +90,12 @@ func idxToPos(i, w int) gruid.Position {
 	return gruid.Position{X: i - (i/w)*w, Y: i / w}
 }
 
-// MapIter iterates last computed dijkstra map from a given position in breadth
-// first order. Note that you should not call the MapIter or DijkstraMap
-// methods on the same PathFinder within the iteration function, as that could
-// invalidate the iteration state.
-func (pf *PathRange) MapIter(pos gruid.Position, f func(Node)) {
-	if pf.dijkstra == nil || !pos.In(pf.rg) {
-		return
-	}
-	if pf.iterQueueCache == nil {
-		w, h := pf.rg.Size()
-		pf.iterQueueCache = make([]int, w*h)
-		pf.iterVisitedCache = make([]int, w*h)
-	}
-	nm := pf.dijkstraNodes
-	var qstart, qend int
-	pf.iterQueueCache[qend] = pf.idx(pos)
-	pf.iterVisitedCache[qend] = nm.Index
-	qend++
-	_, w := pf.rg.Size()
-	for qstart < qend {
-		pos = idxToPos(pf.iterQueueCache[qstart], w)
-		qstart++
-		nb := pf.dijkstra.Neighbors(pos)
-		for _, npos := range nb {
-			if !npos.In(pf.rg) {
-				continue
-			}
-			n := &nm.Nodes[pf.idx(npos)]
-			if n.CacheIndex == nm.Index && pf.iterVisitedCache[pf.idx(npos)] != nm.Index {
-				f(Node{Pos: n.Pos, Cost: n.Cost})
-				pf.iterQueueCache[qend] = pf.idx(npos)
-				qend++
-				pf.iterVisitedCache[pf.idx(npos)] = nm.Index
-			}
-		}
+// MapIter iterates a function on the nodes of the last computed dijkstra map,
+// in cost increasing order.  Note that you should not call the MapIter or
+// DijkstraMap methods on the same PathFinder within the iteration function, as
+// that could invalidate the iteration state.
+func (pf *PathRange) MapIter(f func(Node)) {
+	for _, n := range pf.iterNodeCache {
+		f(n)
 	}
 }
