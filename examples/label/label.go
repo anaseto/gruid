@@ -4,18 +4,14 @@ import (
 	"fmt"
 
 	"github.com/anaseto/gruid"
-	"github.com/anaseto/gruid/drivers/tcell"
 	"github.com/anaseto/gruid/ui"
-	tc "github.com/gdamore/tcell/v2"
 )
 
 func main() {
 	var gd = gruid.NewGrid(gruid.GridConfig{})
-	st := styler{}
-	var dri = &tcell.Driver{StyleManager: st}
 	m := NewModel(gd)
 	app := gruid.NewApp(gruid.AppConfig{
-		Driver: dri,
+		Driver: driver,
 		Model:  m,
 	})
 	app.Start(nil)
@@ -24,27 +20,7 @@ func main() {
 
 const (
 	ColorHeader gruid.Color = 1 + iota // skip zero value ColorDefault
-	ColorSelected
-	ColorAltBg
-	ColorTitle
 )
-
-type styler struct{}
-
-func (sty styler) GetStyle(st gruid.Style) tc.Style {
-	ts := tc.StyleDefault
-	switch st.Fg {
-	case ColorHeader:
-		ts = ts.Foreground(tc.ColorNavy)
-	case ColorSelected, ColorTitle:
-		ts = ts.Foreground(tc.ColorOlive)
-	}
-	switch st.Bg {
-	case ColorAltBg:
-		ts = ts.Background(tc.ColorBlack)
-	}
-	return ts
-}
 
 type model struct {
 	grid  gruid.Grid
