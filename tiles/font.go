@@ -12,7 +12,7 @@ import (
 )
 
 // Drawer can be used to draw a text rune on an image of appropiate size to be
-// used as a tile. See the example in examples/label/tk.go for an example of
+// used as a tile. See the example in examples/messages/tk.go for an example of
 // use.
 type Drawer struct {
 	drawer *font.Drawer
