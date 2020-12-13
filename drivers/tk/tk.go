@@ -61,6 +61,10 @@ $can create image 0 0 -anchor nw -image appscreen
 		if c != "" && s == "" {
 			s = c
 		}
+		if s == "ISO_Left_Tab" {
+			s = "Tab"
+			mod = "Shift"
+		}
 		if len(tk.msgs) < cap(tk.msgs) {
 			if msg, ok := getMsgKeyDown(s, c); ok {
 				if mod == "Shift" {
@@ -165,7 +169,7 @@ wm protocol . WM_DELETE_WINDOW OnClosing
 
 func getMsgKeyDown(s, c string) (gruid.MsgKeyDown, bool) {
 	var key gruid.Key
-	//log.Printf("%#v", s)
+	//log.Printf("%#v, %#v", s, c)
 	switch s {
 	case "Down", "KP_Down":
 		key = gruid.KeyArrowDown
@@ -177,7 +181,7 @@ func getMsgKeyDown(s, c string) (gruid.MsgKeyDown, bool) {
 		key = gruid.KeyArrowUp
 	case "BackSpace":
 		key = gruid.KeyBackspace
-	case "Delete", "KP_Home":
+	case "Delete":
 		key = gruid.KeyDelete
 	case "End", "KP_End":
 		key = gruid.KeyEnd
@@ -185,7 +189,7 @@ func getMsgKeyDown(s, c string) (gruid.MsgKeyDown, bool) {
 		key = gruid.KeyEnter
 	case "Escape":
 		key = gruid.KeyEscape
-	case "Home":
+	case "Home", "KP_Home":
 		key = gruid.KeyHome
 	case "Insert":
 		key = gruid.KeyInsert

@@ -36,7 +36,7 @@ const (
 	KeyTab        Key = "Tab"
 )
 
-// Modmask is a bit mask of modifier keys.
+// ModMask is a bit mask of modifier keys.
 type ModMask int16
 
 // These values represent modifier keys for a MsgKeyDown message. Those are not
@@ -53,6 +53,26 @@ const (
 	ModMeta
 	ModNone ModMask = 0
 )
+
+func (m ModMask) String() string {
+	var s string
+	if m&ModCtrl != 0 {
+		s += "Ctrl"
+	}
+	if m&ModAlt != 0 {
+		s += "Alt"
+	}
+	if m&ModMeta != 0 {
+		s += "Meta"
+	}
+	if m&ModShift != 0 {
+		s += "Shift"
+	}
+	if s == "" {
+		s = "None"
+	}
+	return s
+}
 
 // MsgKeyDown represents a key press.
 type MsgKeyDown struct {
