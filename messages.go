@@ -36,17 +36,33 @@ const (
 	KeyTab        Key = "Tab"
 )
 
+// Modmask is a bit mask of modifier keys.
+type ModMask int16
+
+// These values represent modifier keys for a MsgKeyDown message. Those are not
+// supported equally well accross all platforms and drivers, for both technical
+// and simplicity reasons. In particular, terminal drivers may not report shift
+// for key presses corresponding to upper case letters. Modifiers may conflict
+// in some cases with browser or system shortcuts too.  If you want portability
+// accross platforms and drivers, your application should not depend on them
+// for core functionality of your application.
+const (
+	ModShift ModMask = 1 << iota
+	ModCtrl
+	ModAlt
+	ModMeta
+	ModNone ModMask = 0
+)
+
 // MsgKeyDown represents a key press.
 type MsgKeyDown struct {
 	Key  Key       // name of the key in MsgKeyDown event
 	Time time.Time // time when the event was generated
 
-	// Shift reports whether the shift key was pressed when the event
-	// occured.  This may be not supported equally well accross all
-	// platforms. In particular, terminal drivers may not report it for key
-	// presses corresponding to upper case letters. It may conflict in some
-	// cases with browser or system shortcuts too.
-	Shift bool
+	// Mod represents modifier keys. They are not portable accross
+	// different platforms and drivers. Avoid using them for core
+	// functionality in portable applications.
+	Mod ModMask
 }
 
 // MouseAction represents mouse buttons.
@@ -60,6 +76,8 @@ const (
 	MouseMain      MouseAction = iota // left button
 	MouseAuxiliary                    // middle button
 	MouseSecondary                    // right button
+	MouseWheelUp                      // wheel impulse up
+	MouseWheelDown                    // wheel impulse down
 	MouseRelease                      // button release
 	MouseMove                         // mouse motion
 )
@@ -85,6 +103,7 @@ func (ma MouseAction) String() string {
 type MsgMouse struct {
 	Action   MouseAction // mouse action (click, release, move)
 	MousePos Position    // mouse position in the grid
+	Mod      ModMask     // modifier keys: not used in current drivers
 	Time     time.Time   // time when the event was generated
 }
 

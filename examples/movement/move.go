@@ -124,7 +124,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 			newpos := m.playerPos.Add(posdiff) //
 			if m.grid.Contains(newpos) {
 				m.playerPos = newpos
-				if msg.Shift || strings.ToUpper(string(msg.Key)) == string(msg.Key) {
+				if msg.Mod&gruid.ModShift != 0 || strings.ToUpper(string(msg.Key)) == string(msg.Key) {
 					// activate automatic movement in that direction
 					m.move.diff = posdiff
 					return automoveCmd(m.move.diff)

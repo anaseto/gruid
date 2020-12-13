@@ -65,8 +65,18 @@ func (t *Driver) PollMsg() (gruid.Msg, error) {
 			return nil, tev
 		case *tcell.EventKey:
 			msg := gruid.MsgKeyDown{}
-			if tev.Modifiers() == tcell.ModShift {
-				msg.Shift = true
+			mod := tev.Modifiers()
+			if mod&tcell.ModShift != 0 {
+				msg.Mod |= gruid.ModShift
+			}
+			if mod&tcell.ModCtrl != 0 {
+				msg.Mod |= gruid.ModCtrl
+			}
+			if mod&tcell.ModAlt != 0 {
+				msg.Mod |= gruid.ModAlt
+			}
+			if mod&tcell.ModMeta != 0 { // never reported
+				msg.Mod |= gruid.ModMeta
 			}
 			msg.Time = tev.When()
 			switch tev.Key() {
@@ -100,7 +110,7 @@ func (t *Driver) PollMsg() (gruid.Msg, error) {
 				msg.Key = gruid.KeyTab
 			case tcell.KeyBacktab:
 				msg.Key = gruid.KeyTab
-				msg.Shift = true
+				msg.Mod = gruid.ModShift
 			}
 			if tev.Rune() != 0 && msg.Key == "" {
 				msg.Key = gruid.Key(tev.Rune())
@@ -141,6 +151,18 @@ func (t *Driver) PollMsg() (gruid.Msg, error) {
 					msg.Action = gruid.MouseSecondary
 					t.mousedrag = true
 				}
+				return msg, nil
+			case tcell.WheelUp:
+				msg := gruid.MsgMouse{}
+				msg.Time = tev.When()
+				msg.MousePos = gruid.Position{X: x, Y: y}
+				msg.Action = gruid.MouseWheelUp
+				return msg, nil
+			case tcell.WheelDown:
+				msg := gruid.MsgMouse{}
+				msg.Time = tev.When()
+				msg.MousePos = gruid.Position{X: x, Y: y}
+				msg.Action = gruid.MouseWheelDown
 				return msg, nil
 			case tcell.ButtonNone:
 				msg := gruid.MsgMouse{}

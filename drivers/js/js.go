@@ -41,6 +41,7 @@ type listeners struct {
 	mousedown js.Func
 	mouseup   js.Func
 	menu      js.Func
+	wheel     js.Func
 }
 
 func (dr *Driver) Init() error {
@@ -68,8 +69,6 @@ func (dr *Driver) Init() error {
 		e := args[0]
 		if !e.Get("ctrlKey").Bool() && !e.Get("metaKey").Bool() {
 			e.Call("preventDefault")
-		} else {
-			return nil
 		}
 		s := e.Get("key").String()
 		if s == "F11" {
@@ -86,7 +85,16 @@ func (dr *Driver) Init() error {
 		if len(dr.msgs) < cap(dr.msgs) {
 			if msg, ok := getMsgKeyDown(s, code); ok {
 				if e.Get("shiftKey").Bool() {
-					msg.Shift = true
+					msg.Mod |= gruid.ModShift
+				}
+				if e.Get("ctrlKey").Bool() {
+					msg.Mod |= gruid.ModCtrl
+				}
+				if e.Get("altKey").Bool() {
+					msg.Mod |= gruid.ModAlt
+				}
+				if e.Get("metaKey").Bool() {
+					msg.Mod |= gruid.ModMeta
 				}
 				dr.msgs <- msg
 			}
@@ -138,6 +146,24 @@ func (dr *Driver) Init() error {
 		return nil
 	})
 	canvas.Call("addEventListener", "mousemove", dr.listeners.mousemove)
+	dr.listeners.wheel = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		e := args[0]
+		pos := dr.getMousePos(e)
+		var action gruid.MouseAction
+		delta := e.Get("deltaY").Float()
+		if delta > 0 {
+			action = gruid.MouseWheelUp
+		} else if delta < 0 {
+			action = gruid.MouseWheelDown
+		} else {
+			return nil
+		}
+		if len(dr.msgs) < cap(dr.msgs) {
+			dr.msgs <- gruid.MsgMouse{Action: action, MousePos: pos, Time: time.Now()}
+		}
+		return nil
+	})
+	canvas.Call("addEventListener", "onwheel", dr.listeners.wheel)
 	return nil
 }
 
@@ -247,11 +273,13 @@ func (dr *Driver) Close() {
 	canvas.Call("removeEventListener", "mousedown", dr.listeners.mousedown)
 	canvas.Call("removeEventListener", "mouseup", dr.listeners.mouseup)
 	canvas.Call("removeEventListener", "mousemove", dr.listeners.mousemove)
+	canvas.Call("removeEventListener", "onwheel", dr.listeners.wheel)
 	dr.listeners.menu.Release()
 	dr.listeners.keydown.Release()
 	dr.listeners.mousedown.Release()
 	dr.listeners.mouseup.Release()
 	dr.listeners.mousemove.Release()
+	dr.listeners.wheel.Release()
 	dr.cache = nil
 	dr.frame = gruid.Frame{}
 	close(dr.msgs)

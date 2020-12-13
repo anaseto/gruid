@@ -64,7 +64,13 @@ $can create image 0 0 -anchor nw -image appscreen
 		if len(tk.msgs) < cap(tk.msgs) {
 			if msg, ok := getMsgKeyDown(s); ok {
 				if mod == "Shift" {
-					msg.Shift = true
+					msg.Mod |= gruid.ModShift
+				}
+				if mod == "Control" {
+					msg.Mod |= gruid.ModCtrl
+				}
+				if mod == "Alt" {
+					msg.Mod |= gruid.ModAlt
 				}
 				tk.msgs <- msg
 			}
@@ -95,6 +101,20 @@ $can create image 0 0 -anchor nw -image appscreen
 				Action: gruid.MouseRelease, Time: time.Now()}
 		}
 	})
+	tk.ir.RegisterCommand("MouseWheel", func(x, y, delta int) {
+		if len(tk.msgs) < cap(tk.msgs) {
+			var action gruid.MouseAction
+			if delta > 0 {
+				action = gruid.MouseWheelUp
+			} else if delta < 0 {
+				action = gruid.MouseWheelDown
+			} else {
+				return
+			}
+			tk.msgs <- gruid.MsgMouse{MousePos: gruid.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th},
+				Action: action, Time: time.Now()}
+		}
+	})
 	tk.ir.RegisterCommand("MouseMotion", func(x, y int) {
 		nx := (x - 1) / tk.tw
 		ny := (y - 1) / tk.th
@@ -116,6 +136,12 @@ $can create image 0 0 -anchor nw -image appscreen
 bind .c <Shift-Key> {
 	GetKey %A %K Shift
 }
+bind .c <Control-Key> {
+	GetKey %A %K Control
+}
+bind .c <Alt-Key> {
+	GetKey %A %K Alt
+}
 bind .c <Key> {
 	GetKey %A %K {}
 }
@@ -127,6 +153,9 @@ bind .c <ButtonPress> {
 }
 bind .c <ButtonRelease> {
 	MouseRelease %x %y %b
+}
+bind .c <MouseWheel> {
+	MouseWheel %x %y %D
 }
 wm protocol . WM_DELETE_WINDOW OnClosing
 `)

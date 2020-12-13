@@ -173,6 +173,26 @@ func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 				return gruid.Quit()
 			}
 		}
+	case gruid.MsgMouse:
+		if !msg.MousePos.In(pg.grid.Range()) {
+			switch msg.Action {
+			case gruid.MouseMain:
+				pg.action = PagerQuit
+			}
+			return nil
+		}
+		switch msg.Action {
+		case gruid.MouseWheelUp:
+			if pg.index > 0 {
+				pg.action = PagerMove
+				pg.index--
+			}
+		case gruid.MouseWheelDown:
+			if pg.index+nlines < len(pg.lines) {
+				pg.action = PagerMove
+				pg.index++
+			}
+		}
 	}
 	return nil
 }
