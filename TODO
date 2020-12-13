@@ -1,5 +1,4 @@
 ----- TODO
-add tiles package with utilities for drawing fonts
 add sdl driver
 add horizontal menu option/status bar
 add more tests
