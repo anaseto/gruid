@@ -70,7 +70,7 @@ func NewPager(cfg PagerConfig) *Pager {
 		pg.keys.PageDown = []gruid.Key{gruid.KeyPageDown, "f"}
 	}
 	if pg.keys.PageUp == nil {
-		pg.keys.Up = []gruid.Key{gruid.KeyPageUp, "b"}
+		pg.keys.PageUp = []gruid.Key{gruid.KeyPageUp, "b"}
 	}
 	if pg.keys.HalfPageDown == nil {
 		pg.keys.HalfPageDown = []gruid.Key{gruid.KeyEnter, "d"}

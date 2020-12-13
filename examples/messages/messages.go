@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/anaseto/gruid"
 	"github.com/anaseto/gruid/ui"
@@ -14,8 +15,11 @@ func main() {
 		Driver: driver,
 		Model:  m,
 	})
-	app.Start(nil)
-	fmt.Printf("Successful quit.\n")
+	if err := app.Start(nil); err != nil {
+		log.Fatal(err)
+	} else {
+		fmt.Printf("Successful quit.\n")
+	}
 }
 
 const (

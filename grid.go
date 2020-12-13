@@ -40,7 +40,7 @@ func (c Cell) WithStyle(st Style) Cell {
 	return c
 }
 
-// Style represents the styling information of a cell: foregronud color,
+// Style represents the styling information of a cell: foreground color,
 // background color and custom attributes.
 type Style struct {
 	Fg    Color    // foreground color

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -53,6 +54,8 @@ func main() {
 	})
 	if err := app.Start(nil); err != nil {
 		log.Fatal(err)
+	} else {
+		fmt.Println("Successful quit.")
 	}
 }
 
