@@ -68,8 +68,7 @@ type App struct {
 	enc    *frameEncoder
 	fps    time.Duration
 
-	renderer *renderer
-	logger   *log.Logger
+	logger *log.Logger
 }
 
 // AppConfig contains the configuration for creating a new App.
@@ -124,6 +123,15 @@ func (app *App) Start(ctx context.Context) (err error) {
 		errs    = make(chan error)
 	)
 
+	defer func() {
+		if app.enc != nil {
+			nerr := app.enc.gzw.Close()
+			if err == nil {
+				err = nerr
+			}
+		}
+	}()
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -151,10 +159,6 @@ func (app *App) Start(ctx context.Context) (err error) {
 			app.driver.Close()
 		}()
 	}
-
-	// initialize the renderer
-	app.renderer = &renderer{driver: app.driver, enc: app.enc, logger: app.logger}
-	go app.renderer.ListenAndRender(ctx)
 
 	// subscribe to MsgDraw
 	go MsgDrawSubscription(ctx, msgs, app.fps)
@@ -218,11 +222,9 @@ func (app *App) Start(ctx context.Context) (err error) {
 	for {
 		select {
 		case <-ctx.Done():
-			<-app.renderer.done
 			return err
 		case err := <-errs:
 			cancel()
-			<-app.renderer.done
 			return err
 		case msg := <-msgs:
 			if msg == nil {
@@ -232,7 +234,6 @@ func (app *App) Start(ctx context.Context) (err error) {
 			// Handle quit message
 			if _, ok := msg.(msgQuit); ok {
 				cancel()
-				<-app.renderer.done
 				return err
 			}
 
@@ -257,12 +258,19 @@ func (app *App) Start(ctx context.Context) (err error) {
 			if _, ok := msg.(MsgDraw); ok {
 				frame := app.model.Draw().ComputeFrame()
 				if len(frame.Cells) > 0 {
-					select {
-					case app.renderer.frames <- frame:
-					case <-ctx.Done():
-					}
+					app.flush(frame)
 				}
 			}
+		}
+	}
+}
+
+func (app *App) flush(frame Frame) {
+	app.driver.Flush(frame)
+	if app.enc != nil {
+		err := app.enc.encode(frame)
+		if err != nil && app.logger != nil {
+			app.logger.Printf("frame encoding: %v", err)
 		}
 	}
 }
