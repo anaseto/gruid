@@ -15,28 +15,34 @@ import (
 	"github.com/nsf/gothic"
 )
 
+// TileManager manages tiles fetching.
 type TileManager interface {
 	// GetImage returns the image to be used for a given cell style.
 	GetImage(gruid.Cell) *image.RGBA
 
-	// TileSize returns the (width, height) in pixels of the tiles.
+	// TileSize returns the (width, height) in pixels of the tiles. Both
+	// should be positive and non-zero.
 	TileSize() (int, int)
 }
 
+// Driver implements gruid.Driver using the gothick bindings for the Tk
+// graphical toolkit.
 type Driver struct {
 	TileManager TileManager // for retrieving tiles
 	Width       int         // initial screen width in cells
 	Height      int         // initial screen height in cells
-	ir          *gothic.Interpreter
-	cache       map[gruid.Cell]*image.RGBA
-	tw          int
-	th          int
-	mousepos    gruid.Position
-	canvas      *image.RGBA
-	msgs        chan gruid.Msg
-	mousedrag   int
+
+	ir        *gothic.Interpreter
+	cache     map[gruid.Cell]*image.RGBA
+	tw        int
+	th        int
+	mousepos  gruid.Position
+	canvas    *image.RGBA
+	msgs      chan gruid.Msg
+	mousedrag int
 }
 
+// Init implements gruid.Driver.Init.
 func (tk *Driver) Init() error {
 	tk.msgs = make(chan gruid.Msg, 5)
 	tk.tw, tk.th = tk.TileManager.TileSize()
@@ -214,6 +220,7 @@ func getMsgKeyDown(s, c string) (gruid.MsgKeyDown, bool) {
 	return gruid.MsgKeyDown{Key: key, Time: time.Now()}, true
 }
 
+// PollMsg implements gruid.Driver.PollMsg.
 func (tk *Driver) PollMsg() (gruid.Msg, error) {
 	msg, ok := <-tk.msgs
 	if ok {
@@ -226,6 +233,7 @@ type rectangle struct {
 	xmin, xmax, ymin, ymax int
 }
 
+// Flush implements gruid.Driver.Flush.
 func (tk *Driver) Flush(frame gruid.Frame) {
 	w, h := frame.Width, frame.Height
 	rects := []rectangle{}
@@ -283,6 +291,7 @@ func (tk *Driver) draw(cs gruid.Cell, x, y int) {
 	draw.Draw(tk.canvas, image.Rect(x*tk.tw, tk.th*y, (x+1)*tk.tw, (y+1)*tk.th), img, image.Point{0, 0}, draw.Over)
 }
 
+// Close implements gruid.Driver.Close. It exits the Tcl/Tk interpreter.
 func (tk *Driver) Close() {
 	tk.ir.Eval("exit 0")
 	<-tk.ir.Done
@@ -291,6 +300,7 @@ func (tk *Driver) Close() {
 	tk.cache = nil
 }
 
+// ClearCache clears the tiles internal cache.
 func (tk *Driver) ClearCache() {
 	for c, _ := range tk.cache {
 		delete(tk.cache, c)

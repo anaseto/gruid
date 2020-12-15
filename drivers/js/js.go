@@ -10,29 +10,34 @@ import (
 	"github.com/anaseto/gruid"
 )
 
+// TileManager manages tiles fetching.
 type TileManager interface {
 	// GetImage returns the image to be used for a given cell style.
 	GetImage(gruid.Cell) *image.RGBA
 
-	// TileSize returns the (width, height) in pixels of the tiles.
+	// TileSize returns the (width, height) in pixels of the tiles. Both
+	// should be positive and non-zero.
 	TileSize() (int, int)
 }
 
+// Driver implements gruid.Driver using the syscall/js interface for
+// the browser using javascript and wasm.
 type Driver struct {
-	TileManager TileManager
-	Width       int // initial screen width in cells
-	Height      int // initial screen height in celles
-	display     js.Value
-	ctx         js.Value
-	cache       map[gruid.Cell]js.Value
-	tw          int
-	th          int
-	mousepos    gruid.Position
-	frame       gruid.Frame
-	msgs        chan gruid.Msg
-	flushdone   chan bool
-	mousedrag   int
-	listeners   listeners
+	TileManager TileManager // for retrieving tiles
+	Width       int         // initial screen width in cells
+	Height      int         // initial screen height in celles
+
+	display   js.Value
+	ctx       js.Value
+	cache     map[gruid.Cell]js.Value
+	tw        int
+	th        int
+	mousepos  gruid.Position
+	frame     gruid.Frame
+	msgs      chan gruid.Msg
+	flushdone chan bool
+	mousedrag int
+	listeners listeners
 }
 
 type listeners struct {
@@ -44,6 +49,7 @@ type listeners struct {
 	wheel     js.Func
 }
 
+// Init implements gruid.Driver.Init.
 func (dr *Driver) Init() error {
 	dr.mousedrag = -1
 	dr.msgs = make(chan gruid.Msg, 5)
@@ -222,6 +228,7 @@ func getMsgKeyDown(s, code string) (gruid.MsgKeyDown, bool) {
 	return gruid.MsgKeyDown{Key: key, Time: time.Now()}, true
 }
 
+// PollMsg implements gruid.Driver.PollMsg.
 func (dr *Driver) PollMsg() (gruid.Msg, error) {
 	msg, ok := <-dr.msgs
 	if ok {
@@ -230,6 +237,7 @@ func (dr *Driver) PollMsg() (gruid.Msg, error) {
 	return nil, nil
 }
 
+// Flush implements gruid.Driver.Flush.
 func (dr *Driver) Flush(frame gruid.Frame) {
 	dr.frame = frame
 	js.Global().Get("window").Call("requestAnimationFrame",
@@ -266,6 +274,8 @@ func (dr *Driver) draw(cell gruid.Cell, x, y int) {
 	dr.ctx.Call("drawImage", canvas, x*dr.tw, dr.th*y)
 }
 
+// Close implements gruid.Driver.Close. It releases some resources, such as
+// event listeners.
 func (dr *Driver) Close() {
 	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
 	canvas.Call("removeEventListener", "contextmenu", dr.listeners.menu, false)
@@ -285,6 +295,7 @@ func (dr *Driver) Close() {
 	close(dr.msgs)
 }
 
+// ClearCache clears the tiles internal cache.
 func (dr *Driver) ClearCache() {
 	for c, _ := range dr.cache {
 		delete(dr.cache, c)

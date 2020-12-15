@@ -15,11 +15,13 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 )
 
+// TileManager manages tiles fetching.
 type TileManager interface {
 	// GetImage returns the image to be used for a given cell style.
 	GetImage(gruid.Cell) *image.RGBA
 
-	// TileSize returns the (width, height) in pixels of the tiles.
+	// TileSize returns the (width, height) in pixels of the tiles. Both
+	// should be positive and non-zero.
 	TileSize() (int, int)
 }
 
@@ -30,18 +32,20 @@ type Driver struct {
 	TileManager TileManager // for retrieving tiles
 	Width       int32       // initial screen width in cells
 	Height      int32       // initial screen height in cells
-	window      *sdl.Window
-	renderer    *sdl.Renderer
-	textures    map[gruid.Cell]*sdl.Texture
-	surfaces    map[gruid.Cell]*sdl.Surface
-	tw          int32
-	th          int32
-	mousepos    gruid.Position
-	mousedrag   gruid.MouseAction
-	done        chan struct{}
+
+	window    *sdl.Window
+	renderer  *sdl.Renderer
+	textures  map[gruid.Cell]*sdl.Texture
+	surfaces  map[gruid.Cell]*sdl.Surface
+	tw        int32
+	th        int32
+	mousepos  gruid.Position
+	mousedrag gruid.MouseAction
+	done      chan struct{}
 }
 
-// Init implements gruid.Driver.Init.
+// Init implements gruid.Driver.Init. It initializes structures and calls
+// sdl.Init().
 func (dr *Driver) Init() error {
 	dr.done = make(chan struct{})
 	w, h := dr.TileManager.TileSize()
@@ -263,6 +267,11 @@ func (dr *Driver) PollMsg() (gruid.Msg, error) {
 				msg.MousePos = dr.mousepos
 				msg.Time = time.Now()
 				return msg, nil
+			case *sdl.WindowEvent:
+				switch ev.Type {
+				case sdl.WINDOWEVENT_SIZE_CHANGED:
+					return gruid.MsgScreenSize{Width: int(ev.Data1 / dr.tw), Height: int(ev.Data2 / dr.th), Time: time.Now()}, nil
+				}
 			}
 		}
 		t := time.NewTimer(5 * time.Millisecond)
@@ -322,7 +331,7 @@ func (dr *Driver) draw(cs gruid.Cell, x, y int) {
 	dr.renderer.Copy(tx, nil, &rect)
 }
 
-// Close implements gruid.Driver.Close.
+// Close implements gruid.Driver.Close. It releases some resources and calls sdl.Quit.
 func (dr *Driver) Close() {
 	dr.ClearCache()
 	dr.surfaces = nil
@@ -337,7 +346,7 @@ func (dr *Driver) Close() {
 	sdl.Quit()
 }
 
-// ClearCache clears tile texture internal cache.
+// ClearCache clears the tile textures internal cache.
 func (dr *Driver) ClearCache() {
 	for i, s := range dr.surfaces {
 		s.Free()
