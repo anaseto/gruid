@@ -349,7 +349,9 @@ type Driver interface {
 	Flush(Frame)
 
 	// PollMsgs is a subscription for input messages. It returns an error
-	// in case the driver input loop suffered a non recoverable error.
+	// in case the driver input loop suffered a non recoverable error. It
+	// should handle cancelation of the passed given context and return as
+	// appropiate.
 	PollMsgs(context.Context, chan<- Msg) error
 
 	// Close may execute needed code to finalize the screen and release
