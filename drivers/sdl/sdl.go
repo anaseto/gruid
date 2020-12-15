@@ -2,6 +2,7 @@ package sdl
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"image"
 	//"log"
@@ -47,7 +48,6 @@ type Driver struct {
 // Init implements gruid.Driver.Init. It initializes structures and calls
 // sdl.Init().
 func (dr *Driver) Init() error {
-	dr.done = make(chan struct{})
 	w, h := dr.TileManager.TileSize()
 	dr.tw, dr.th = int32(w), int32(h)
 	dr.textures = make(map[gruid.Cell]*sdl.Texture)
@@ -71,214 +71,233 @@ func (dr *Driver) Init() error {
 	return nil
 }
 
-// PollMsg implements gruid.Driver.PollMsg.
-func (dr *Driver) PollMsg() (gruid.Msg, error) {
+// PollMsgs implements gruid.Driver.PollMsgs.
+func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
+	send := func(msg gruid.Msg) {
+		select {
+		case msgs <- msg:
+		case <-ctx.Done():
+		}
+	}
 	for {
-		for event := sdl.PollEvent(); event != nil; event = sdl.PollEvent() {
-			switch ev := event.(type) {
-			//case *sdl.QuitEvent:
-			//return nil, errors.New("Quit") // TODO handle quit properly (send special message?)
-			case *sdl.TextInputEvent:
-				s := ev.GetText()
-				if utf8.RuneCountInString(s) != 1 {
-					// TODO: handle the case where an input
-					// event would produce several
-					// characters? We would have to keep
-					// track of those characters, and send
-					// several messages in a row.
-					continue
-				}
-				msg := gruid.MsgKeyDown{}
-				msg.Key = gruid.Key(s)
-				msg.Time = time.Now()
-				return msg, nil
-			//case *sdl.TextEditingEvent:
-			// TODO: Handling this would allow to use an input
-			// method for making compositions and chosing text.
-			// I'm not sure what the API for this should be in
-			// gruid or the driver.
-			case *sdl.KeyboardEvent:
-				c := ev.Keysym.Sym
-				if ev.Type == sdl.KEYUP {
-					continue
-				}
-				msg := gruid.MsgKeyDown{}
-				if sdl.KMOD_LALT&ev.Keysym.Mod != 0 {
-					msg.Mod |= gruid.ModAlt
-				}
-				if sdl.KMOD_LSHIFT&ev.Keysym.Mod != 0 || sdl.KMOD_RSHIFT&ev.Keysym.Mod != 0 {
-					msg.Mod |= gruid.ModShift
-				}
-				if sdl.KMOD_LCTRL&ev.Keysym.Mod != 0 || sdl.KMOD_RCTRL&ev.Keysym.Mod != 0 {
-					msg.Mod |= gruid.ModCtrl
-				}
-				if sdl.KMOD_RGUI&ev.Keysym.Mod != 0 {
-					msg.Mod |= gruid.ModMeta
-				}
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+		}
+		event := sdl.PollEvent()
+		if event == nil {
+			t := time.NewTimer(5 * time.Millisecond)
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-t.C:
+				continue
+			}
+		}
+		switch ev := event.(type) {
+		//case *sdl.QuitEvent:
+		//return errors.New("Quit") // TODO handle quit properly (send special message?)
+		case *sdl.TextInputEvent:
+			s := ev.GetText()
+			if utf8.RuneCountInString(s) != 1 {
+				// TODO: handle the case where an input
+				// event would produce several
+				// characters? We would have to keep
+				// track of those characters, and send
+				// several messages in a row.
+				continue
+			}
+			msg := gruid.MsgKeyDown{}
+			msg.Key = gruid.Key(s)
+			msg.Time = time.Now()
+			send(msg)
+		//case *sdl.TextEditingEvent:
+		// TODO: Handling this would allow to use an input
+		// method for making compositions and chosing text.
+		// I'm not sure what the API for this should be in
+		// gruid or the driver.
+		case *sdl.KeyboardEvent:
+			c := ev.Keysym.Sym
+			if ev.Type == sdl.KEYUP {
+				continue
+			}
+			msg := gruid.MsgKeyDown{}
+			if sdl.KMOD_LALT&ev.Keysym.Mod != 0 {
+				msg.Mod |= gruid.ModAlt
+			}
+			if sdl.KMOD_LSHIFT&ev.Keysym.Mod != 0 || sdl.KMOD_RSHIFT&ev.Keysym.Mod != 0 {
+				msg.Mod |= gruid.ModShift
+			}
+			if sdl.KMOD_LCTRL&ev.Keysym.Mod != 0 || sdl.KMOD_RCTRL&ev.Keysym.Mod != 0 {
+				msg.Mod |= gruid.ModCtrl
+			}
+			if sdl.KMOD_RGUI&ev.Keysym.Mod != 0 {
+				msg.Mod |= gruid.ModMeta
+			}
+			switch c {
+			case sdl.K_DOWN:
+				msg.Key = gruid.KeyArrowDown
+			case sdl.K_LEFT:
+				msg.Key = gruid.KeyArrowLeft
+			case sdl.K_RIGHT:
+				msg.Key = gruid.KeyArrowRight
+			case sdl.K_UP:
+				msg.Key = gruid.KeyArrowUp
+			case sdl.K_BACKSPACE:
+				msg.Key = gruid.KeyBackspace
+			case sdl.K_DELETE:
+				msg.Key = gruid.KeyDelete
+			case sdl.K_END:
+				msg.Key = gruid.KeyEnd
+			case sdl.K_ESCAPE:
+				msg.Key = gruid.KeyEscape
+			case sdl.K_RETURN:
+				msg.Key = gruid.KeyEnter
+			case sdl.K_HOME:
+				msg.Key = gruid.KeyHome
+			case sdl.K_INSERT:
+				msg.Key = gruid.KeyInsert
+			case sdl.K_PAGEUP:
+				msg.Key = gruid.KeyPageUp
+			case sdl.K_PAGEDOWN:
+				msg.Key = gruid.KeyPageDown
+			case sdl.K_TAB:
+				msg.Key = gruid.KeyTab
+			}
+			if ev.Keysym.Mod&sdl.KMOD_NUM == 0 {
 				switch c {
-				case sdl.K_DOWN:
+				case sdl.K_KP_2:
 					msg.Key = gruid.KeyArrowDown
-				case sdl.K_LEFT:
+				case sdl.K_KP_4:
 					msg.Key = gruid.KeyArrowLeft
-				case sdl.K_RIGHT:
+				case sdl.K_KP_6:
 					msg.Key = gruid.KeyArrowRight
-				case sdl.K_UP:
+				case sdl.K_KP_8:
 					msg.Key = gruid.KeyArrowUp
-				case sdl.K_BACKSPACE:
+				case sdl.K_KP_BACKSPACE:
 					msg.Key = gruid.KeyBackspace
-				case sdl.K_DELETE:
+				case sdl.K_KP_PERIOD:
 					msg.Key = gruid.KeyDelete
-				case sdl.K_END:
+				case sdl.K_KP_1:
 					msg.Key = gruid.KeyEnd
-				case sdl.K_ESCAPE:
-					msg.Key = gruid.KeyEscape
-				case sdl.K_RETURN:
+				case sdl.K_KP_5, sdl.K_KP_ENTER:
 					msg.Key = gruid.KeyEnter
-				case sdl.K_HOME:
+				case sdl.K_KP_7:
 					msg.Key = gruid.KeyHome
-				case sdl.K_INSERT:
+				case sdl.K_KP_0:
 					msg.Key = gruid.KeyInsert
-				case sdl.K_PAGEUP:
+				case sdl.K_KP_9:
 					msg.Key = gruid.KeyPageUp
-				case sdl.K_PAGEDOWN:
+				case sdl.K_KP_3:
 					msg.Key = gruid.KeyPageDown
-				case sdl.K_TAB:
-					msg.Key = gruid.KeyTab
 				}
-				if ev.Keysym.Mod&sdl.KMOD_NUM == 0 {
-					switch c {
-					case sdl.K_KP_2:
-						msg.Key = gruid.KeyArrowDown
-					case sdl.K_KP_4:
-						msg.Key = gruid.KeyArrowLeft
-					case sdl.K_KP_6:
-						msg.Key = gruid.KeyArrowRight
-					case sdl.K_KP_8:
-						msg.Key = gruid.KeyArrowUp
-					case sdl.K_KP_BACKSPACE:
-						msg.Key = gruid.KeyBackspace
-					case sdl.K_KP_PERIOD:
-						msg.Key = gruid.KeyDelete
-					case sdl.K_KP_1:
-						msg.Key = gruid.KeyEnd
-					case sdl.K_KP_5, sdl.K_KP_ENTER:
-						msg.Key = gruid.KeyEnter
-					case sdl.K_KP_7:
-						msg.Key = gruid.KeyHome
-					case sdl.K_KP_0:
-						msg.Key = gruid.KeyInsert
-					case sdl.K_KP_9:
-						msg.Key = gruid.KeyPageUp
-					case sdl.K_KP_3:
-						msg.Key = gruid.KeyPageDown
-					}
-				}
-				if msg.Key == "" {
+			}
+			if msg.Key == "" {
+				continue
+			}
+			msg.Time = time.Now()
+			send(msg)
+		case *sdl.MouseButtonEvent:
+			var action gruid.MouseAction
+			switch ev.Button {
+			case sdl.BUTTON_LEFT:
+				action = gruid.MouseMain
+			case sdl.BUTTON_MIDDLE:
+				action = gruid.MouseAuxiliary
+			case sdl.BUTTON_RIGHT:
+				action = gruid.MouseSecondary
+			default:
+				continue
+			}
+			msg := gruid.MsgMouse{}
+			msg.MousePos = gruid.Position{X: int((ev.X - 1) / dr.tw), Y: int((ev.Y - 1) / dr.th)}
+			switch ev.Type {
+			case sdl.MOUSEBUTTONDOWN:
+				if dr.mousedrag != -1 {
 					continue
 				}
-				msg.Time = time.Now()
-				return msg, nil
-			case *sdl.MouseButtonEvent:
-				var action gruid.MouseAction
-				switch ev.Button {
-				case sdl.BUTTON_LEFT:
-					action = gruid.MouseMain
-				case sdl.BUTTON_MIDDLE:
-					action = gruid.MouseAuxiliary
-				case sdl.BUTTON_RIGHT:
-					action = gruid.MouseSecondary
-				default:
-					continue
-				}
-				msg := gruid.MsgMouse{}
-				msg.MousePos = gruid.Position{X: int((ev.X - 1) / dr.tw), Y: int((ev.Y - 1) / dr.th)}
-				switch ev.Type {
-				case sdl.MOUSEBUTTONDOWN:
-					if dr.mousedrag != -1 {
-						continue
-					}
-					if msg.MousePos.X < 0 || msg.MousePos.X >= int(dr.Width) ||
-						msg.MousePos.Y < 0 || msg.MousePos.Y >= int(dr.Height) {
-						continue
-					}
-					msg.Time = time.Now()
-					msg.Action = action
-					dr.mousedrag = action
-				case sdl.MOUSEBUTTONUP:
-					if dr.mousedrag != action {
-						continue
-					}
-					if msg.MousePos.X < 0 || msg.MousePos.X >= int(dr.Width) ||
-						msg.MousePos.Y < 0 || msg.MousePos.Y >= int(dr.Height) {
-						msg.MousePos = gruid.Position{}
-					}
-					msg.Time = time.Now()
-					msg.Action = gruid.MouseRelease
-					dr.mousedrag = -1
-				}
-				mod := sdl.GetModState()
-				if sdl.KMOD_LALT&mod != 0 {
-					msg.Mod |= gruid.ModAlt
-				}
-				if sdl.KMOD_LSHIFT&mod != 0 || sdl.KMOD_RSHIFT&mod != 0 {
-					msg.Mod |= gruid.ModShift
-				}
-				if sdl.KMOD_LCTRL&mod != 0 || sdl.KMOD_RCTRL&mod != 0 {
-					msg.Mod |= gruid.ModCtrl
-				}
-				if sdl.KMOD_RGUI&mod != 0 {
-					msg.Mod |= gruid.ModMeta
-				}
-				dr.mousepos = msg.MousePos
-				return msg, nil
-			case *sdl.MouseMotionEvent:
-				msg := gruid.MsgMouse{}
-				msg.MousePos = gruid.Position{X: int((ev.X - 1) / dr.tw), Y: int((ev.Y - 1) / dr.th)}
 				if msg.MousePos.X < 0 || msg.MousePos.X >= int(dr.Width) ||
 					msg.MousePos.Y < 0 || msg.MousePos.Y >= int(dr.Height) {
 					continue
 				}
 				msg.Time = time.Now()
-				msg.Action = gruid.MouseMove
-				dr.mousepos = msg.MousePos
-				mod := sdl.GetModState()
-				if sdl.KMOD_LALT&mod != 0 {
-					msg.Mod |= gruid.ModAlt
-				}
-				if sdl.KMOD_LSHIFT&mod != 0 || sdl.KMOD_RSHIFT&mod != 0 {
-					msg.Mod |= gruid.ModShift
-				}
-				if sdl.KMOD_LCTRL&mod != 0 || sdl.KMOD_RCTRL&mod != 0 {
-					msg.Mod |= gruid.ModCtrl
-				}
-				if sdl.KMOD_RGUI&mod != 0 {
-					msg.Mod |= gruid.ModMeta
-				}
-				return msg, nil
-			case *sdl.MouseWheelEvent:
-				msg := gruid.MsgMouse{}
-				if ev.Y > 0 {
-					msg.Action = gruid.MouseWheelUp
-				} else if ev.Y < 0 {
-					msg.Action = gruid.MouseWheelDown
-				} else {
+				msg.Action = action
+				dr.mousedrag = action
+			case sdl.MOUSEBUTTONUP:
+				if dr.mousedrag != action {
 					continue
 				}
-				msg.MousePos = dr.mousepos
-				msg.Time = time.Now()
-				return msg, nil
-			case *sdl.WindowEvent:
-				switch ev.Type {
-				case sdl.WINDOWEVENT_SIZE_CHANGED:
-					return gruid.MsgScreenSize{Width: int(ev.Data1 / dr.tw), Height: int(ev.Data2 / dr.th), Time: time.Now()}, nil
+				if msg.MousePos.X < 0 || msg.MousePos.X >= int(dr.Width) ||
+					msg.MousePos.Y < 0 || msg.MousePos.Y >= int(dr.Height) {
+					msg.MousePos = gruid.Position{}
 				}
+				msg.Time = time.Now()
+				msg.Action = gruid.MouseRelease
+				dr.mousedrag = -1
 			}
-		}
-		t := time.NewTimer(5 * time.Millisecond)
-		select {
-		case <-dr.done:
-			return nil, nil
-		case <-t.C:
+			mod := sdl.GetModState()
+			if sdl.KMOD_LALT&mod != 0 {
+				msg.Mod |= gruid.ModAlt
+			}
+			if sdl.KMOD_LSHIFT&mod != 0 || sdl.KMOD_RSHIFT&mod != 0 {
+				msg.Mod |= gruid.ModShift
+			}
+			if sdl.KMOD_LCTRL&mod != 0 || sdl.KMOD_RCTRL&mod != 0 {
+				msg.Mod |= gruid.ModCtrl
+			}
+			if sdl.KMOD_RGUI&mod != 0 {
+				msg.Mod |= gruid.ModMeta
+			}
+			dr.mousepos = msg.MousePos
+			send(msg)
+		case *sdl.MouseMotionEvent:
+			msg := gruid.MsgMouse{}
+			msg.MousePos = gruid.Position{X: int((ev.X - 1) / dr.tw), Y: int((ev.Y - 1) / dr.th)}
+			if msg.MousePos == dr.mousepos {
+				continue
+			}
+			if msg.MousePos.X < 0 || msg.MousePos.X >= int(dr.Width) ||
+				msg.MousePos.Y < 0 || msg.MousePos.Y >= int(dr.Height) {
+				continue
+			}
+			msg.Time = time.Now()
+			msg.Action = gruid.MouseMove
+			dr.mousepos = msg.MousePos
+			mod := sdl.GetModState()
+			if sdl.KMOD_LALT&mod != 0 {
+				msg.Mod |= gruid.ModAlt
+			}
+			if sdl.KMOD_LSHIFT&mod != 0 || sdl.KMOD_RSHIFT&mod != 0 {
+				msg.Mod |= gruid.ModShift
+			}
+			if sdl.KMOD_LCTRL&mod != 0 || sdl.KMOD_RCTRL&mod != 0 {
+				msg.Mod |= gruid.ModCtrl
+			}
+			if sdl.KMOD_RGUI&mod != 0 {
+				msg.Mod |= gruid.ModMeta
+			}
+			send(msg)
+		case *sdl.MouseWheelEvent:
+			msg := gruid.MsgMouse{}
+			if ev.Y > 0 {
+				msg.Action = gruid.MouseWheelUp
+			} else if ev.Y < 0 {
+				msg.Action = gruid.MouseWheelDown
+			} else {
+				continue
+			}
+			msg.MousePos = dr.mousepos
+			msg.Time = time.Now()
+			send(msg)
+		case *sdl.WindowEvent:
+			// XXX: currently does not happen, because
+			// window is not resizable. Change this? Maybe
+			// add support for fullscreen?
+			switch ev.Type {
+			case sdl.WINDOWEVENT_SIZE_CHANGED:
+				send(gruid.MsgScreenSize{Width: int(ev.Data1 / dr.tw), Height: int(ev.Data2 / dr.th), Time: time.Now()})
+			}
 		}
 	}
 }
@@ -339,10 +358,6 @@ func (dr *Driver) Close() {
 	sdl.StopTextInput()
 	dr.renderer.Destroy()
 	dr.window.Destroy()
-	close(dr.done)
-	// wait a little for any last PollMsg to complete: it's not ideal, but
-	// good enough.
-	time.Sleep(2 * time.Millisecond)
 	sdl.Quit()
 }
 

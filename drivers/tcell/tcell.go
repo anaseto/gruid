@@ -1,6 +1,8 @@
 package tcell
 
 import (
+	"context"
+
 	"github.com/anaseto/gruid"
 	"github.com/gdamore/tcell/v2"
 )
@@ -20,6 +22,7 @@ type Driver struct {
 	screen       tcell.Screen
 	mousedrag    bool
 	mousePos     gruid.Position
+	closed       bool
 }
 
 // Init implements gruid.Driver.Init. It initializes a screen using the tcell
@@ -44,17 +47,29 @@ func (t *Driver) Init() error {
 	return nil
 }
 
-// PollMsg implements gruid.Driver.PollMsg.
-func (t *Driver) PollMsg() (gruid.Msg, error) {
+// PollMsgs implements gruid.Driver.PollMsgs.
+func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
+	go func(ctx context.Context) {
+		<-ctx.Done()
+		t.screen.PostEvent(tcell.NewEventInterrupt(0))
+	}(ctx)
+	send := func(msg gruid.Msg) {
+		select {
+		case msgs <- msg:
+		case <-ctx.Done():
+		}
+	}
 	for {
 		ev := t.screen.PollEvent()
 		if ev == nil {
-			// screen is finished
-			return nil, nil
+			// screen is finished, should not happen
+			return nil
 		}
 		switch tev := ev.(type) {
+		case *tcell.EventInterrupt:
+			return nil
 		case *tcell.EventError:
-			return nil, tev
+			return tev
 		case *tcell.EventKey:
 			msg := gruid.MsgKeyDown{}
 			mod := tev.Modifiers()
@@ -110,7 +125,7 @@ func (t *Driver) PollMsg() (gruid.Msg, error) {
 			if msg.Key == "" {
 				continue
 			}
-			return msg, nil
+			send(msg)
 		case *tcell.EventMouse:
 			x, y := tev.Position()
 			switch tev.Buttons() {
@@ -124,7 +139,7 @@ func (t *Driver) PollMsg() (gruid.Msg, error) {
 					msg.Action = gruid.MouseMain
 					t.mousedrag = true
 				}
-				return msg, nil
+				send(msg)
 			case tcell.Button3:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
@@ -135,7 +150,7 @@ func (t *Driver) PollMsg() (gruid.Msg, error) {
 					msg.Action = gruid.MouseAuxiliary
 					t.mousedrag = true
 				}
-				return msg, nil
+				send(msg)
 			case tcell.Button2:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
@@ -146,19 +161,19 @@ func (t *Driver) PollMsg() (gruid.Msg, error) {
 					msg.Action = gruid.MouseSecondary
 					t.mousedrag = true
 				}
-				return msg, nil
+				send(msg)
 			case tcell.WheelUp:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
 				msg.MousePos = gruid.Position{X: x, Y: y}
 				msg.Action = gruid.MouseWheelUp
-				return msg, nil
+				send(msg)
 			case tcell.WheelDown:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
 				msg.MousePos = gruid.Position{X: x, Y: y}
 				msg.Action = gruid.MouseWheelDown
-				return msg, nil
+				send(msg)
 			case tcell.ButtonNone:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
@@ -173,13 +188,13 @@ func (t *Driver) PollMsg() (gruid.Msg, error) {
 					msg.Action = gruid.MouseMove
 					t.mousePos = msg.MousePos
 				}
-				return msg, nil
+				send(msg)
 			}
 		case *tcell.EventResize:
 			msg := gruid.MsgScreenSize{}
 			msg.Time = tev.When()
 			msg.Width, msg.Height = tev.Size()
-			return msg, nil
+			send(msg)
 		}
 	}
 }

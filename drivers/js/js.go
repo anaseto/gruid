@@ -1,6 +1,7 @@
 package js
 
 import (
+	"context"
 	"image"
 	"time"
 	"unicode/utf8"
@@ -34,7 +35,6 @@ type Driver struct {
 	th        int
 	mousepos  gruid.Position
 	frame     gruid.Frame
-	msgs      chan gruid.Msg
 	flushdone chan bool
 	mousedrag int
 	listeners listeners
@@ -52,16 +52,9 @@ type listeners struct {
 // Init implements gruid.Driver.Init.
 func (dr *Driver) Init() error {
 	dr.mousedrag = -1
-	dr.msgs = make(chan gruid.Msg, 5)
 	dr.flushdone = make(chan bool)
 	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
 
-	dr.listeners.menu = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		e := args[0]
-		e.Call("preventDefault")
-		return nil
-	})
-	canvas.Call("addEventListener", "contextmenu", dr.listeners.menu, false)
 	canvas.Call("setAttribute", "tabindex", "1")
 	dr.ctx = canvas.Call("getContext", "2d")
 	dr.ctx.Set("imageSmoothingEnabled", false)
@@ -70,106 +63,6 @@ func (dr *Driver) Init() error {
 	canvas.Set("width", dr.tw*dr.Width)
 	dr.cache = make(map[gruid.Cell]js.Value)
 
-	appdiv := js.Global().Get("document").Call("getElementById", "appdiv")
-	dr.listeners.keydown = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		e := args[0]
-		if !e.Get("ctrlKey").Bool() && !e.Get("metaKey").Bool() {
-			e.Call("preventDefault")
-		}
-		s := e.Get("key").String()
-		if s == "F11" {
-			screenfull := js.Global().Get("screenfull")
-			if screenfull.Truthy() && screenfull.Get("enabled").Bool() {
-				screenfull.Call("toggle", appdiv)
-			}
-			return nil
-		}
-		code := e.Get("code").String()
-		if s == "Unidentified" {
-			s = code
-		}
-		if len(dr.msgs) < cap(dr.msgs) {
-			if msg, ok := getMsgKeyDown(s, code); ok {
-				if e.Get("shiftKey").Bool() {
-					msg.Mod |= gruid.ModShift
-				}
-				if e.Get("ctrlKey").Bool() {
-					msg.Mod |= gruid.ModCtrl
-				}
-				if e.Get("altKey").Bool() {
-					msg.Mod |= gruid.ModAlt
-				}
-				if e.Get("metaKey").Bool() {
-					msg.Mod |= gruid.ModMeta
-				}
-				dr.msgs <- msg
-			}
-		}
-		return nil
-	})
-	js.Global().Get("document").Call("addEventListener", "keydown", dr.listeners.keydown)
-	dr.listeners.mousedown = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		e := args[0]
-		pos := dr.getMousePos(e)
-		if dr.mousedrag >= 0 {
-			return nil
-		}
-		n := e.Get("button").Int()
-		if len(dr.msgs) < cap(dr.msgs) {
-			switch n {
-			case 0, 1, 2:
-				dr.mousedrag = n
-				dr.msgs <- gruid.MsgMouse{MousePos: pos, Action: gruid.MouseAction(n), Time: time.Now()}
-			}
-		}
-		return nil
-	})
-	canvas.Call("addEventListener", "mousedown", dr.listeners.mousedown)
-	dr.listeners.mouseup = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		e := args[0]
-		pos := dr.getMousePos(e)
-		n := e.Get("button").Int()
-		if dr.mousedrag != n {
-			return nil
-		}
-		dr.mousedrag = -1
-		if len(dr.msgs) < cap(dr.msgs) {
-			dr.msgs <- gruid.MsgMouse{MousePos: pos, Action: gruid.MouseAction(n), Time: time.Now()}
-		}
-		return nil
-	})
-	canvas.Call("addEventListener", "mouseup", dr.listeners.mouseup)
-	dr.listeners.mousemove = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		e := args[0]
-		pos := dr.getMousePos(e)
-		if pos.X != dr.mousepos.X || pos.Y != dr.mousepos.Y {
-			dr.mousepos.X = pos.X
-			dr.mousepos.Y = pos.Y
-			if len(dr.msgs) < cap(dr.msgs) {
-				dr.msgs <- gruid.MsgMouse{Action: gruid.MouseMove, MousePos: pos, Time: time.Now()}
-			}
-		}
-		return nil
-	})
-	canvas.Call("addEventListener", "mousemove", dr.listeners.mousemove)
-	dr.listeners.wheel = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		e := args[0]
-		pos := dr.getMousePos(e)
-		var action gruid.MouseAction
-		delta := e.Get("deltaY").Float()
-		if delta > 0 {
-			action = gruid.MouseWheelUp
-		} else if delta < 0 {
-			action = gruid.MouseWheelDown
-		} else {
-			return nil
-		}
-		if len(dr.msgs) < cap(dr.msgs) {
-			dr.msgs <- gruid.MsgMouse{Action: action, MousePos: pos, Time: time.Now()}
-		}
-		return nil
-	})
-	canvas.Call("addEventListener", "onwheel", dr.listeners.wheel)
 	return nil
 }
 
@@ -228,13 +121,113 @@ func getMsgKeyDown(s, code string) (gruid.MsgKeyDown, bool) {
 	return gruid.MsgKeyDown{Key: key, Time: time.Now()}, true
 }
 
-// PollMsg implements gruid.Driver.PollMsg.
-func (dr *Driver) PollMsg() (gruid.Msg, error) {
-	msg, ok := <-dr.msgs
-	if ok {
-		return msg, nil
+// PollMsgs implements gruid.Driver.PollMsgs.
+func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
+	send := func(msg gruid.Msg) {
+		select {
+		case msgs <- msg:
+		case <-ctx.Done():
+		}
 	}
-	return nil, nil
+	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
+	dr.listeners.menu = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		e := args[0]
+		e.Call("preventDefault")
+		return nil
+	})
+	canvas.Call("addEventListener", "contextmenu", dr.listeners.menu, false)
+	appdiv := js.Global().Get("document").Call("getElementById", "appdiv")
+	dr.listeners.keydown = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		e := args[0]
+		if !e.Get("ctrlKey").Bool() && !e.Get("metaKey").Bool() {
+			e.Call("preventDefault")
+		}
+		s := e.Get("key").String()
+		if s == "F11" {
+			screenfull := js.Global().Get("screenfull")
+			if screenfull.Truthy() && screenfull.Get("enabled").Bool() {
+				screenfull.Call("toggle", appdiv)
+			}
+			return nil
+		}
+		code := e.Get("code").String()
+		if s == "Unidentified" {
+			s = code
+		}
+		if msg, ok := getMsgKeyDown(s, code); ok {
+			if e.Get("shiftKey").Bool() {
+				msg.Mod |= gruid.ModShift
+			}
+			if e.Get("ctrlKey").Bool() {
+				msg.Mod |= gruid.ModCtrl
+			}
+			if e.Get("altKey").Bool() {
+				msg.Mod |= gruid.ModAlt
+			}
+			if e.Get("metaKey").Bool() {
+				msg.Mod |= gruid.ModMeta
+			}
+			send(msg)
+		}
+		return nil
+	})
+	js.Global().Get("document").Call("addEventListener", "keydown", dr.listeners.keydown)
+	dr.listeners.mousedown = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		e := args[0]
+		pos := dr.getMousePos(e)
+		if dr.mousedrag >= 0 {
+			return nil
+		}
+		n := e.Get("button").Int()
+		switch n {
+		case 0, 1, 2:
+			dr.mousedrag = n
+			send(gruid.MsgMouse{MousePos: pos, Action: gruid.MouseAction(n), Time: time.Now()})
+		}
+		return nil
+	})
+	canvas.Call("addEventListener", "mousedown", dr.listeners.mousedown)
+	dr.listeners.mouseup = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		e := args[0]
+		pos := dr.getMousePos(e)
+		n := e.Get("button").Int()
+		if dr.mousedrag != n {
+			return nil
+		}
+		dr.mousedrag = -1
+		send(gruid.MsgMouse{MousePos: pos, Action: gruid.MouseAction(n), Time: time.Now()})
+		return nil
+	})
+	canvas.Call("addEventListener", "mouseup", dr.listeners.mouseup)
+	dr.listeners.mousemove = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		e := args[0]
+		pos := dr.getMousePos(e)
+		if pos.X != dr.mousepos.X || pos.Y != dr.mousepos.Y {
+			dr.mousepos.X = pos.X
+			dr.mousepos.Y = pos.Y
+			send(gruid.MsgMouse{Action: gruid.MouseMove, MousePos: pos, Time: time.Now()})
+		}
+		return nil
+	})
+	canvas.Call("addEventListener", "mousemove", dr.listeners.mousemove)
+	dr.listeners.wheel = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		e := args[0]
+		pos := dr.getMousePos(e)
+		var action gruid.MouseAction
+		delta := e.Get("deltaY").Float()
+		if delta > 0 {
+			action = gruid.MouseWheelUp
+		} else if delta < 0 {
+			action = gruid.MouseWheelDown
+		} else {
+			return nil
+		}
+		send(gruid.MsgMouse{Action: action, MousePos: pos, Time: time.Now()})
+		return nil
+	})
+	canvas.Call("addEventListener", "onwheel", dr.listeners.wheel)
+	<-ctx.Done()
+	return nil
 }
 
 // Flush implements gruid.Driver.Flush.
@@ -292,7 +285,6 @@ func (dr *Driver) Close() {
 	dr.listeners.wheel.Release()
 	dr.cache = nil
 	dr.frame = gruid.Frame{}
-	close(dr.msgs)
 }
 
 // ClearCache clears the tiles internal cache.

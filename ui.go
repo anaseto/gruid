@@ -118,9 +118,10 @@ func NewApp(cfg AppConfig) *App {
 // usually use nil here for client applications.
 func (app *App) Start(ctx context.Context) (err error) {
 	var (
-		effects = make(chan Effect)
-		msgs    = make(chan Msg, 1)
-		errs    = make(chan error)
+		effects  = make(chan Effect)
+		msgs     = make(chan Msg, 1)
+		errs     = make(chan error)
+		polldone = make(chan struct{}) // PollMsgs subscription finished
 	)
 
 	// frame encoder finalization
@@ -149,49 +150,42 @@ func (app *App) Start(ctx context.Context) (err error) {
 			if r := recover(); r != nil {
 				err = fmt.Errorf("%v", r)
 				cancel()
+				<-polldone
 				app.driver.Close()
 				log.Printf("Caught panic: %v\nStack Trace:\n", r)
 				debug.PrintStack()
 			} else {
+				<-polldone
 				app.driver.Close()
 			}
 		}()
 	} else {
 		defer func() {
+			<-polldone
 			app.driver.Close()
 		}()
 	}
 	defer cancel()
-
-	// subscribe to MsgDraw
-	go MsgDrawSubscription(ctx, msgs, app.fps)
 
 	// initialization message (non-blocking, buffered)
 	msgs <- MsgInit{}
 
 	// input messages queueing
 	go func(ctx context.Context) {
-		for {
-			msg, err := app.driver.PollMsg()
-			if err != nil {
-				select {
-				case errs <- err:
-					return
-				case <-ctx.Done():
-					return
-				}
-			}
-			if msg == nil {
-				// Close has been sent to the driver.
-				return
-			}
+		defer func() {
+			close(polldone)
+		}()
+		err := app.driver.PollMsgs(ctx, msgs)
+		if err != nil {
 			select {
-			case msgs <- msg:
+			case errs <- err:
 			case <-ctx.Done():
-				return
 			}
 		}
 	}(ctx)
+
+	// subscribe to MsgDraw
+	go MsgDrawSubscription(ctx, msgs, app.fps)
 
 	// effect processing
 	go func(ctx context.Context) {
@@ -354,10 +348,9 @@ type Driver interface {
 	// Flush sends last frame grid changes to the driver.
 	Flush(Frame)
 
-	// PollMsg waits for user input messages. It returns nil after Close
-	// has been sent to the driver. It returns an error in case the driver
-	// input loop suffered a non recoverable error.
-	PollMsg() (Msg, error)
+	// PollMsgs is a subscription for input messages. It returns an error
+	// in case the driver input loop suffered a non recoverable error.
+	PollMsgs(context.Context, chan<- Msg) error
 
 	// Close may execute needed code to finalize the screen and release
 	// resources. After Close, the driver can be initialized again in order

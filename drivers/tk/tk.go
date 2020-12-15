@@ -2,6 +2,7 @@ package tk
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"fmt"
 	"image"
@@ -38,13 +39,11 @@ type Driver struct {
 	th        int
 	mousepos  gruid.Position
 	canvas    *image.RGBA
-	msgs      chan gruid.Msg
 	mousedrag int
 }
 
 // Init implements gruid.Driver.Init. It starts a Tcl/Tk interpreter.
 func (tk *Driver) Init() error {
-	tk.msgs = make(chan gruid.Msg, 5)
 	tk.tw, tk.th = tk.TileManager.TileSize()
 	tk.cache = make(map[gruid.Cell]*image.RGBA)
 	tk.canvas = image.NewRGBA(image.Rect(0, 0, tk.Width*tk.tw, tk.Height*tk.th))
@@ -61,115 +60,6 @@ image create photo appscreen -width $width -height $height -palette 256/256/256
 image create photo bufscreen -width $width -height $height -palette 256/256/256
 $can create image 0 0 -anchor nw -image appscreen
 `, tk.tw, tk.Width, tk.th, tk.Height))
-	tk.ir.RegisterCommand("GetKey", func(c, keysym, mod string) {
-		var s string
-		s = keysym
-		if c != "" && s == "" {
-			s = c
-		}
-		if s == "ISO_Left_Tab" {
-			s = "Tab"
-			mod = "Shift"
-		}
-		if len(tk.msgs) < cap(tk.msgs) {
-			if msg, ok := getMsgKeyDown(s, c); ok {
-				if mod == "Shift" {
-					msg.Mod |= gruid.ModShift
-				}
-				if mod == "Control" {
-					msg.Mod |= gruid.ModCtrl
-				}
-				if mod == "Alt" {
-					msg.Mod |= gruid.ModAlt
-				}
-				tk.msgs <- msg
-			}
-		}
-	})
-	tk.ir.RegisterCommand("MouseDown", func(x, y, n int) {
-		if len(tk.msgs) < cap(tk.msgs) {
-			if tk.mousedrag > 0 {
-				return
-			}
-			var action gruid.MouseAction
-			switch n {
-			case 1, 2, 3:
-				action = gruid.MouseAction(n - 1)
-				tk.mousedrag = n
-				tk.msgs <- gruid.MsgMouse{MousePos: gruid.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th},
-					Action: action, Time: time.Now()}
-			}
-		}
-	})
-	tk.ir.RegisterCommand("MouseRelease", func(x, y, n int) {
-		if len(tk.msgs) < cap(tk.msgs) {
-			if tk.mousedrag != n {
-				return
-			}
-			tk.mousedrag = 0
-			tk.msgs <- gruid.MsgMouse{MousePos: gruid.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th},
-				Action: gruid.MouseRelease, Time: time.Now()}
-		}
-	})
-	tk.ir.RegisterCommand("MouseWheel", func(x, y, delta int) {
-		if len(tk.msgs) < cap(tk.msgs) {
-			var action gruid.MouseAction
-			if delta > 0 {
-				action = gruid.MouseWheelUp
-			} else if delta < 0 {
-				action = gruid.MouseWheelDown
-			} else {
-				return
-			}
-			tk.msgs <- gruid.MsgMouse{MousePos: gruid.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th},
-				Action: action, Time: time.Now()}
-		}
-	})
-	tk.ir.RegisterCommand("MouseMotion", func(x, y int) {
-		nx := (x - 1) / tk.tw
-		ny := (y - 1) / tk.th
-		if nx != tk.mousepos.X || ny != tk.mousepos.Y {
-			if len(tk.msgs) < cap(tk.msgs) {
-				tk.mousepos.X = nx
-				tk.mousepos.Y = ny
-				tk.msgs <- gruid.MsgMouse{MousePos: gruid.Position{X: nx, Y: ny},
-					Action: gruid.MouseMove, Time: time.Now()}
-			}
-		}
-	})
-	tk.ir.RegisterCommand("OnClosing", func() {
-		if len(tk.msgs) < cap(tk.msgs) {
-			tk.msgs <- gruid.Quit()
-		}
-	})
-	tk.ir.Eval(`
-bind .c <Shift-Key> {
-	GetKey %A %K Shift
-}
-bind .c <Control-Key> {
-	GetKey %A %K Control
-}
-bind .c <Alt-Key> {
-	GetKey %A %K Alt
-}
-bind .c <Key> {
-	GetKey %A %K {}
-}
-bind .c <Motion> {
-	MouseMotion %x %y
-}
-bind .c <ButtonPress> {
-	MouseDown %x %y %b
-}
-bind .c <ButtonRelease> {
-	MouseRelease %x %y %b
-}
-bind .c <MouseWheel> {
-	MouseWheel %x %y %D
-}
-wm protocol . WM_DELETE_WINDOW OnClosing
-`)
-
 	return nil
 }
 
@@ -220,13 +110,116 @@ func getMsgKeyDown(s, c string) (gruid.MsgKeyDown, bool) {
 	return gruid.MsgKeyDown{Key: key, Time: time.Now()}, true
 }
 
-// PollMsg implements gruid.Driver.PollMsg.
-func (tk *Driver) PollMsg() (gruid.Msg, error) {
-	msg, ok := <-tk.msgs
-	if ok {
-		return msg, nil
+// PollMsgs implements gruid.Driver.PollMsgs.
+func (tk *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
+	send := func(msg gruid.Msg) {
+		t := time.NewTimer(5 * time.Millisecond)
+		select {
+		case msgs <- msg:
+		case <-ctx.Done():
+		case <-t.C:
+			// Tk is a bit slow sometimes, so too many messages can
+			// be queued simultaneously.
+		}
 	}
-	return nil, nil
+	tk.ir.RegisterCommand("GetKey", func(c, keysym, mod string) {
+		var s string
+		s = keysym
+		if c != "" && s == "" {
+			s = c
+		}
+		if s == "ISO_Left_Tab" {
+			s = "Tab"
+			mod = "Shift"
+		}
+		if msg, ok := getMsgKeyDown(s, c); ok {
+			if mod == "Shift" {
+				msg.Mod |= gruid.ModShift
+			}
+			if mod == "Control" {
+				msg.Mod |= gruid.ModCtrl
+			}
+			if mod == "Alt" {
+				msg.Mod |= gruid.ModAlt
+			}
+			send(msg)
+		}
+	})
+	tk.ir.RegisterCommand("MouseDown", func(x, y, n int) {
+		if tk.mousedrag > 0 {
+			return
+		}
+		var action gruid.MouseAction
+		switch n {
+		case 1, 2, 3:
+			action = gruid.MouseAction(n - 1)
+			tk.mousedrag = n
+			send(gruid.MsgMouse{MousePos: gruid.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th},
+				Action: action, Time: time.Now()})
+		}
+	})
+	tk.ir.RegisterCommand("MouseRelease", func(x, y, n int) {
+		if tk.mousedrag != n {
+			return
+		}
+		tk.mousedrag = 0
+		send(gruid.MsgMouse{MousePos: gruid.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th},
+			Action: gruid.MouseRelease, Time: time.Now()})
+	})
+	tk.ir.RegisterCommand("MouseWheel", func(x, y, delta int) {
+		var action gruid.MouseAction
+		if delta > 0 {
+			action = gruid.MouseWheelUp
+		} else if delta < 0 {
+			action = gruid.MouseWheelDown
+		} else {
+			return
+		}
+		send(gruid.MsgMouse{MousePos: gruid.Position{X: (x - 1) / tk.tw, Y: (y - 1) / tk.th},
+			Action: action, Time: time.Now()})
+	})
+	tk.ir.RegisterCommand("MouseMotion", func(x, y int) {
+		nx := (x - 1) / tk.tw
+		ny := (y - 1) / tk.th
+		if nx != tk.mousepos.X || ny != tk.mousepos.Y {
+			tk.mousepos.X = nx
+			tk.mousepos.Y = ny
+			send(gruid.MsgMouse{MousePos: gruid.Position{X: nx, Y: ny},
+				Action: gruid.MouseMove, Time: time.Now()})
+		}
+	})
+	tk.ir.RegisterCommand("OnClosing", func() {
+		send(gruid.Quit())
+	})
+	tk.ir.Eval(`
+bind .c <Shift-Key> {
+	GetKey %A %K Shift
+}
+bind .c <Control-Key> {
+	GetKey %A %K Control
+}
+bind .c <Alt-Key> {
+	GetKey %A %K Alt
+}
+bind .c <Key> {
+	GetKey %A %K {}
+}
+bind .c <Motion> {
+	MouseMotion %x %y
+}
+bind .c <ButtonPress> {
+	MouseDown %x %y %b
+}
+bind .c <ButtonRelease> {
+	MouseRelease %x %y %b
+}
+bind .c <MouseWheel> {
+	MouseWheel %x %y %D
+}
+wm protocol . WM_DELETE_WINDOW OnClosing
+`)
+	<-ctx.Done()
+	return nil
 }
 
 type rectangle struct {
@@ -294,8 +287,6 @@ func (tk *Driver) draw(cs gruid.Cell, x, y int) {
 // Close implements gruid.Driver.Close. It exits the Tcl/Tk interpreter.
 func (tk *Driver) Close() {
 	tk.ir.Eval("exit 0")
-	<-tk.ir.Done
-	close(tk.msgs)
 	tk.ir = nil
 	tk.cache = nil
 }
