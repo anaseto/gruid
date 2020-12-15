@@ -112,14 +112,30 @@ func getMsgKeyDown(s, c string) (gruid.MsgKeyDown, bool) {
 
 // PollMsgs implements gruid.Driver.PollMsgs.
 func (tk *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
+	msgbuf := make(chan gruid.Msg, 10)
+	go func() {
+		for {
+			select {
+			case msg := <-msgbuf:
+				t := time.NewTimer(100 * time.Millisecond)
+				select {
+				case msgs <- msg:
+				case <-ctx.Done():
+				case <-t.C:
+					// Tk is a bit slow sometimes, so too
+					// many messages can sometimes be
+					// queued simultaneously, which could
+					// produce a lag.
+				}
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 	send := func(msg gruid.Msg) {
-		t := time.NewTimer(5 * time.Millisecond)
 		select {
-		case msgs <- msg:
+		case msgbuf <- msg:
 		case <-ctx.Done():
-		case <-t.C:
-			// Tk is a bit slow sometimes, so too many messages can
-			// be queued simultaneously.
 		}
 	}
 	tk.ir.RegisterCommand("GetKey", func(c, keysym, mod string) {
