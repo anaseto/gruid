@@ -123,30 +123,32 @@ func (app *App) Start(ctx context.Context) (err error) {
 		errs    = make(chan error)
 	)
 
+	// frame encoder finalization
 	defer func() {
 		if app.enc != nil {
 			nerr := app.enc.gzw.Close()
 			if err == nil {
 				err = nerr
+			} else if app.logger != nil {
+				app.logger.Printf("error closing gzip encoder: %v", err)
 			}
 		}
 	}()
 
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	// driver initialization
+	// driver and context initialization
 	err = app.driver.Init()
 	if err != nil {
 		return err
 	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx, cancel := context.WithCancel(ctx)
 	if app.CatchPanics {
 		defer func() {
 			if r := recover(); r != nil {
 				err = fmt.Errorf("%v", r)
+				cancel()
 				app.driver.Close()
 				log.Printf("Caught panic: %v\nStack Trace:\n", r)
 				debug.PrintStack()
@@ -159,6 +161,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 			app.driver.Close()
 		}()
 	}
+	defer cancel()
 
 	// subscribe to MsgDraw
 	go MsgDrawSubscription(ctx, msgs, app.fps)

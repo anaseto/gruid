@@ -115,6 +115,9 @@ func (t *Driver) PollMsg() (gruid.Msg, error) {
 			if tev.Rune() != 0 && msg.Key == "" {
 				msg.Key = gruid.Key(tev.Rune())
 			}
+			if msg.Key == "" {
+				continue
+			}
 			return msg, nil
 		case *tcell.EventMouse:
 			x, y := tev.Position()

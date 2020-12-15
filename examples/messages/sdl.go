@@ -1,4 +1,4 @@
-// +build tk
+// +build sdl
 
 package main
 
@@ -6,7 +6,7 @@ import (
 	"log"
 
 	"github.com/anaseto/gruid"
-	"github.com/anaseto/gruid/drivers/tk"
+	"github.com/anaseto/gruid/drivers/sdl"
 )
 
 var driver gruid.Driver
@@ -16,7 +16,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	driver = &tk.Driver{
+	driver = &sdl.Driver{
 		TileManager: t,
 		Width:       80,
 		Height:      24,

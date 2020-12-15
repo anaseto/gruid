@@ -60,12 +60,21 @@ func (m ModMask) String() string {
 		s += "Ctrl"
 	}
 	if m&ModAlt != 0 {
+		if s != "" {
+			s += "+"
+		}
 		s += "Alt"
 	}
 	if m&ModMeta != 0 {
+		if s != "" {
+			s += "+"
+		}
 		s += "Meta"
 	}
 	if m&ModShift != 0 {
+		if s != "" {
+			s += "+"
+		}
 		s += "Shift"
 	}
 	if s == "" {
@@ -107,15 +116,19 @@ func (ma MouseAction) String() string {
 	var s string
 	switch ma {
 	case MouseMain:
-		s = "button main"
+		s = "MouseMain"
 	case MouseAuxiliary:
-		s = "button auxiliary"
+		s = "MouseAuxiliary"
 	case MouseSecondary:
-		s = "button secondary"
+		s = "MouseSecondary"
+	case MouseWheelUp:
+		s = "MouseWheelUp"
+	case MouseWheelDown:
+		s = "MouseWheelDown"
 	case MouseRelease:
-		s = "button release"
+		s = "MouseRelease"
 	case MouseMove:
-		s = "move"
+		s = "MouseMove"
 	}
 	return s
 }
@@ -124,7 +137,7 @@ func (ma MouseAction) String() string {
 type MsgMouse struct {
 	Action   MouseAction // mouse action (click, release, move)
 	MousePos Position    // mouse position in the grid
-	Mod      ModMask     // modifier keys: not used in current drivers
+	Mod      ModMask     // modifier keys: not reported in most drivers
 	Time     time.Time   // time when the event was generated
 }
 
