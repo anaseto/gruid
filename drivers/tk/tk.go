@@ -42,7 +42,7 @@ type Driver struct {
 	mousedrag int
 }
 
-// Init implements gruid.Driver.Init.
+// Init implements gruid.Driver.Init. It starts a Tcl/Tk interpreter.
 func (tk *Driver) Init() error {
 	tk.msgs = make(chan gruid.Msg, 5)
 	tk.tw, tk.th = tk.TileManager.TileSize()
@@ -264,11 +264,11 @@ func (tk *Driver) Flush(frame gruid.Frame) {
 	}
 	rects = append(rects, r)
 	for _, r := range rects {
-		tk.UpdateRectangle(r.xmin, r.ymin, r.xmax, r.ymax)
+		tk.updateRectangle(r.xmin, r.ymin, r.xmax, r.ymax)
 	}
 }
 
-func (tk *Driver) UpdateRectangle(xmin, ymin, xmax, ymax int) {
+func (tk *Driver) updateRectangle(xmin, ymin, xmax, ymax int) {
 	if xmin > xmax || ymin > ymax {
 		return
 	}
@@ -302,7 +302,7 @@ func (tk *Driver) Close() {
 
 // ClearCache clears the tiles internal cache.
 func (tk *Driver) ClearCache() {
-	for c, _ := range tk.cache {
+	for c := range tk.cache {
 		delete(tk.cache, c)
 	}
 }

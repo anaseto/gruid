@@ -5,12 +5,14 @@ import (
 	"github.com/gdamore/tcell/v2"
 )
 
+// StyleManager allows for retrieving of styling information.
 type StyleManager interface {
 	// GetAttributes returns a mask of text attributes for a given cell
 	// style.
 	GetStyle(gruid.Style) tcell.Style
 }
 
+// Driver implements gruid.Driver using the tcell terminal library.
 type Driver struct {
 	// AttributeGetter has to be provided to make use of tcell text
 	// attributes.
@@ -20,6 +22,8 @@ type Driver struct {
 	mousePos     gruid.Position
 }
 
+// Init implements gruid.Driver.Init. It initializes a screen using the tcell
+// terminal library.
 func (t *Driver) Init() error {
 	screen, err := tcell.NewScreen()
 	t.screen = screen
@@ -40,19 +44,7 @@ func (t *Driver) Init() error {
 	return nil
 }
 
-func (t *Driver) Close() {
-	t.screen.Fini()
-}
-
-func (t *Driver) Flush(frame gruid.Frame) {
-	for _, cdraw := range frame.Cells {
-		c := cdraw.Cell
-		st := t.StyleManager.GetStyle(c.Style)
-		t.screen.SetContent(cdraw.Pos.X, cdraw.Pos.Y, c.Rune, nil, st)
-	}
-	t.screen.Show()
-}
-
+// PollMsg implements gruid.Driver.PollMsg.
 func (t *Driver) PollMsg() (gruid.Msg, error) {
 	for {
 		ev := t.screen.PollEvent()
@@ -190,4 +182,20 @@ func (t *Driver) PollMsg() (gruid.Msg, error) {
 			return msg, nil
 		}
 	}
+}
+
+// Flush implements gruid.Driver.Flush.
+func (t *Driver) Flush(frame gruid.Frame) {
+	for _, cdraw := range frame.Cells {
+		c := cdraw.Cell
+		st := t.StyleManager.GetStyle(c.Style)
+		t.screen.SetContent(cdraw.Pos.X, cdraw.Pos.Y, c.Rune, nil, st)
+	}
+	t.screen.Show()
+}
+
+// Close implements gruid.Driver.Close. It finalizes the screen and releases
+// resources.
+func (t *Driver) Close() {
+	t.screen.Fini()
 }

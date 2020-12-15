@@ -297,7 +297,7 @@ func (dr *Driver) Close() {
 
 // ClearCache clears the tiles internal cache.
 func (dr *Driver) ClearCache() {
-	for c, _ := range dr.cache {
+	for c := range dr.cache {
 		delete(dr.cache, c)
 	}
 }
