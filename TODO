@@ -1,5 +1,4 @@
 ----- TODO
-add sdl driver
 add horizontal menu option/status bar
 add more tests
 add animation utilities package ? synchronize with renderer?
