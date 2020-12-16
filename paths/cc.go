@@ -14,9 +14,8 @@ func (pf *PathRange) ComputeCCAll(nb Neighborer) {
 	w, h := pf.rg.Size()
 	if pf.cc == nil {
 		pf.cc = make([]ccNode, w*h)
-	} else {
-		pf.ccidx++
 	}
+	pf.ccidx++
 	pf.neighbors = nb
 	pf.ccstack = pf.ccstack[:0]
 	ccid := 0
@@ -55,9 +54,8 @@ func (pf *PathRange) ComputeCC(nb Neighborer, pos gruid.Position) {
 	w, h := pf.rg.Size()
 	if pf.cc == nil {
 		pf.cc = make([]ccNode, w*h)
-	} else {
-		pf.ccidx++
 	}
+	pf.ccidx++
 	if pf.ccIterCache == nil {
 		pf.ccIterCache = make([]int, w*h)
 	}
