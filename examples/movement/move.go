@@ -187,7 +187,7 @@ func (m *model) stopAuto() {
 // pathAt updates the path from player to a new position.
 func (m *model) pathAt(pos gruid.Position) {
 	p := &pather{}
-	p.neighbors = &paths.NeighborSearch{}
+	p.neighbors = &paths.Neighbors{}
 	m.path = m.pr.AstarPath(p, m.playerPos, pos)
 }
 
@@ -219,7 +219,7 @@ func automoveCmd(posdiff gruid.Position) gruid.Cmd {
 
 // pather implements paths.Astar interface.
 type pather struct {
-	neighbors *paths.NeighborSearch
+	neighbors *paths.Neighbors
 }
 
 func (p *pather) Neighbors(pos gruid.Position) []gruid.Position {

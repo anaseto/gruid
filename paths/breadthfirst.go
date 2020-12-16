@@ -2,32 +2,25 @@ package paths
 
 import "github.com/anaseto/gruid"
 
-// BreadthFirst is the interface that allows to build a breadthfirst map using
-// the BreadthFirstMap function. It can be viewed as a particular case of
-// DijkstraMap built with a cost function that returns 1 for all neighbors, but
-// it is more efficient.
-type BreadthFirst interface {
-	// Neighbors returns the available neighbor positions of a given
-	// position. Implementations may use a cache to avoid allocations.
-	Neighbors(gruid.Position) []gruid.Position
-}
-
 // CostAt returns the cost associated to a position in the last computed
-// breadth first map. It returns a false boolean if the position is outside the
-// range.  CostAt uses a cached breadth first map, that will be invalidated in
-// case a new one is computed using the same PathFinder.
-func (pf *PathRange) CostAt(pos gruid.Position) (cost int, ok bool) {
+// breadth first map. It returns the last maxCost + 1 if the position is out of
+// range, the same as in-range unreachable positions.  CostAt uses a cached
+// breadth first map, that will be invalidated in case a new one is computed
+// using the same PathFinder.
+func (pf *PathRange) CostAt(pos gruid.Position) int {
 	if !pos.In(pf.rg) || pf.bfmap == nil {
-		return cost, false
+		return pf.bfunreachable
 	}
-	return pf.bfmap[pf.idx(pos)], true
+	return pf.bfmap[pf.idx(pos)]
 }
 
 // BreadthFirstMap efficiently computes a map of minimal distance costs from
 // source positions to all the positions in the PathFinder range up to a
 // maximal cost. Other positions will have the value maxCost+1, including
-// unreachable ones.
-func (pf *PathRange) BreadthFirstMap(bf BreadthFirst, sources []gruid.Position, maxCost int) {
+// unreachable ones. It can be viewed as a particular case of DijkstraMap built
+// with a cost function that returns 1 for all neighbors, but it is more
+// efficient.
+func (pf *PathRange) BreadthFirstMap(nb Neighborer, sources []gruid.Position, maxCost int) {
 	if pf.bfvisited == nil {
 		w, h := pf.rg.Size()
 		pf.bfvisited = make([]bool, w*h)
@@ -40,6 +33,7 @@ func (pf *PathRange) BreadthFirstMap(bf BreadthFirst, sources []gruid.Position, 
 	for i := 0; i < w*h; i++ {
 		bfmap[i] = maxCost + 1
 	}
+	pf.bfunreachable = maxCost + 1
 	for _, pos := range sources {
 		if !pos.In(pf.rg) {
 			continue
@@ -57,7 +51,7 @@ func (pf *PathRange) BreadthFirstMap(bf BreadthFirst, sources []gruid.Position, 
 			continue
 		}
 		cpos := idxToPos(cidx, w)
-		for _, npos := range bf.Neighbors(cpos) {
+		for _, npos := range nb.Neighbors(cpos) {
 			nidx := pf.idx(npos)
 			if !pf.bfvisited[nidx] {
 				pf.bfqueue[qend] = nidx

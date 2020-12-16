@@ -15,6 +15,7 @@ type PathRange struct {
 	bfmap         []int    // breadth first map
 	bfvisited     []bool
 	bfqueue       []int
+	bfunreachable int // last maxcost + 1
 }
 
 // NewPathRange returns a new PathFinder for positions in a given range,
