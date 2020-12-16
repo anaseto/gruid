@@ -3,7 +3,8 @@ package paths
 
 import "github.com/anaseto/gruid"
 
-// PathRange allows for efficient path finding within a range.
+// PathRange allows for efficient path finding within a range. It caches
+// structures, so that they can be reused without further memory allocations.
 type PathRange struct {
 	rg            gruid.Range
 	astarNodes    *nodeMap
@@ -12,10 +13,15 @@ type PathRange struct {
 	dijkstraQueue priorityQueue
 	iterNodeCache []Node
 	dijkstra      Dijkstra // used by MapIter
-	bfmap         []int    // breadth first map
-	bfvisited     []bool
+	bfmap         []bfNode // breadth first map
 	bfqueue       []int
-	bfunreachable int // last maxcost + 1
+	bfunreachable int      // last maxcost + 1
+	bfidx         int      // bf map number
+	cc            []ccNode // connected components
+	ccstack       []int
+	ccidx         int // cc map number
+	ccIterCache   []int
+	neighbors     Neighborer
 }
 
 // NewPathRange returns a new PathFinder for positions in a given range,

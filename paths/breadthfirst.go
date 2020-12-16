@@ -11,7 +11,16 @@ func (pf *PathRange) CostAt(pos gruid.Position) int {
 	if !pos.In(pf.rg) || pf.bfmap == nil {
 		return pf.bfunreachable
 	}
-	return pf.bfmap[pf.idx(pos)]
+	node := pf.bfmap[pf.idx(pos)]
+	if node.idx != pf.bfidx {
+		return pf.bfunreachable
+	}
+	return node.cost
+}
+
+type bfNode struct {
+	idx  int // map number (for caching)
+	cost int // path cost from source
 }
 
 // BreadthFirstMap efficiently computes a map of minimal distance costs from
@@ -21,43 +30,39 @@ func (pf *PathRange) CostAt(pos gruid.Position) int {
 // with a cost function that returns 1 for all neighbors, but it is more
 // efficient.
 func (pf *PathRange) BreadthFirstMap(nb Neighborer, sources []gruid.Position, maxCost int) {
-	if pf.bfvisited == nil {
-		w, h := pf.rg.Size()
-		pf.bfvisited = make([]bool, w*h)
-		pf.bfqueue = make([]int, w*h)
-		pf.bfmap = make([]int, w*h)
-	}
-	bfmap := pf.bfmap[:]
-	var qstart, qend int
 	w, h := pf.rg.Size()
-	for i := 0; i < w*h; i++ {
-		bfmap[i] = maxCost + 1
+	if pf.bfmap == nil {
+		pf.bfmap = make([]bfNode, w*h)
+		pf.bfqueue = make([]int, w*h)
+	} else {
+		pf.bfidx++
 	}
+	var qstart, qend int
 	pf.bfunreachable = maxCost + 1
 	for _, pos := range sources {
 		if !pos.In(pf.rg) {
 			continue
 		}
-		s := pf.idx(pos)
-		bfmap[s] = 0
-		pf.bfqueue[qend] = s
+		idx := pf.idx(pos)
+		pf.bfmap[idx].cost = 0
+		pf.bfmap[idx].idx = pf.bfidx
+		pf.bfqueue[qend] = idx
 		qend++
-		pf.bfvisited[s] = true
 	}
 	for qstart < qend {
 		cidx := pf.bfqueue[qstart]
 		qstart++
-		if bfmap[cidx] == maxCost {
+		if pf.bfmap[cidx].cost >= maxCost {
 			continue
 		}
 		cpos := idxToPos(cidx, w)
 		for _, npos := range nb.Neighbors(cpos) {
 			nidx := pf.idx(npos)
-			if !pf.bfvisited[nidx] {
+			if pf.bfmap[nidx].idx != pf.bfidx {
 				pf.bfqueue[qend] = nidx
 				qend++
-				pf.bfvisited[nidx] = true
-				bfmap[nidx] = 1 + bfmap[cidx]
+				pf.bfmap[nidx].cost = 1 + pf.bfmap[cidx].cost
+				pf.bfmap[nidx].idx = pf.bfidx
 			}
 		}
 	}
