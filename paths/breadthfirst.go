@@ -34,9 +34,8 @@ func (pf *PathRange) BreadthFirstMap(nb Neighborer, sources []gruid.Position, ma
 	if pf.bfmap == nil {
 		pf.bfmap = make([]bfNode, w*h)
 		pf.bfqueue = make([]int, w*h)
-	} else {
-		pf.bfidx++
 	}
+	pf.bfidx++
 	var qstart, qend int
 	pf.bfunreachable = maxCost + 1
 	for _, pos := range sources {
