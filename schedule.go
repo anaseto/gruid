@@ -26,9 +26,9 @@ func (s Schedule) Cancel() {
 	s.sfs = nil
 }
 
-// Schedule adds a planned action given by a function. Its due date is computed
-// as an additional delay after the last previously scheduled function due
-// date, if any, or after time.Now() otherwise.
+// After adds a planned action given by a function. Its due date is computed as
+// an additional delay after the last previously scheduled function due date,
+// if any, or after time.Now() otherwise.
 func (s Schedule) After(d time.Duration, fn func()) {
 	var ot time.Time
 	if len(s.sfs) == 0 {
