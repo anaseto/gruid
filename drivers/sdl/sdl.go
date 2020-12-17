@@ -3,9 +3,9 @@ package sdl
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"image"
-	//"log"
 	"log"
 	"time"
 	"unicode/utf8"
@@ -30,36 +30,76 @@ type TileManager interface {
 // library. When using an gruid.App, Start has to be used on the main routine,
 // as the video functions of SDL are not thread safe.
 type Driver struct {
-	TileManager TileManager // for retrieving tiles
-	Width       int32       // initial screen width in cells
-	Height      int32       // initial screen height in cells
-	Fullscreen  bool        // use “real” fullscreen with a videomode change
+	tm         TileManager
+	width      int32
+	height     int32
+	fullscreen bool
+	tw         int32
+	th         int32
 
 	window    *sdl.Window
 	renderer  *sdl.Renderer
 	textures  map[gruid.Cell]*sdl.Texture
 	surfaces  map[gruid.Cell]*sdl.Surface
-	tw        int32
-	th        int32
 	mousepos  gruid.Position
 	mousedrag gruid.MouseAction
 	done      chan struct{}
+	init      bool
+}
+
+// Config contains configurations options for the driver.
+type Config struct {
+	TileManager TileManager // for retrieving tiles
+	Width       int32       // initial screen width in cells (default: 80)
+	Height      int32       // initial screen height in cells (default: 24)
+	Fullscreen  bool        // use “real” fullscreen with a videomode change
+}
+
+// NewDriver returns a new driver with given configuration options.
+func NewDriver(cfg Config) *Driver {
+	dr := &Driver{}
+	dr.width = cfg.Width
+	if dr.width <= 0 {
+		dr.width = 80
+	}
+	dr.height = cfg.Height
+	if dr.height <= 0 {
+		dr.height = 24
+	}
+	dr.fullscreen = cfg.Fullscreen
+	dr.SetTileManager(cfg.TileManager)
+	return dr
+}
+
+// SetTileManager allows to change the used tile manager.
+func (dr *Driver) SetTileManager(tm TileManager) {
+	dr.tm = tm
+	w, h := tm.TileSize()
+	dr.tw, dr.th = int32(w), int32(h)
+	if dr.tw <= 0 {
+		dr.tw = 1
+	}
+	if dr.th <= 0 {
+		dr.th = 1
+	}
+	if dr.init {
+		dr.ClearCache()
+		dr.window.SetSize(dr.width*dr.tw, dr.height*dr.th)
+	}
 }
 
 // Init implements gruid.Driver.Init. It initializes structures and calls
 // sdl.Init().
 func (dr *Driver) Init() error {
-	w, h := dr.TileManager.TileSize()
-	dr.tw, dr.th = int32(w), int32(h)
-	dr.textures = make(map[gruid.Cell]*sdl.Texture)
-	dr.surfaces = make(map[gruid.Cell]*sdl.Surface)
-	dr.mousedrag = -1
+	if dr.tm == nil {
+		return errors.New("no tile manager provided")
+	}
 	var err error
 	if err = sdl.Init(sdl.INIT_VIDEO); err != nil {
 		return err
 	}
 	dr.window, err = sdl.CreateWindow("gruid go-sdl2", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
-		dr.Width*dr.tw, dr.Height*dr.th, sdl.WINDOW_SHOWN)
+		dr.width*dr.tw, dr.height*dr.th, sdl.WINDOW_SHOWN)
 	if err != nil {
 		return fmt.Errorf("failed to create sdl window: %v", err)
 	}
@@ -68,11 +108,15 @@ func (dr *Driver) Init() error {
 		return fmt.Errorf("failed to create sdl renderer: %v", err)
 	}
 	dr.window.SetResizable(false)
-	if dr.Fullscreen {
+	if dr.fullscreen {
 		dr.window.SetFullscreen(sdl.WINDOW_FULLSCREEN)
 	}
 	dr.renderer.Clear()
 	sdl.StartTextInput()
+	dr.textures = make(map[gruid.Cell]*sdl.Texture)
+	dr.surfaces = make(map[gruid.Cell]*sdl.Surface)
+	dr.mousedrag = -1
+	dr.init = true
 	return nil
 }
 
@@ -222,8 +266,8 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 				if dr.mousedrag != -1 {
 					continue
 				}
-				if msg.MousePos.X < 0 || msg.MousePos.X >= int(dr.Width) ||
-					msg.MousePos.Y < 0 || msg.MousePos.Y >= int(dr.Height) {
+				if msg.MousePos.X < 0 || msg.MousePos.X >= int(dr.width) ||
+					msg.MousePos.Y < 0 || msg.MousePos.Y >= int(dr.height) {
 					continue
 				}
 				msg.Time = time.Now()
@@ -233,8 +277,8 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 				if dr.mousedrag != action {
 					continue
 				}
-				if msg.MousePos.X < 0 || msg.MousePos.X >= int(dr.Width) ||
-					msg.MousePos.Y < 0 || msg.MousePos.Y >= int(dr.Height) {
+				if msg.MousePos.X < 0 || msg.MousePos.X >= int(dr.width) ||
+					msg.MousePos.Y < 0 || msg.MousePos.Y >= int(dr.height) {
 					msg.MousePos = gruid.Position{}
 				}
 				msg.Time = time.Now()
@@ -262,8 +306,8 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			if msg.MousePos == dr.mousepos {
 				continue
 			}
-			if msg.MousePos.X < 0 || msg.MousePos.X >= int(dr.Width) ||
-				msg.MousePos.Y < 0 || msg.MousePos.Y >= int(dr.Height) {
+			if msg.MousePos.X < 0 || msg.MousePos.X >= int(dr.width) ||
+				msg.MousePos.Y < 0 || msg.MousePos.Y >= int(dr.height) {
 				continue
 			}
 			msg.Time = time.Now()
@@ -339,6 +383,11 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 
 // Flush implements gruid.Driver.Flush.
 func (dr *Driver) Flush(frame gruid.Frame) {
+	if frame.Width != int(dr.width) || frame.Height != int(dr.height) {
+		dr.width = int32(frame.Width)
+		dr.height = int32(frame.Height)
+		dr.window.SetSize(dr.width*dr.tw, dr.height*dr.th)
+	}
 	for _, cdraw := range frame.Cells {
 		cs := cdraw.Cell
 		x, y := cdraw.Pos.X, cdraw.Pos.Y
@@ -352,7 +401,7 @@ func (dr *Driver) draw(cs gruid.Cell, x, y int) {
 	if t, ok := dr.textures[cs]; ok {
 		tx = t
 	} else {
-		img := dr.TileManager.GetImage(cs)
+		img := dr.tm.GetImage(cs)
 		if img == nil {
 			log.Printf("no tile for %+v", cs)
 			return
@@ -394,6 +443,7 @@ func (dr *Driver) Close() {
 	dr.renderer.Destroy()
 	dr.window.Destroy()
 	sdl.Quit()
+	dr.init = false
 }
 
 // ClearCache clears the tile textures internal cache.

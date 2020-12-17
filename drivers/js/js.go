@@ -24,9 +24,9 @@ type TileManager interface {
 // Driver implements gruid.Driver using the syscall/js interface for
 // the browser using javascript and wasm.
 type Driver struct {
-	TileManager TileManager // for retrieving tiles
-	Width       int         // initial screen width in cells
-	Height      int         // initial screen height in celles
+	tm     TileManager // for retrieving tiles
+	width  int         // initial screen width in cells
+	height int         // initial screen height in celles
 
 	display   js.Value
 	ctx       js.Value
@@ -38,6 +38,45 @@ type Driver struct {
 	flushdone chan bool
 	mousedrag int
 	listeners listeners
+	init      bool
+}
+
+// Config contains configurations options for the driver.
+type Config struct {
+	TileManager TileManager // for retrieving tiles
+	Width       int         // initial screen width in cells (default: 80)
+	Height      int         // initial screen height in cells (default: 24)
+}
+
+// NewDriver returns a new driver with given configuration options.
+func NewDriver(cfg Config) *Driver {
+	dr := &Driver{}
+	dr.width = cfg.Width
+	if dr.width <= 0 {
+		dr.width = 80
+	}
+	dr.height = cfg.Height
+	if dr.height <= 0 {
+		dr.height = 24
+	}
+	dr.SetTileManager(cfg.TileManager)
+	return dr
+}
+
+// SetTileManager allows to change the used tile manager.
+func (dr *Driver) SetTileManager(tm TileManager) {
+	dr.tm = tm
+	w, h := tm.TileSize()
+	dr.tw, dr.th = w, h
+	if dr.tw <= 0 {
+		dr.tw = 1
+	}
+	if dr.th <= 0 {
+		dr.th = 1
+	}
+	if dr.init {
+		dr.ClearCache()
+	}
 }
 
 type listeners struct {
@@ -51,18 +90,17 @@ type listeners struct {
 
 // Init implements gruid.Driver.Init.
 func (dr *Driver) Init() error {
-	dr.mousedrag = -1
 	dr.flushdone = make(chan bool)
 	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
-
 	canvas.Call("setAttribute", "tabindex", "1")
 	dr.ctx = canvas.Call("getContext", "2d")
 	dr.ctx.Set("imageSmoothingEnabled", false)
-	dr.tw, dr.th = dr.TileManager.TileSize()
-	canvas.Set("height", dr.th*dr.Height)
-	canvas.Set("width", dr.tw*dr.Width)
+	dr.tw, dr.th = dr.tm.TileSize()
+	canvas.Set("height", dr.th*dr.height)
+	canvas.Set("width", dr.tw*dr.width)
 	dr.cache = make(map[gruid.Cell]js.Value)
-
+	dr.init = true
+	dr.mousedrag = -1
 	return nil
 }
 
@@ -256,7 +294,7 @@ func (dr *Driver) draw(cell gruid.Cell, x, y int) {
 		canvas.Set("height", dr.th)
 		ctx := canvas.Call("getContext", "2d")
 		ctx.Set("imageSmoothingEnabled", false)
-		buf := dr.TileManager.GetImage(cell).Pix // TODO: do something if image is nil?
+		buf := dr.tm.GetImage(cell).Pix // TODO: do something if image is nil?
 		ua := js.Global().Get("Uint8Array").New(js.ValueOf(len(buf)))
 		js.CopyBytesToJS(ua, buf)
 		ca := js.Global().Get("Uint8ClampedArray").New(ua)
@@ -285,6 +323,7 @@ func (dr *Driver) Close() {
 	dr.listeners.wheel.Release()
 	dr.cache = nil
 	dr.frame = gruid.Frame{}
+	dr.init = false
 }
 
 // ClearCache clears the tiles internal cache.

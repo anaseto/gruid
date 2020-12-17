@@ -13,7 +13,7 @@ import (
 func main() {
 	var gd = gruid.NewGrid(gruid.GridConfig{})
 	st := styler{}
-	var dri = &tcell.Driver{StyleManager: st}
+	var dri = tcell.NewDriver(tcell.Config{StyleManager: st})
 	m := NewModel(gd)
 	app := gruid.NewApp(gruid.AppConfig{
 		Driver: dri,

@@ -12,7 +12,7 @@ var driver gruid.Driver
 
 func init() {
 	st := styler{}
-	driver = &tcell.Driver{StyleManager: st}
+	driver = tcell.NewDriver(tcell.Config{StyleManager: st})
 }
 
 type styler struct{}

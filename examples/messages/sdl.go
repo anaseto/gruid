@@ -16,9 +16,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	driver = &sdl.Driver{
+	driver = sdl.NewDriver(sdl.Config{
 		TileManager: t,
-		Width:       80,
-		Height:      24,
-	}
+	})
 }

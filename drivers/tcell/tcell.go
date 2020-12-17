@@ -2,6 +2,7 @@ package tcell
 
 import (
 	"context"
+	"errors"
 
 	"github.com/anaseto/gruid"
 	"github.com/gdamore/tcell/v2"
@@ -18,16 +19,29 @@ type StyleManager interface {
 type Driver struct {
 	// AttributeGetter has to be provided to make use of tcell text
 	// attributes.
-	StyleManager StyleManager
-	screen       tcell.Screen
-	mousedrag    bool
-	mousePos     gruid.Position
-	closed       bool
+	sm        StyleManager
+	screen    tcell.Screen
+	mousedrag bool
+	mousePos  gruid.Position
+	closed    bool
+}
+
+// Config contains configurations options for the driver.
+type Config struct {
+	StyleManager StyleManager // for cell styling
+}
+
+// NewDriver returns a new driver with given configuration options.
+func NewDriver(cfg Config) *Driver {
+	return &Driver{sm: cfg.StyleManager}
 }
 
 // Init implements gruid.Driver.Init. It initializes a screen using the tcell
 // terminal library.
 func (t *Driver) Init() error {
+	if t.sm == nil {
+		return errors.New("no style manager provided")
+	}
 	screen, err := tcell.NewScreen()
 	t.screen = screen
 	if err != nil {
@@ -191,7 +205,7 @@ func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 				send(msg)
 			}
 		case *tcell.EventResize:
-			msg := gruid.MsgScreenSize{}
+			msg := gruid.MsgScreen{}
 			msg.Time = tev.When()
 			msg.Width, msg.Height = tev.Size()
 			send(msg)
@@ -203,7 +217,7 @@ func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 func (t *Driver) Flush(frame gruid.Frame) {
 	for _, cdraw := range frame.Cells {
 		c := cdraw.Cell
-		st := t.StyleManager.GetStyle(c.Style)
+		st := t.sm.GetStyle(c.Style)
 		t.screen.SetContent(cdraw.Pos.X, cdraw.Pos.Y, c.Rune, nil, st)
 	}
 	t.screen.Show()

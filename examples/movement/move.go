@@ -18,7 +18,7 @@ func main() {
 
 	// use tcell terminal driver
 	st := styler{}
-	dri := &tcell.Driver{StyleManager: st}
+	dri := tcell.NewDriver(tcell.Config{StyleManager: st})
 
 	// our application's state and grid with default config
 	gd := gruid.NewGrid(gruid.GridConfig{})
