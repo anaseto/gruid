@@ -141,9 +141,10 @@ type MsgMouse struct {
 	Time     time.Time   // time when the event was generated
 }
 
-// MsgScreenSize is used by some drivers to report the screen size, either
-// initially or on resize.
-type MsgScreenSize struct {
+// MsgScreen is used by some drivers to report screen or main window events.
+// Generally it is reported when the screen has been exposed and has to be
+// redrawn, for example after a resize.
+type MsgScreen struct {
 	Width  int       // width in cells
 	Height int       // height in cells
 	Time   time.Time // time when the event was generated

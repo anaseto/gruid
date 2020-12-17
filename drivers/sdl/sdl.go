@@ -33,7 +33,7 @@ type Driver struct {
 	TileManager TileManager // for retrieving tiles
 	Width       int32       // initial screen width in cells
 	Height      int32       // initial screen height in cells
-	Accelerated bool        // use software acceleration for rendering
+	Fullscreen  bool        // use “real” fullscreen with a videomode change
 
 	window    *sdl.Window
 	renderer  *sdl.Renderer
@@ -63,13 +63,13 @@ func (dr *Driver) Init() error {
 	if err != nil {
 		return fmt.Errorf("failed to create sdl window: %v", err)
 	}
-	if dr.Accelerated {
-		dr.renderer, err = sdl.CreateRenderer(dr.window, -1, sdl.RENDERER_ACCELERATED)
-	} else {
-		dr.renderer, err = sdl.CreateRenderer(dr.window, -1, sdl.RENDERER_SOFTWARE)
-	}
+	dr.renderer, err = sdl.CreateRenderer(dr.window, -1, sdl.RENDERER_ACCELERATED)
 	if err != nil {
 		return fmt.Errorf("failed to create sdl renderer: %v", err)
+	}
+	dr.window.SetResizable(false)
+	if dr.Fullscreen {
+		dr.window.SetFullscreen(sdl.WINDOW_FULLSCREEN)
 	}
 	dr.renderer.Clear()
 	sdl.StartTextInput()
@@ -296,12 +296,42 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			msg.Time = time.Now()
 			send(msg)
 		case *sdl.WindowEvent:
-			// XXX: currently does not happen, because
-			// window is not resizable. Change this? Maybe
-			// add support for fullscreen?
-			switch ev.Type {
-			case sdl.WINDOWEVENT_SIZE_CHANGED:
-				send(gruid.MsgScreenSize{Width: int(ev.Data1 / dr.tw), Height: int(ev.Data2 / dr.th), Time: time.Now()})
+			switch ev.Event {
+			case sdl.WINDOWEVENT_EXPOSED:
+				w, h := dr.window.GetSize()
+				send(gruid.MsgScreen{Width: int(w / dr.tw), Height: int(h / dr.th), Time: time.Now()})
+				//case sdl.WINDOWEVENT_SHOWN:
+				//log.Print("shown")
+				//case sdl.WINDOWEVENT_HIDDEN:
+				//log.Print("hidden")
+				//case sdl.WINDOWEVENT_MOVED:
+				//log.Print("moved")
+				//case sdl.WINDOWEVENT_RESIZED:
+				//log.Print("resized")
+				//case sdl.WINDOWEVENT_SIZE_CHANGED:
+				//log.Print("size changed")
+				//case sdl.WINDOWEVENT_MINIMIZED:
+				//log.Print("minimized")
+				//case sdl.WINDOWEVENT_MAXIMIZED:
+				//log.Print("maximized")
+				//case sdl.WINDOWEVENT_RESTORED:
+				//log.Print("restored")
+				//case sdl.WINDOWEVENT_ENTER:
+				//log.Print("enter")
+				//case sdl.WINDOWEVENT_LEAVE:
+				//log.Print("leave")
+				//case sdl.WINDOWEVENT_FOCUS_GAINED:
+				//log.Print("focus gained")
+				//case sdl.WINDOWEVENT_FOCUS_LOST:
+				//log.Print("focus lost")
+				//case sdl.WINDOWEVENT_CLOSE:
+				//log.Print("close")
+				//case sdl.WINDOWEVENT_TAKE_FOCUS:
+				//log.Print("take focus")
+				//case sdl.WINDOWEVENT_HIT_TEST:
+				//log.Print("hit test")
+				//case sdl.WINDOWEVENT_NONE:
+				//log.Print("none")
 			}
 		}
 	}

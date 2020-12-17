@@ -56,6 +56,9 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 		// by closing the window).
 		return gruid.End()
 	}
+	if _, ok := msg.(gruid.MsgScreen); ok {
+		m.grid.ClearCache()
+	}
 	if msg, ok := msg.(gruid.MsgKeyDown); ok {
 		switch msg.Key {
 		case gruid.KeyEscape, "Q", "q":
