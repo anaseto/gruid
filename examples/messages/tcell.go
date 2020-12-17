@@ -1,4 +1,4 @@
-// +build !tk,!sdl
+// +build !sdl
 
 package main
 

@@ -1,4 +1,4 @@
-// +build sdl,tk
+// +build sdl
 package main
 
 import (
