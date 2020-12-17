@@ -113,6 +113,8 @@ func (dr *Driver) Init() error {
 	}
 	dr.renderer.Clear()
 	sdl.StartTextInput()
+	rect := sdl.Rect{0, 0, 100, 100}
+	sdl.SetTextInputRect(&rect)
 	dr.textures = make(map[gruid.Cell]*sdl.Texture)
 	dr.surfaces = make(map[gruid.Cell]*sdl.Surface)
 	dr.mousedrag = -1
