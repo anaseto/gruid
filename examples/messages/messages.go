@@ -54,7 +54,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	if msg, ok := msg.(gruid.MsgKeyDown); ok {
 		switch msg.Key {
 		case gruid.KeyEscape, "Q", "q":
-			return gruid.Quit()
+			return gruid.End()
 		}
 	}
 	m.label.SetStyledText(ui.NewStyledText(fmt.Sprintf("%+v", msg)).Format(78))

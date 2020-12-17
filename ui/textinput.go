@@ -116,7 +116,7 @@ func (ti *TextInput) Update(msg gruid.Msg) gruid.Effect {
 		case gruid.KeyEscape:
 			ti.action = TextInputQuit
 			if ti.init {
-				return gruid.Quit()
+				return gruid.End()
 			}
 		default:
 			nchars := utf8.RuneCountInString(string(msg.Key))

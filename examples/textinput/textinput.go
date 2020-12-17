@@ -86,7 +86,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	}
 	switch m.input.Action() {
 	case ui.TextInputQuit:
-		return gruid.Quit()
+		return gruid.End()
 	case ui.TextInputActivate:
 		stt := ui.NewStyledText(m.input.Content()).Format(28)
 		m.label.SetStyledText(stt)

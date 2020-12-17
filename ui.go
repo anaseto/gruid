@@ -229,7 +229,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 			}
 
 			// Handle quit message
-			if _, ok := msg.(msgQuit); ok {
+			if _, ok := msg.(msgEnd); ok {
 				cancel()
 				return err
 			}
@@ -272,6 +272,44 @@ func (app *App) flush(frame Frame) {
 	}
 }
 
+// Model contains the application's state.
+type Model interface {
+	// Update is called when a message is received. Use it to update your
+	// model in response to messages and/or send commands or subscriptions.
+	// It is always called the first time with a MsgInit message.
+	Update(Msg) Effect
+
+	// Draw is called after every Update that received a MsgDraw message.
+	// Use this function to draw the UI elements in a grid to be returned.
+	// The returned grid will then automatically be sent to the driver for
+	// immediate display.
+	Draw() Grid
+}
+
+// Driver handles both user input and rendering. When creating an App and using
+// the Start main loop, you will not have to call those methods directly. You
+// may reuse the same driver for another application after the current
+// application's Start loop ends.
+type Driver interface {
+	// Init initializes the driver, so that you can then call its other
+	// methods.
+	Init() error
+
+	// Flush sends last frame grid changes to the driver.
+	Flush(Frame)
+
+	// PollMsgs is a subscription for input messages. It returns an error
+	// in case the driver input loop suffered a non recoverable error. It
+	// should handle cancelation of the passed given context and return as
+	// appropiate.
+	PollMsgs(context.Context, chan<- Msg) error
+
+	// Close may execute needed code to finalize the screen and release
+	// resources. After Close, the driver can be initialized again in order
+	// to be used in another application.
+	Close()
+}
+
 // Msg represents an action and triggers the Update function of the model. Note
 // that nil messages are discarded and do not trigger Update.
 type Msg interface{}
@@ -311,55 +349,6 @@ func (cmd Cmd) implementsEffect() {}
 // implementsEffect makes Sub satisfy Effect interface.
 func (sub Sub) implementsEffect() {}
 
-// Batch peforms a bunch of effects concurrently with no ordering guarantees
-// about the potential results.
-func Batch(effs ...Effect) Effect {
-	if len(effs) == 0 {
-		return nil
-	}
-	return Cmd(func() Msg {
-		return msgBatch(effs)
-	})
-}
-
-// Model contains the application's state.
-type Model interface {
-	// Update is called when a message is received. Use it to update your
-	// model in response to messages and/or send commands or subscriptions.
-	// It is always called the first time with a MsgInit message.
-	Update(Msg) Effect
-
-	// Draw is called after every Update that received a MsgDraw message.
-	// Use this function to draw the UI elements in a grid to be returned.
-	// The returned grid will then automatically be sent to the driver for
-	// immediate display.
-	Draw() Grid
-}
-
-// Driver handles both user input and rendering. When creating an App and using
-// the Start main loop, you will not have to call those methods directly. You
-// may reuse the same driver for another application after the current
-// application's Start loop ends.
-type Driver interface {
-	// Init initializes the driver, so that you can then call its other
-	// methods.
-	Init() error
-
-	// Flush sends last frame grid changes to the driver.
-	Flush(Frame)
-
-	// PollMsgs is a subscription for input messages. It returns an error
-	// in case the driver input loop suffered a non recoverable error. It
-	// should handle cancelation of the passed given context and return as
-	// appropiate.
-	PollMsgs(context.Context, chan<- Msg) error
-
-	// Close may execute needed code to finalize the screen and release
-	// resources. After Close, the driver can be initialized again in order
-	// to be used in another application.
-	Close()
-}
-
 // MsgDrawSubscription sends a MsgDraw message at an fps rate.
 func MsgDrawSubscription(ctx context.Context, msgs chan<- Msg, fps time.Duration) {
 	ticker := time.NewTicker(time.Second / fps)
@@ -374,4 +363,25 @@ func MsgDrawSubscription(ctx context.Context, msgs chan<- Msg, fps time.Duration
 			return
 		}
 	}
+}
+
+// End returns a special command that signals the application to end its Start
+// loop. Note that the application does not wait for pending effects to
+// complete before exiting the Start loop, so you have to wait for those
+// commands messages before using End.
+func End() Cmd {
+	return func() Msg {
+		return msgEnd{}
+	}
+}
+
+// Batch peforms a bunch of effects concurrently with no ordering guarantees
+// about the potential results.
+func Batch(effs ...Effect) Effect {
+	if len(effs) == 0 {
+		return nil
+	}
+	return Cmd(func() Msg {
+		return msgBatch(effs)
+	})
 }

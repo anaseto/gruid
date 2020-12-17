@@ -170,7 +170,7 @@ func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 		case key.In(pg.keys.Quit):
 			pg.action = PagerQuit
 			if pg.init {
-				return gruid.Quit()
+				return gruid.End()
 			}
 		}
 	case gruid.MsgMouse:

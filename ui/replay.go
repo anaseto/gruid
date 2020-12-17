@@ -154,7 +154,7 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 		}
 		rep.fidx--
 	case replayQuit:
-		return gruid.Quit()
+		return gruid.End()
 	case replayTogglePause:
 		rep.auto = !rep.auto
 	case replaySpeedMore:

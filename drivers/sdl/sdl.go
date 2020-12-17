@@ -101,8 +101,8 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			}
 		}
 		switch ev := event.(type) {
-		//case *sdl.QuitEvent:
-		//return errors.New("Quit") // TODO handle quit properly (send special message?)
+		case *sdl.QuitEvent:
+			send(gruid.MsgQuit{})
 		case *sdl.TextInputEvent:
 			s := ev.GetText()
 			if utf8.RuneCountInString(s) != 1 {

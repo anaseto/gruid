@@ -156,7 +156,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 		case msg.Key.In(m.keys.Quit):
 			m.action = MenuQuit
 			if m.init {
-				return gruid.Quit()
+				return gruid.End()
 			}
 		case msg.Key.In(m.keys.Down):
 			m.action = MenuMove
@@ -211,7 +211,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 			if !msg.MousePos.In(rg) || !m.style.Boxed && pos.Y >= len(m.entries) {
 				m.action = MenuQuit
 				if m.init {
-					return gruid.Quit()
+					return gruid.End()
 				}
 				break
 			}

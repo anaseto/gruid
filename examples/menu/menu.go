@@ -100,7 +100,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	}
 	switch m.menu.Action() {
 	case ui.MenuQuit:
-		return gruid.Quit()
+		return gruid.End()
 	case ui.MenuMove:
 		m.label.SetText(fmt.Sprintf("moved selection to entry number %d", m.menu.Selection()))
 	case ui.MenuActivate:

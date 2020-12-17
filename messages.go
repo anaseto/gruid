@@ -141,8 +141,6 @@ type MsgMouse struct {
 	Time     time.Time   // time when the event was generated
 }
 
-type msgQuit struct{}
-
 // MsgScreenSize is used by some drivers to report the screen size, either
 // initially or on resize.
 type MsgScreenSize struct {
@@ -159,15 +157,13 @@ type MsgInit struct{}
 // regularly reported at the FPS rate.
 type MsgDraw time.Time
 
-// Quit returns a special command that signals the application to exit. Note
-// that the application does not wait for pending effects to complete before
-// exiting the Start loop, so you have to wait for those command messages
-// before using Quit.
-func Quit() Cmd {
-	return func() Msg {
-		return msgQuit{}
-	}
-}
+// MsgQuit may be reported by some drivers to request termination of the
+// application, such as when the main window is closed.
+type MsgQuit struct{}
+
+// msgEnd is an internal message used to end the application's Start loop. It
+// is manually produced by the End() command.
+type msgEnd struct{}
 
 // msgBatch is an internal message used to perform a bunch of effects. You can
 // send a msgBatch with Batch.
