@@ -5,4 +5,4 @@ add animation utilities package ? synchronize with renderer?
 add game events queue package ?
 add map generation utilities package ?
 ----- Partial
-send MsgScreenSize at start and on resize (when sensible) [done for tcell]
+send MsgScreen at start and on resize (when sensible) [done for tcell, sdl]
