@@ -102,7 +102,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 		}
 		switch ev := event.(type) {
 		case *sdl.QuitEvent:
-			send(gruid.MsgQuit{})
+			send(gruid.MsgQuit(time.Now()))
 		case *sdl.TextInputEvent:
 			s := ev.GetText()
 			if utf8.RuneCountInString(s) != 1 {

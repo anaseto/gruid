@@ -51,6 +51,11 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	if _, ok := msg.(gruid.MsgDraw); ok {
 		return nil
 	}
+	if _, ok := msg.(gruid.MsgQuit); ok {
+		// The user requested the end of the application (for example
+		// by closing the window).
+		return gruid.End()
+	}
 	if msg, ok := msg.(gruid.MsgKeyDown); ok {
 		switch msg.Key {
 		case gruid.KeyEscape, "Q", "q":

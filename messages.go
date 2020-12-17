@@ -158,8 +158,9 @@ type MsgInit struct{}
 type MsgDraw time.Time
 
 // MsgQuit may be reported by some drivers to request termination of the
-// application, such as when the main window is closed.
-type MsgQuit struct{}
+// application, such as when the main window is closed. It reports the time at
+// which the driver's request was received.
+type MsgQuit time.Time
 
 // msgEnd is an internal message used to end the application's Start loop. It
 // is manually produced by the End() command.
