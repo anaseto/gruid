@@ -33,6 +33,7 @@ type Driver struct {
 	TileManager TileManager // for retrieving tiles
 	Width       int32       // initial screen width in cells
 	Height      int32       // initial screen height in cells
+	Accelerated bool        // use software acceleration for rendering
 
 	window    *sdl.Window
 	renderer  *sdl.Renderer
@@ -62,7 +63,11 @@ func (dr *Driver) Init() error {
 	if err != nil {
 		return fmt.Errorf("failed to create sdl window: %v", err)
 	}
-	dr.renderer, err = sdl.CreateRenderer(dr.window, -1, sdl.RENDERER_ACCELERATED)
+	if dr.Accelerated {
+		dr.renderer, err = sdl.CreateRenderer(dr.window, -1, sdl.RENDERER_ACCELERATED)
+	} else {
+		dr.renderer, err = sdl.CreateRenderer(dr.window, -1, sdl.RENDERER_SOFTWARE)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to create sdl renderer: %v", err)
 	}
