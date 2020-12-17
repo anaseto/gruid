@@ -26,6 +26,14 @@ func (s Schedule) Cancel() {
 	s.sfs = nil
 }
 
+// Finish completes the scheduled actions early.
+func (s Schedule) Finish() {
+	for _, sf := range s.sfs {
+		sf.fn()
+	}
+	s.sfs = nil
+}
+
 // After adds a planned action given by a function. Its due date is computed as
 // an additional delay after the last previously scheduled function due date,
 // if any, or after time.Now() otherwise.
