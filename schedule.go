@@ -26,12 +26,14 @@ func (s Schedule) Cancel() {
 	s.sfs = nil
 }
 
-// Finish completes the scheduled actions early.
-func (s Schedule) Finish() {
+// Finish completes the scheduled actions early. It returns the number of actions that were performed.
+func (s Schedule) Finish() int {
+	count := len(s.sfs)
 	for _, sf := range s.sfs {
 		sf.fn()
 	}
 	s.sfs = nil
+	return count
 }
 
 // After adds a planned action given by a function. Its due date is computed as
