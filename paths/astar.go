@@ -48,22 +48,22 @@ type Astar interface {
 
 // AstarPath return a path from a position to another, including thoses
 // positions. It returns nil if no path was found.
-func (pf *PathRange) AstarPath(ast Astar, from, to gruid.Position) []gruid.Position {
-	if !from.In(pf.rg) || !to.In(pf.rg) {
+func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Position) []gruid.Position {
+	if !from.In(pr.rg) || !to.In(pr.rg) {
 		return nil
 	}
-	if pf.astarNodes == nil {
-		pf.astarNodes = &nodeMap{}
-		w, h := pf.rg.Size()
-		pf.astarNodes.Nodes = make([]node, w*h)
-		pf.astarQueue = make(priorityQueue, 0, w*h)
+	if pr.astarNodes == nil {
+		pr.astarNodes = &nodeMap{}
+		w, h := pr.rg.Size()
+		pr.astarNodes.Nodes = make([]node, w*h)
+		pr.astarQueue = make(priorityQueue, 0, w*h)
 	}
-	nm := pf.astarNodes
+	nm := pr.astarNodes
 	nm.Index++
-	nqs := pf.astarQueue[:0]
+	nqs := pr.astarQueue[:0]
 	nq := &nqs
 	heap.Init(nq)
-	fromNode := nm.get(pf, from)
+	fromNode := nm.get(pr, from)
 	fromNode.Open = true
 	num := 0
 	fromNode.Num = num
@@ -86,17 +86,17 @@ func (pf *PathRange) AstarPath(ast Astar, from, to gruid.Position) []gruid.Posit
 				if curr.Parent == nil {
 					break
 				}
-				curr, _ = nm.at(pf, *curr.Parent)
+				curr, _ = nm.at(pr, *curr.Parent)
 			}
 			return p
 		}
 
 		for _, neighbor := range ast.Neighbors(current.Pos) {
-			if !neighbor.In(pf.rg) {
+			if !neighbor.In(pr.rg) {
 				continue
 			}
 			cost := current.Cost + ast.Cost(current.Pos, neighbor)
-			neighborNode := nm.get(pf, neighbor)
+			neighborNode := nm.get(pr, neighbor)
 			if cost < neighborNode.Cost {
 				if neighborNode.Open {
 					heap.Remove(nq, neighborNode.Index)

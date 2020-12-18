@@ -27,40 +27,40 @@ type PathRange struct {
 // NewPathRange returns a new PathFinder for positions in a given range,
 // such as the range occupied by the whole map, or a part of it.
 func NewPathRange(rg gruid.Range) *PathRange {
-	pf := &PathRange{}
-	pf.rg = rg
-	return pf
+	pr := &PathRange{}
+	pr.rg = rg
+	return pr
 }
 
 // SetRange updates the range used by the PathFinder. If the size is the same,
 // cached structures will be preserved, otherwise they will be reinitialized.
-func (pf *PathRange) SetRange(rg gruid.Range) {
-	org := pf.rg
-	pf.rg = rg
+func (pr *PathRange) SetRange(rg gruid.Range) {
+	org := pr.rg
+	pr.rg = rg
 	w, h := rg.Size()
 	ow, oh := org.Size()
 	if w == ow && h == oh {
 		return
 	}
-	*pf = PathRange{rg: rg}
+	*pr = PathRange{rg: rg}
 }
 
-func (pf *PathRange) idx(pos gruid.Position) int {
-	pos = pos.Relative(pf.rg)
-	w, _ := pf.rg.Size()
+func (pr *PathRange) idx(pos gruid.Position) int {
+	pos = pos.Relative(pr.rg)
+	w, _ := pr.rg.Size()
 	return pos.Y*w + pos.X
 }
 
-func (nm nodeMap) get(pf *PathRange, pos gruid.Position) *node {
-	n := &nm.Nodes[pf.idx(pos)]
+func (nm nodeMap) get(pr *PathRange, pos gruid.Position) *node {
+	n := &nm.Nodes[pr.idx(pos)]
 	if n.CacheIndex != nm.Index {
-		nm.Nodes[pf.idx(pos)] = node{Pos: pos, CacheIndex: nm.Index}
+		nm.Nodes[pr.idx(pos)] = node{Pos: pos, CacheIndex: nm.Index}
 	}
 	return n
 }
 
-func (nm nodeMap) at(pf *PathRange, pos gruid.Position) (*node, bool) {
-	n := &nm.Nodes[pf.idx(pos)]
+func (nm nodeMap) at(pr *PathRange, pos gruid.Position) (*node, bool) {
+	n := &nm.Nodes[pr.idx(pos)]
 	if n.CacheIndex != nm.Index {
 		return nil, false
 	}

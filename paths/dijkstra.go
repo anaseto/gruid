@@ -21,26 +21,26 @@ type Dijkstra interface {
 // DijkstraMap computes a dijkstra map given a list of source positions and a
 // maximal cost from those sources. The resulting map can then be iterated with
 // Iter.
-func (pf *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Position, maxCost int) {
-	if pf.dijkstraNodes == nil {
-		pf.dijkstraNodes = &nodeMap{}
-		w, h := pf.rg.Size()
-		pf.dijkstraNodes.Nodes = make([]node, w*h)
-		pf.dijkstraQueue = make(priorityQueue, 0, w*h)
-		pf.iterNodeCache = []Node{}
+func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Position, maxCost int) {
+	if pr.dijkstraNodes == nil {
+		pr.dijkstraNodes = &nodeMap{}
+		w, h := pr.rg.Size()
+		pr.dijkstraNodes.Nodes = make([]node, w*h)
+		pr.dijkstraQueue = make(priorityQueue, 0, w*h)
+		pr.iterNodeCache = []Node{}
 	}
-	pf.iterNodeCache = pf.iterNodeCache[:0]
-	nm := pf.dijkstraNodes
-	pf.dijkstra = dij
+	pr.iterNodeCache = pr.iterNodeCache[:0]
+	nm := pr.dijkstraNodes
+	pr.dijkstra = dij
 	nm.Index++
-	nqs := pf.dijkstraQueue[:0]
+	nqs := pr.dijkstraQueue[:0]
 	nq := &nqs
 	heap.Init(nq)
 	for _, f := range sources {
-		if !f.In(pf.rg) {
+		if !f.In(pr.rg) {
 			continue
 		}
-		n := nm.get(pf, f)
+		n := nm.get(pr, f)
 		n.Open = true
 		heap.Push(nq, n)
 	}
@@ -51,14 +51,14 @@ func (pf *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Position, maxCost
 		current := heap.Pop(nq).(*node)
 		current.Open = false
 		current.Closed = true
-		pf.iterNodeCache = append(pf.iterNodeCache, Node{Pos: current.Pos, Cost: current.Cost})
+		pr.iterNodeCache = append(pr.iterNodeCache, Node{Pos: current.Pos, Cost: current.Cost})
 
 		for _, neighbor := range dij.Neighbors(current.Pos) {
-			if !neighbor.In(pf.rg) {
+			if !neighbor.In(pr.rg) {
 				continue
 			}
 			cost := current.Cost + dij.Cost(current.Pos, neighbor)
-			neighborNode := nm.get(pf, neighbor)
+			neighborNode := nm.get(pr, neighbor)
 			if cost < neighborNode.Cost {
 				if neighborNode.Open {
 					heap.Remove(nq, neighborNode.Index)
@@ -94,8 +94,8 @@ func idxToPos(i, w int) gruid.Position {
 // in cost increasing order.  Note that you should not call the MapIter or
 // DijkstraMap methods on the same PathFinder within the iteration function, as
 // that could invalidate the iteration state.
-func (pf *PathRange) MapIter(f func(Node)) {
-	for _, n := range pf.iterNodeCache {
+func (pr *PathRange) MapIter(f func(Node)) {
+	for _, n := range pr.iterNodeCache {
 		f(n)
 	}
 }
