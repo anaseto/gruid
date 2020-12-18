@@ -139,7 +139,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 		case gruid.MouseMain:
 			if m.autoMove() {
 				m.stopAuto()
-				m.pathAt(msg.MousePos)
+				m.pathAt(msg.Pos)
 				break
 			}
 			if len(m.path) > 1 {
@@ -149,7 +149,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 			if m.autoMove() {
 				break
 			}
-			m.pathAt(msg.MousePos)
+			m.pathAt(msg.Pos)
 		}
 	case msgAutoMove:
 		if m.move.diff != msg.diff {

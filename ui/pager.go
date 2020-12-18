@@ -174,7 +174,7 @@ func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 			}
 		}
 	case gruid.MsgMouse:
-		if !msg.MousePos.In(pg.grid.Range()) {
+		if !msg.Pos.In(pg.grid.Range()) {
 			switch msg.Action {
 			case gruid.MouseMain:
 				pg.action = PagerQuit

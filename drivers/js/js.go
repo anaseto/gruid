@@ -220,7 +220,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 		switch n {
 		case 0, 1, 2:
 			dr.mousedrag = n
-			send(gruid.MsgMouse{MousePos: pos, Action: gruid.MouseAction(n), Time: time.Now()})
+			send(gruid.MsgMouse{Pos: pos, Action: gruid.MouseAction(n), Time: time.Now()})
 		}
 		return nil
 	})
@@ -233,7 +233,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			return nil
 		}
 		dr.mousedrag = -1
-		send(gruid.MsgMouse{MousePos: pos, Action: gruid.MouseAction(n), Time: time.Now()})
+		send(gruid.MsgMouse{Pos: pos, Action: gruid.MouseAction(n), Time: time.Now()})
 		return nil
 	})
 	canvas.Call("addEventListener", "mouseup", dr.listeners.mouseup)
@@ -243,7 +243,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 		if pos.X != dr.mousepos.X || pos.Y != dr.mousepos.Y {
 			dr.mousepos.X = pos.X
 			dr.mousepos.Y = pos.Y
-			send(gruid.MsgMouse{Action: gruid.MouseMove, MousePos: pos, Time: time.Now()})
+			send(gruid.MsgMouse{Action: gruid.MouseMove, Pos: pos, Time: time.Now()})
 		}
 		return nil
 	})
@@ -260,7 +260,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 		} else {
 			return nil
 		}
-		send(gruid.MsgMouse{Action: action, MousePos: pos, Time: time.Now()})
+		send(gruid.MsgMouse{Action: action, Pos: pos, Time: time.Now()})
 		return nil
 	})
 	canvas.Call("addEventListener", "onwheel", dr.listeners.wheel)

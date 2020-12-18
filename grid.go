@@ -204,7 +204,7 @@ func (rg Range) Origin() Range {
 // positions relative to the range.
 func (rg Range) Relative(msg Msg) Msg {
 	if msg, ok := msg.(MsgMouse); ok {
-		msg.MousePos = msg.MousePos.Relative(rg)
+		msg.Pos = msg.Pos.Relative(rg)
 		return msg
 	}
 	return msg

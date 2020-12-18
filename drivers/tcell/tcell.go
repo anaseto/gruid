@@ -146,7 +146,7 @@ func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			case tcell.Button1:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
-				msg.MousePos = gruid.Position{X: x, Y: y}
+				msg.Pos = gruid.Position{X: x, Y: y}
 				if t.mousedrag {
 					msg.Action = gruid.MouseMove
 				} else {
@@ -157,7 +157,7 @@ func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			case tcell.Button3:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
-				msg.MousePos = gruid.Position{X: x, Y: y}
+				msg.Pos = gruid.Position{X: x, Y: y}
 				if t.mousedrag {
 					msg.Action = gruid.MouseMove
 				} else {
@@ -168,7 +168,7 @@ func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			case tcell.Button2:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
-				msg.MousePos = gruid.Position{X: x, Y: y}
+				msg.Pos = gruid.Position{X: x, Y: y}
 				if t.mousedrag {
 					msg.Action = gruid.MouseMove
 				} else {
@@ -179,28 +179,28 @@ func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			case tcell.WheelUp:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
-				msg.MousePos = gruid.Position{X: x, Y: y}
+				msg.Pos = gruid.Position{X: x, Y: y}
 				msg.Action = gruid.MouseWheelUp
 				send(msg)
 			case tcell.WheelDown:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
-				msg.MousePos = gruid.Position{X: x, Y: y}
+				msg.Pos = gruid.Position{X: x, Y: y}
 				msg.Action = gruid.MouseWheelDown
 				send(msg)
 			case tcell.ButtonNone:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
-				msg.MousePos = gruid.Position{X: x, Y: y}
+				msg.Pos = gruid.Position{X: x, Y: y}
 				if t.mousedrag {
 					t.mousedrag = false
 					msg.Action = gruid.MouseRelease
 				} else {
-					if t.mousePos == msg.MousePos {
+					if t.mousePos == msg.Pos {
 						continue
 					}
 					msg.Action = gruid.MouseMove
-					t.mousePos = msg.MousePos
+					t.mousePos = msg.Pos
 				}
 				send(msg)
 			}

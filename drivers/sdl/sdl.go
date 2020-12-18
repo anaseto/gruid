@@ -274,14 +274,14 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 				continue
 			}
 			msg := gruid.MsgMouse{}
-			msg.MousePos = gruid.Position{X: int((ev.X - 1) / dr.tw), Y: int((ev.Y - 1) / dr.th)}
+			msg.Pos = gruid.Position{X: int((ev.X - 1) / dr.tw), Y: int((ev.Y - 1) / dr.th)}
 			switch ev.Type {
 			case sdl.MOUSEBUTTONDOWN:
 				if dr.mousedrag != -1 {
 					continue
 				}
-				if msg.MousePos.X < 0 || msg.MousePos.X >= int(dr.width) ||
-					msg.MousePos.Y < 0 || msg.MousePos.Y >= int(dr.height) {
+				if msg.Pos.X < 0 || msg.Pos.X >= int(dr.width) ||
+					msg.Pos.Y < 0 || msg.Pos.Y >= int(dr.height) {
 					continue
 				}
 				msg.Time = time.Now()
@@ -291,9 +291,9 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 				if dr.mousedrag != action {
 					continue
 				}
-				if msg.MousePos.X < 0 || msg.MousePos.X >= int(dr.width) ||
-					msg.MousePos.Y < 0 || msg.MousePos.Y >= int(dr.height) {
-					msg.MousePos = gruid.Position{}
+				if msg.Pos.X < 0 || msg.Pos.X >= int(dr.width) ||
+					msg.Pos.Y < 0 || msg.Pos.Y >= int(dr.height) {
+					msg.Pos = gruid.Position{}
 				}
 				msg.Time = time.Now()
 				msg.Action = gruid.MouseRelease
@@ -312,21 +312,21 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			if sdl.KMOD_RGUI&mod != 0 {
 				msg.Mod |= gruid.ModMeta
 			}
-			dr.mousepos = msg.MousePos
+			dr.mousepos = msg.Pos
 			send(msg)
 		case *sdl.MouseMotionEvent:
 			msg := gruid.MsgMouse{}
-			msg.MousePos = gruid.Position{X: int((ev.X - 1) / dr.tw), Y: int((ev.Y - 1) / dr.th)}
-			if msg.MousePos == dr.mousepos {
+			msg.Pos = gruid.Position{X: int((ev.X - 1) / dr.tw), Y: int((ev.Y - 1) / dr.th)}
+			if msg.Pos == dr.mousepos {
 				continue
 			}
-			if msg.MousePos.X < 0 || msg.MousePos.X >= int(dr.width) ||
-				msg.MousePos.Y < 0 || msg.MousePos.Y >= int(dr.height) {
+			if msg.Pos.X < 0 || msg.Pos.X >= int(dr.width) ||
+				msg.Pos.Y < 0 || msg.Pos.Y >= int(dr.height) {
 				continue
 			}
 			msg.Time = time.Now()
 			msg.Action = gruid.MouseMove
-			dr.mousepos = msg.MousePos
+			dr.mousepos = msg.Pos
 			mod := sdl.GetModState()
 			if sdl.KMOD_LALT&mod != 0 {
 				msg.Mod |= gruid.ModAlt
@@ -350,7 +350,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			} else {
 				continue
 			}
-			msg.MousePos = dr.mousepos
+			msg.Pos = dr.mousepos
 			msg.Time = time.Now()
 			send(msg)
 		case *sdl.WindowEvent:
