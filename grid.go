@@ -481,12 +481,7 @@ func (gd Grid) cprev(src Grid) (int, int) {
 	return wmin, hmin
 }
 
-// computeFrame computes next frame changes and returns them.
-//
-// This function is automatically called after each Draw of the Model. You
-// should normally not call it by hand when implementing an application using a
-// Model. It is provided just in case you want to use a grid without an
-// application and a model.
+// computeFrame computes next frame minimal changes and returns them.
 func (app App) computeFrame(gd Grid) Frame {
 	ug := gd.ug
 	if len(app.cellbuf) < len(ug.cells) {
@@ -509,10 +504,7 @@ func (app App) computeFrame(gd Grid) Frame {
 }
 
 // clearCache clears internal cache buffers, forcing a complete redraw of the
-// screen with the next Draw call, even for cells that did not change.  This
-// can be used in the case the physical display and the internal model are not
-// in sync: for example after a resize, or after a change of the GetImage
-// function of the driver (on the fly change of the tileset).
+// screen with the next Draw call, even for cells that did not change.
 func (app App) clearCellCache() {
 	for i := range app.cellbuf {
 		app.cellbuf[i] = Cell{}
