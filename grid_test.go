@@ -159,3 +159,203 @@ func TestGridSlice(t *testing.T) {
 		}
 	}
 }
+
+func TestCopy(t *testing.T) {
+	gd := NewGrid(80, 30)
+	w, h := gd.Size()
+	gd.Fill(Cell{Rune: '.'})
+	gd2 := NewGrid(10, 10)
+	gd2.Fill(Cell{Rune: '+'})
+	gd.Copy(gd2)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			pos := Position{x, y}
+			c := gd.GetCell(pos)
+			if pos.In(gd2.Range().Origin()) {
+				if c.Rune != '+' {
+					t.Errorf("bad copy at cell: %c at %+v", c.Rune, pos)
+				}
+			} else if c.Rune != '.' {
+				t.Errorf("bad grid non-slice cell: %c at %+v", c.Rune, pos)
+			}
+		}
+	}
+	gd.Fill(Cell{Rune: '.'})
+	rg := gd.Range()
+	slice := gd.Slice(rg.Lines(1, 3))
+	slice2 := gd.Slice(rg.Line(2))
+	slice3 := gd.Slice(rg.Lines(2, 4))
+	slice.Fill(Cell{Rune: '1'})  // line 1
+	slice3.Fill(Cell{Rune: '3'}) // line 3
+	slice2.Fill(Cell{Rune: '2'}) // line 2
+	slice.Copy(slice3)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			pos := Position{x, y}
+			c := gd.GetCell(pos)
+			switch {
+			case pos.In(rg.Line(1)):
+				if c.Rune != '2' {
+					t.Errorf("bad line 1: %c at %+v", c.Rune, pos)
+				}
+			case pos.In(rg.Line(2)):
+				if c.Rune != '3' {
+					t.Errorf("bad line 2: %c at %+v", c.Rune, pos)
+				}
+			case pos.In(rg.Line(3)):
+				if c.Rune != '3' {
+					t.Errorf("bad line 3: %c at %+v", c.Rune, pos)
+				}
+			default:
+				if c.Rune != '.' {
+					t.Errorf("bad line 3: %c at %+v", c.Rune, pos)
+				}
+			}
+		}
+	}
+	gd.Fill(Cell{Rune: '.'})
+	slice.Fill(Cell{Rune: '1'})  // line 1
+	slice3.Fill(Cell{Rune: '3'}) // line 3
+	slice2.Fill(Cell{Rune: '2'}) // line 2
+	slice.Copy(slice2)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			pos := Position{x, y}
+			c := gd.GetCell(pos)
+			switch {
+			case pos.In(rg.Line(1)):
+				if c.Rune != '2' {
+					t.Errorf("bad line 1: %c at %+v", c.Rune, pos)
+				}
+			case pos.In(rg.Line(2)):
+				if c.Rune != '2' {
+					t.Errorf("bad line 2: %c at %+v", c.Rune, pos)
+				}
+			case pos.In(rg.Line(3)):
+				if c.Rune != '3' {
+					t.Errorf("bad line 3: %c at %+v", c.Rune, pos)
+				}
+			default:
+				if c.Rune != '.' {
+					t.Errorf("bad line 3: %c at %+v", c.Rune, pos)
+				}
+			}
+		}
+	}
+	gd.Fill(Cell{Rune: '.'})
+	slice.Fill(Cell{Rune: '1'})  // line 1
+	slice3.Fill(Cell{Rune: '3'}) // line 3
+	slice2.Fill(Cell{Rune: '2'}) // line 2
+	slice3.Copy(slice2)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			pos := Position{x, y}
+			c := gd.GetCell(pos)
+			switch {
+			case pos.In(rg.Line(1)):
+				if c.Rune != '1' {
+					t.Errorf("bad line 1: %c at %+v", c.Rune, pos)
+				}
+			case pos.In(rg.Line(2)):
+				if c.Rune != '2' {
+					t.Errorf("bad line 2: %c at %+v", c.Rune, pos)
+				}
+			case pos.In(rg.Line(3)):
+				if c.Rune != '3' {
+					t.Errorf("bad line 3: %c at %+v", c.Rune, pos)
+				}
+			default:
+				if c.Rune != '.' {
+					t.Errorf("bad line 3: %c at %+v", c.Rune, pos)
+				}
+			}
+		}
+	}
+	gd.Fill(Cell{Rune: '.'})
+	slice.Fill(Cell{Rune: '1'})  // line 1
+	slice3.Fill(Cell{Rune: '3'}) // line 3
+	slice2.Fill(Cell{Rune: '2'}) // line 2
+	slice2.Copy(slice)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			pos := Position{x, y}
+			c := gd.GetCell(pos)
+			switch {
+			case pos.In(rg.Line(1)):
+				if c.Rune != '1' {
+					t.Errorf("bad line 1: %c at %+v", c.Rune, pos)
+				}
+			case pos.In(rg.Line(2)):
+				if c.Rune != '1' {
+					t.Errorf("bad line 2: %c at %+v", c.Rune, pos)
+				}
+			case pos.In(rg.Line(3)):
+				if c.Rune != '3' {
+					t.Errorf("bad line 3: %c at %+v", c.Rune, pos)
+				}
+			default:
+				if c.Rune != '.' {
+					t.Errorf("bad line 3: %c at %+v", c.Rune, pos)
+				}
+			}
+		}
+	}
+	gd.Fill(Cell{Rune: '.'})
+	slice.Fill(Cell{Rune: '1'})  // line 1
+	slice3.Fill(Cell{Rune: '3'}) // line 3
+	slice2.Fill(Cell{Rune: '2'}) // line 2
+	slice2.Copy(slice3)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			pos := Position{x, y}
+			c := gd.GetCell(pos)
+			switch {
+			case pos.In(rg.Line(1)):
+				if c.Rune != '1' {
+					t.Errorf("bad line 1: %c at %+v", c.Rune, pos)
+				}
+			case pos.In(rg.Line(2)):
+				if c.Rune != '2' {
+					t.Errorf("bad line 2: %c at %+v", c.Rune, pos)
+				}
+			case pos.In(rg.Line(3)):
+				if c.Rune != '3' {
+					t.Errorf("bad line 3: %c at %+v", c.Rune, pos)
+				}
+			default:
+				if c.Rune != '.' {
+					t.Errorf("bad line 3: %c at %+v", c.Rune, pos)
+				}
+			}
+		}
+	}
+	gd.Fill(Cell{Rune: '.'})
+	slice.Fill(Cell{Rune: '1'})  // line 1
+	slice3.Fill(Cell{Rune: '3'}) // line 3
+	slice2.Fill(Cell{Rune: '2'}) // line 2
+	slice3.Copy(slice)
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			pos := Position{x, y}
+			c := gd.GetCell(pos)
+			switch {
+			case pos.In(rg.Line(1)):
+				if c.Rune != '1' {
+					t.Errorf("bad line 1: %c at %+v", c.Rune, pos)
+				}
+			case pos.In(rg.Line(2)):
+				if c.Rune != '1' {
+					t.Errorf("bad line 2: %c at %+v", c.Rune, pos)
+				}
+			case pos.In(rg.Line(3)):
+				if c.Rune != '2' {
+					t.Errorf("bad line 3: %c at %+v", c.Rune, pos)
+				}
+			default:
+				if c.Rune != '.' {
+					t.Errorf("bad line 3: %c at %+v", c.Rune, pos)
+				}
+			}
+		}
+	}
+}

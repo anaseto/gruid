@@ -250,7 +250,7 @@ func (rg Range) Union(r Range) Range {
 
 // Overlaps reports whether the two ranges have a non-zero intersection.
 func (rg Range) Overlaps(r Range) bool {
-	return rg.Intersect(r).Empty()
+	return !rg.Intersect(r).Empty()
 }
 
 // In reports whether range rg is completely contained in range r.
@@ -298,7 +298,8 @@ type FrameCell struct {
 	Pos  Position
 }
 
-// NewGrid returns a new grid with given width and height in cells.
+// NewGrid returns a new grid with given width and height in cells. The width
+// and height should be positive or null.
 func NewGrid(w, h int) Grid {
 	gd := Grid{}
 	gd.ug = &grid{}
