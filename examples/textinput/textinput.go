@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	var gd = gruid.NewGrid(gruid.GridConfig{})
+	var gd = gruid.NewGrid(80, 24)
 	st := styler{}
 	var dri = tcell.NewDriver(tcell.Config{StyleManager: st})
 	m := NewModel(gd)
@@ -62,14 +62,14 @@ func NewModel(gd gruid.Grid) *model {
 		Prompt: st.WithFg(ColorPrompt),
 	}
 	input := ui.NewTextInput(ui.TextInputConfig{
-		Grid:   m.grid.Slice(gruid.NewRange(0, 0, 20, 3)),
+		Grid:   gruid.NewGrid(20, 3),
 		Title:  "Text Input",
 		Prompt: "> ",
 		Style:  style,
 	})
 	m.input = input
 	label := ui.NewLabel(ui.LabelConfig{
-		Grid:       m.grid.Slice(gruid.NewRange(0, 4, 30, 20)),
+		Grid:       gruid.NewGrid(30, 10),
 		Title:      "Last Entered Text",
 		StyledText: ui.NewStyledText("Nothing entered yet!"),
 		Style:      ui.LabelStyle{Title: st.WithFg(ColorTitle), AdjustWidth: true},
@@ -96,7 +96,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 
 func (m *model) Draw() gruid.Grid {
 	m.grid.Fill(gruid.Cell{Rune: ' '})
-	m.input.Draw()
-	m.label.Draw()
+	m.grid.Copy(m.input.Draw())
+	m.grid.Slice(m.grid.Range().Shift(0, 6, 0, 0)).Copy(m.label.Draw())
 	return m.grid
 }

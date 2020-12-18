@@ -1,6 +1,7 @@
 package gruid
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -66,14 +67,6 @@ func (st Style) WithAttrs(cl Color) Style {
 	return st
 }
 
-// Grid represents the grid that is used to draw a model logical contents that
-// are then sent to the driver. It is a slice type, so it represents a
-// rectangular range within the whole grid of the application.
-type Grid struct {
-	ug *grid // underlying whole grid
-	rg Range // range within the whole grid
-}
-
 // Position represents an (X,Y) position in a grid.
 type Position struct {
 	X int
@@ -100,9 +93,10 @@ func (pos Position) In(rg Range) bool {
 	return pos.X >= rg.Min.X && pos.Y >= rg.Min.Y && pos.X < rg.Max.X && pos.Y < rg.Max.Y
 }
 
-// Relative changes an absolute position into tho position relative a given
+// Relative changes an absolute position into a position relative to a given
 // range. You may use it for example when dealing with mouse coordinates from a
-// MsgMouse message.
+// MsgMouse message. See also the method of the same name for the Range type,
+// which may serve a similar purpose.
 func (pos Position) Relative(rg Range) Position {
 	return Position{X: pos.X - rg.Min.X, Y: pos.Y - rg.Min.Y}
 }
@@ -150,7 +144,8 @@ func (rg Range) Shift(x0, y0, x1, y1 int) Range {
 	return rg
 }
 
-// Line reduces the range to line y, or an empty range if out of bounds.
+// Line reduces the range to relative line y, or an empty range if out of
+// bounds.
 func (rg Range) Line(y int) Range {
 	if rg.Min.Shift(0, y).In(rg) {
 		rg.Min.Y = rg.Min.Y + y
@@ -161,7 +156,17 @@ func (rg Range) Line(y int) Range {
 	return rg
 }
 
-// Column reduces the range to column x, or an empty range if out of bounds.
+// Lines reduces the range to relative lines between y0 (included) and y1
+// (excluded), or an empty range if out of bounds.
+func (rg Range) Lines(y0, y1 int) Range {
+	nrg := rg
+	nrg.Min.Y = rg.Min.Y + y0
+	nrg.Max.Y = rg.Min.Y + y1
+	return rg.Intersect(nrg)
+}
+
+// Column reduces the range to relative column x, or an empty range if out of
+// bounds.
 func (rg Range) Column(x int) Range {
 	if rg.Min.Shift(x, 0).In(rg) {
 		rg.Min.X = rg.Min.X + x
@@ -172,17 +177,85 @@ func (rg Range) Column(x int) Range {
 	return rg
 }
 
+// Columns reduces the range to relative columns between x0 (included) and x1
+// (excluded), or an empty range if out of bounds.
+func (rg Range) Columns(x0, x1 int) Range {
+	nrg := rg
+	nrg.Min.X = rg.Min.X + x0
+	nrg.Max.X = rg.Min.X + x1
+	return rg.Intersect(nrg)
+}
+
 // Empty reports whether the range contains no positions.
 func (rg Range) Empty() bool {
 	return rg.Min.X >= rg.Max.X || rg.Min.Y >= rg.Max.Y
 }
 
-// Relative returns a range of same size with Min = (0, 0). It may be useful to
+// Origin returns a range of same size with Min = (0, 0). It may be useful to
 // define grid slices as a Shift of a relative original range.
-func (rg Range) Relative() Range {
+func (rg Range) Origin() Range {
 	rg.Max = rg.Max.Sub(rg.Min)
 	rg.Min = Position{}
 	return rg
+}
+
+// Relative returns a range-relative version of messages defined by the gruid
+// package. Currently, it only affects mouse messages, which are given
+// positions relative to the range.
+func (rg Range) Relative(msg Msg) Msg {
+	if msg, ok := msg.(MsgMouse); ok {
+		msg.MousePos = msg.MousePos.Relative(rg)
+		return msg
+	}
+	return msg
+}
+
+// Intersect returns the largest range contained both by rg and r. If the two
+// ranges dot not overlap, the zero range will be returned.
+func (rg Range) Intersect(r Range) Range {
+	if rg.Max.X > r.Max.X {
+		rg.Max.X = r.Max.X
+	}
+	if rg.Max.Y > r.Max.Y {
+		rg.Max.Y = r.Max.Y
+	}
+	if rg.Min.X < r.Min.X {
+		rg.Min.X = r.Min.X
+	}
+	if rg.Min.Y < r.Min.Y {
+		rg.Min.Y = r.Min.Y
+	}
+	if rg.Empty() {
+		return Range{}
+	}
+	return rg
+}
+
+// Union returns the smallest range containing both rg and r.
+func (rg Range) Union(r Range) Range {
+	if rg.Max.X < r.Max.X {
+		rg.Max.X = r.Max.X
+	}
+	if rg.Max.Y < r.Max.Y {
+		rg.Max.Y = r.Max.Y
+	}
+	if rg.Min.X > r.Min.X {
+		rg.Min.X = r.Min.X
+	}
+	if rg.Min.Y > r.Min.Y {
+		rg.Min.Y = r.Min.Y
+	}
+	return rg
+}
+
+// Overlaps reports whether the two ranges have a non-zero intersection.
+func (rg Range) Overlaps(r Range) bool {
+	return rg.Intersect(r).Empty()
+}
+
+// In reports whether range rg is completely contained in range r.
+func (rg Range) In(r Range) bool {
+	return rg.Intersect(r) == rg
 }
 
 // Iter calls a given function for all the positions of the range.
@@ -195,19 +268,18 @@ func (rg Range) Iter(fn func(Position)) {
 	}
 }
 
-type grid struct {
-	width          int
-	height         int
-	cellBuffer     []Cell
-	cellBackBuffer []Cell
-	frame          Frame
-	frames         []Frame
+// Grid represents the grid that is used to draw a model logical contents that
+// are then sent to the driver. It is a slice type, so it represents a
+// rectangular range within the whole grid of the application.
+type Grid struct {
+	ug *grid // underlying whole grid
+	rg Range // range within the whole grid
 }
 
-// GridConfig is used to configure a new grid with NewGrid.
-type GridConfig struct {
-	Width  int // width in cells (default is 80)
-	Height int // height in cells (default is 24)
+type grid struct {
+	width  int
+	height int
+	cells  []Cell
 }
 
 // Frame contains the necessary information to draw the frame changes from a
@@ -226,17 +298,14 @@ type FrameCell struct {
 	Pos  Position
 }
 
-// NewGrid returns a new grid.
-func NewGrid(cfg GridConfig) Grid {
+// NewGrid returns a new grid with given width and height in cells.
+func NewGrid(w, h int) Grid {
 	gd := Grid{}
 	gd.ug = &grid{}
-	if cfg.Height < 1 {
-		cfg.Height = 24
+	if w < 0 || h < 0 {
+		panic(fmt.Sprintf("negative dimensions: NewGrid(%d,%d)", w, h))
 	}
-	if cfg.Width < 1 {
-		cfg.Width = 80
-	}
-	gd = gd.Resize(cfg.Width, cfg.Height)
+	gd = gd.Resize(w, h)
 	return gd
 }
 
@@ -307,18 +376,15 @@ func (gd Grid) Resize(w, h int) Grid {
 	}
 	if grow {
 		newBuf := make([]Cell, gd.ug.width*gd.ug.height)
-		for i := 0; i < len(newBuf); i++ {
+		for i := range newBuf {
 			newBuf[i] = Cell{Rune: ' '}
 		}
-		newBackBuf := make([]Cell, len(newBuf))
-		for i := 0; i < len(gd.ug.cellBuffer); i++ {
+		for i := range gd.ug.cells {
 			pos := idxToPos(i, uw)           // old absolute position
 			idx := pos.X + gd.ug.width*pos.Y // new index
-			newBuf[idx] = gd.ug.cellBuffer[i]
-			newBackBuf[idx] = gd.ug.cellBackBuffer[i]
+			newBuf[idx] = gd.ug.cells[i]
 		}
-		gd.ug.cellBuffer = newBuf
-		gd.ug.cellBackBuffer = newBackBuf
+		gd.ug.cells = newBuf
 	}
 	return gd
 }
@@ -335,7 +401,7 @@ func (gd Grid) SetCell(pos Position, c Cell) {
 		return
 	}
 	i := gd.getIdx(pos)
-	gd.ug.cellBuffer[i] = c
+	gd.ug.cells[i] = c
 }
 
 // GetCell returns the cell content and styling at a given position. If the
@@ -347,20 +413,7 @@ func (gd Grid) GetCell(pos Position) Cell {
 		return Cell{}
 	}
 	i := gd.getIdx(pos)
-	return gd.ug.cellBuffer[i]
-}
-
-// Fill sets the given cell as content for all the grid positions.
-func (gd Grid) Fill(c Cell) {
-	xmax, ymax := gd.Size()
-	upos := gd.Range().Min
-	for y := 0; y < ymax; y++ {
-		yidx := upos.Y + y
-		for x := 0; x < xmax; x++ {
-			xidx := x + upos.X
-			gd.ug.cellBuffer[xidx+yidx*gd.ug.width] = c
-		}
-	}
+	return gd.ug.cells[i]
 }
 
 // getIdx returns the buffer index of a relative position.
@@ -374,41 +427,94 @@ func idxToPos(i, w int) Position {
 	return Position{X: i - (i/w)*w, Y: i / w}
 }
 
-// ComputeFrame computes next frame changes and returns them.
+// Fill sets the given cell as content for all the grid positions.
+func (gd Grid) Fill(c Cell) {
+	xmax, ymax := gd.Size()
+	upos := gd.Range().Min
+	for y := 0; y < ymax; y++ {
+		yidx := (upos.Y + y) * gd.ug.width
+		for x := 0; x < xmax; x++ {
+			xidx := x + upos.X
+			gd.ug.cells[xidx+yidx] = c
+		}
+	}
+}
+
+// Copy copies elements from a source grid src into the destination grid gd,
+// and returns the copied grid-slice size, which is the minimum of both grids
+// for each dimension. The result is independent of whether the two grids
+// referenced memory overlaps or not.
+func (gd Grid) Copy(src Grid) (int, int) {
+	if gd.ug != src.ug {
+		return gd.cp(src)
+	}
+	if gd.Range() == src.Range() {
+		return gd.Range().Size()
+	}
+	if !gd.Range().Overlaps(src.Range()) || gd.Range().Min.Y <= src.Range().Min.Y {
+		return gd.cp(src)
+	}
+	return gd.cprev(src)
+}
+
+func (gd Grid) cp(src Grid) (int, int) {
+	rg := gd.Range()
+	rgsrc := src.Range()
+	wmin, hmin := rg.Origin().Intersect(rgsrc.Origin()).Size()
+	for j := 0; j < hmin; j++ {
+		idx := (rg.Min.Y+j)*gd.ug.width + rg.Min.X
+		idxsrc := (rgsrc.Min.Y+j)*src.ug.width + rgsrc.Min.X
+		copy(gd.ug.cells[idx:idx+wmin], src.ug.cells[idxsrc:idxsrc+wmin])
+	}
+	return wmin, hmin
+}
+
+func (gd Grid) cprev(src Grid) (int, int) {
+	rg := gd.Range()
+	rgsrc := src.Range()
+	wmin, hmin := rg.Origin().Intersect(rgsrc.Origin()).Size()
+	for j := hmin - 1; j >= 0; j-- {
+		idx := (rg.Min.Y+j)*gd.ug.width + rg.Min.X
+		idxsrc := (rgsrc.Min.Y+j)*src.ug.width + rgsrc.Min.X
+		copy(gd.ug.cells[idx:idx+wmin], src.ug.cells[idxsrc:idxsrc+wmin])
+	}
+	return wmin, hmin
+}
+
+// computeFrame computes next frame changes and returns them.
 //
 // This function is automatically called after each Draw of the Model. You
 // should normally not call it by hand when implementing an application using a
 // Model. It is provided just in case you want to use a grid without an
 // application and a model.
-func (gd Grid) ComputeFrame() Frame {
-	if len(gd.ug.cellBackBuffer) != len(gd.ug.cellBuffer) {
-		gd.ug.cellBackBuffer = make([]Cell, len(gd.ug.cellBuffer))
-	}
+func (app App) computeFrame(gd Grid) Frame {
 	ug := gd.ug
-	ug.frame.Time = time.Now()
-	ug.frame.Width = ug.width
-	ug.frame.Height = ug.height
-	ug.frame.Cells = ug.frame.Cells[:0]
-	for i := 0; i < len(ug.cellBuffer); i++ {
-		if ug.cellBuffer[i] == ug.cellBackBuffer[i] {
+	if len(app.cellbuf) < len(ug.cells) {
+		app.cellbuf = make([]Cell, len(ug.cells))
+	}
+	app.frame.Time = time.Now()
+	app.frame.Width = ug.width
+	app.frame.Height = ug.height
+	app.frame.Cells = app.frame.Cells[:0]
+	for i, c := range ug.cells {
+		if c == app.cellbuf[i] {
 			continue
 		}
-		c := ug.cellBuffer[i]
 		pos := idxToPos(i, ug.width)
 		cdraw := FrameCell{Cell: c, Pos: pos}
-		ug.frame.Cells = append(ug.frame.Cells, cdraw)
-		ug.cellBackBuffer[i] = c
+		app.frame.Cells = append(app.frame.Cells, cdraw)
+		app.cellbuf[i] = c
 	}
-	return ug.frame
+	return app.frame
 }
 
-// ClearCache clears internal cache buffers, forcing a complete redraw of the
+// clearCache clears internal cache buffers, forcing a complete redraw of the
 // screen with the next Draw call, even for cells that did not change.  This
 // can be used in the case the physical display and the internal model are not
 // in sync: for example after a resize, or after a change of the GetImage
 // function of the driver (on the fly change of the tileset).
-func (gd Grid) ClearCache() {
-	for i := 0; i < len(gd.ug.cellBackBuffer); i++ {
-		gd.ug.cellBackBuffer[i] = Cell{}
+func (app App) clearCellCache() {
+	for i := range app.cellbuf {
+		app.cellbuf[i] = Cell{}
 	}
 }

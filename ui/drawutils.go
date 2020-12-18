@@ -13,12 +13,12 @@ type box struct {
 }
 
 func (b box) draw() {
-	rg := b.grid.Range().Relative()
+	rg := b.grid.Range().Origin()
 	if rg.Empty() {
 		return
 	}
 	cgrid := b.grid.Slice(rg.Shift(1, 0, -1, 0))
-	crg := cgrid.Range().Relative()
+	crg := cgrid.Range().Origin()
 	cell := gruid.Cell{Style: b.style}
 	cell.Rune = '─'
 	w, h := crg.Size()

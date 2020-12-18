@@ -31,7 +31,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	var gd = gruid.NewGrid(gruid.GridConfig{})
+	var gd = gruid.NewGrid(80, 24)
 	st := styler{}
 	var dri = tcell.NewDriver(tcell.Config{StyleManager: st})
 	pager := NewPager(gd, lines, args[0])

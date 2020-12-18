@@ -86,7 +86,7 @@ func (lb *Label) Draw() gruid.Grid {
 			style: lb.style.Box,
 		}
 		b.draw()
-		rg := grid.Range().Relative()
+		rg := grid.Range().Origin()
 		cgrid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
 	cgrid.Fill(gruid.Cell{Rune: ' ', Style: lb.stt.Style()})

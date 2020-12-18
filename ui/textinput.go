@@ -166,11 +166,11 @@ func (ti *TextInput) Draw() gruid.Grid {
 			style: ti.style.Box,
 		}
 		b.draw()
-		rg := ti.grid.Range().Relative()
+		rg := ti.grid.Range().Origin()
 		cgrid = ti.grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
 	ti.stt.With(ti.prompt, ti.style.Prompt).Draw(cgrid)
-	crg := cgrid.Range().Relative()
+	crg := cgrid.Range().Origin()
 	start := 0
 	w, _ := crg.Size()
 	w -= ti.cursorMin

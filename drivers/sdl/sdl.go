@@ -45,6 +45,7 @@ type Driver struct {
 	mousedrag gruid.MouseAction
 	done      chan struct{}
 	init      bool
+	reqredraw chan bool // request redraw
 }
 
 // Config contains configurations options for the driver.
@@ -85,12 +86,17 @@ func (dr *Driver) SetTileManager(tm TileManager) {
 	if dr.init {
 		dr.ClearCache()
 		dr.window.SetSize(dr.width*dr.tw, dr.height*dr.th)
+		select {
+		case dr.reqredraw <- true:
+		default:
+		}
 	}
 }
 
 // Init implements gruid.Driver.Init. It initializes structures and calls
 // sdl.Init().
 func (dr *Driver) Init() error {
+	dr.reqredraw = make(chan bool, 1)
 	if dr.tm == nil {
 		return errors.New("no tile manager provided")
 	}
@@ -134,6 +140,12 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 		select {
 		case <-ctx.Done():
 			return nil
+		default:
+		}
+		select {
+		case <-dr.reqredraw:
+			w, h := dr.window.GetSize()
+			send(gruid.MsgScreen{Width: int(w / dr.tw), Height: int(h / dr.th), Time: time.Now()})
 		default:
 		}
 		event := sdl.PollEvent()

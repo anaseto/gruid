@@ -21,7 +21,7 @@ func main() {
 	dri := tcell.NewDriver(tcell.Config{StyleManager: st})
 
 	// our application's state and grid with default config
-	gd := gruid.NewGrid(gruid.GridConfig{})
+	gd := gruid.NewGrid(80, 24)
 	pr := paths.NewPathRange(gd.Range())
 	m := &model{grid: gd, pr: pr}
 	framebuf := &bytes.Buffer{} // for compressed recording
@@ -43,7 +43,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	gd = gruid.NewGrid(gruid.GridConfig{})
+	gd = gruid.NewGrid(80, 24)
 	rep := ui.NewReplay(ui.ReplayConfig{
 		Grid:         gd,
 		FrameDecoder: fd,
@@ -253,7 +253,7 @@ func abs(x int) int {
 // grid.
 func (m *model) Draw() gruid.Grid {
 	c := gruid.Cell{Rune: '.'} // default cell
-	m.grid.Range().Relative().Iter(func(pos gruid.Position) {
+	m.grid.Range().Origin().Iter(func(pos gruid.Position) {
 		if pos == m.playerPos {
 			m.grid.SetCell(pos, gruid.Cell{Rune: '@', Style: c.Style.WithFg(ColorPlayer)})
 		} else {

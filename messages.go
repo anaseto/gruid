@@ -141,12 +141,15 @@ type MsgMouse struct {
 	Time     time.Time   // time when the event was generated
 }
 
-// MsgScreen is used by some drivers to report screen or main window events.
-// Generally it is reported when the screen has been exposed and has to be
-// redrawn, for example after a resize.
+// MsgScreen is reported by some drivers when the screen has been exposed in
+// some way and a complete redraw is necessary. It may happen for example after
+// a resize, or after a change of tile set invalidating current displayed content.
+// Note that the application takes care of the redraw, so you may not need to
+// handle it in most cases, unless you want to adapt grid size and layout
+// in response to a potential screen resize.
 type MsgScreen struct {
-	Width  int       // width in cells
-	Height int       // height in cells
+	Width  int       // screen width in cells
+	Height int       // screen height in cells
 	Time   time.Time // time when the event was generated
 }
 

@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	var gd = gruid.NewGrid(gruid.GridConfig{})
+	var gd = gruid.NewGrid(80, 24)
 	st := styler{}
 	var dri = tcell.NewDriver(tcell.Config{StyleManager: st})
 	m := NewModel(gd)

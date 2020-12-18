@@ -67,8 +67,10 @@ type App struct {
 	model  Model
 	enc    *frameEncoder
 	fps    time.Duration
-
 	logger *log.Logger
+
+	cellbuf []Cell
+	frame   Frame
 }
 
 // AppConfig contains the configuration for creating a new App.
@@ -246,6 +248,11 @@ func (app *App) Start(ctx context.Context) (err error) {
 				continue
 			}
 
+			// force redraw on screen message
+			if _, ok := msg.(MsgScreen); ok {
+				app.clearCellCache()
+			}
+
 			eff := app.model.Update(msg) // run update
 			select {
 			case effects <- eff: // process effect (if any)
@@ -253,7 +260,8 @@ func (app *App) Start(ctx context.Context) (err error) {
 				continue
 			}
 			if _, ok := msg.(MsgDraw); ok {
-				frame := app.model.Draw().ComputeFrame()
+				gd := app.model.Draw()
+				frame := app.computeFrame(gd)
 				if len(frame.Cells) > 0 {
 					app.flush(frame)
 				}

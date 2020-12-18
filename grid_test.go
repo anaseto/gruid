@@ -26,7 +26,7 @@ func TestRange(t *testing.T) {
 	if count != w*h {
 		t.Errorf("bad count: %d", count)
 	}
-	rg = rg.Relative()
+	rg = rg.Origin()
 	nw, nh := rg.Size()
 	if nw != w || nh != h {
 		t.Errorf("bad size for range %+v", rg)
@@ -44,17 +44,12 @@ func TestRange(t *testing.T) {
 }
 
 func TestNewGrid(t *testing.T) {
-	gd := NewGrid(GridConfig{})
+	gd := NewGrid(80, 24)
 	w, h := gd.Size()
 	if w != 80 && h != 24 {
 		t.Errorf("bad default size: (%d,%d)", w, h)
 	}
-	gd = NewGrid(GridConfig{Width: 0, Height: 0})
-	w, h = gd.Size()
-	if w != 80 && h != 24 {
-		t.Errorf("bad resize to default size: (%d,%d)", w, h)
-	}
-	gd = NewGrid(GridConfig{Width: 50, Height: 50})
+	gd = NewGrid(50, 50)
 	w, h = gd.Size()
 	if w != 50 && h != 50 {
 		t.Errorf("grid size does not match configuration: (%d,%d)", w, h)
@@ -75,7 +70,7 @@ func TestNewGrid(t *testing.T) {
 }
 
 func TestSetCell(t *testing.T) {
-	gd := NewGrid(GridConfig{})
+	gd := NewGrid(80, 24)
 	w, h := gd.Size()
 	st := Style{}
 	gd.Fill(Cell{Rune: '.'})
@@ -100,7 +95,7 @@ func TestSetCell(t *testing.T) {
 }
 
 func TestGridSlice(t *testing.T) {
-	gd := NewGrid(GridConfig{})
+	gd := NewGrid(80, 24)
 	w, h := gd.Size()
 	gd.Fill(Cell{Rune: '.'})
 	slice := gd.Slice(NewRange(5, 5, 10, 10))
@@ -131,7 +126,7 @@ func TestGridSlice(t *testing.T) {
 	if rg.Max.X != 5 || rg.Max.Y != 5 || rg.Min.X != 0 || rg.Min.Y != 0 {
 		t.Errorf("bad inversed range %+v", slice.rg)
 	}
-	slice = gd.Slice(gd.Range().Relative().Line(1))
+	slice = gd.Slice(gd.Range().Origin().Line(1))
 	gd.Fill(Cell{Rune: '.'})
 	slice.Fill(Cell{Rune: '1'})
 	for y := 0; y < h; y++ {
@@ -147,7 +142,7 @@ func TestGridSlice(t *testing.T) {
 			}
 		}
 	}
-	slice = gd.Slice(gd.Range().Relative().Column(2))
+	slice = gd.Slice(gd.Range().Origin().Column(2))
 	gd.Fill(Cell{Rune: '.'})
 	slice.Fill(Cell{Rune: '2'})
 	for y := 0; y < h; y++ {

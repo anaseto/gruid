@@ -202,7 +202,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 		pos := msg.MousePos.Relative(crg)
 		switch msg.Action {
 		case gruid.MouseMove:
-			if !pos.In(crg.Relative()) || pos.Y == m.cursor || pos.Y >= len(m.entries) {
+			if !pos.In(crg.Origin()) || pos.Y == m.cursor || pos.Y >= len(m.entries) {
 				break
 			}
 			m.cursor = pos.Y
@@ -215,7 +215,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 				}
 				break
 			}
-			if !pos.In(crg.Relative()) || pos.Y >= len(m.entries) {
+			if !pos.In(crg.Origin()) || pos.Y >= len(m.entries) {
 				break
 			}
 			m.cursor = pos.Y
@@ -272,12 +272,12 @@ func (m *Menu) Draw() gruid.Grid {
 		b.draw()
 	}
 	alt := false
-	rg := grid.Range().Relative()
+	rg := grid.Range().Origin()
 	cgrid := grid
 	if m.style.Boxed {
 		cgrid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
-	crg := cgrid.Range().Relative()
+	crg := cgrid.Range().Origin()
 	for i, c := range m.entries {
 		if !c.Header {
 			st := m.stt.Style()

@@ -225,13 +225,13 @@ func (pg *Pager) Draw() gruid.Grid {
 			style: pg.style.Box,
 		}
 		b.draw()
-		rg := grid.Range().Relative()
+		rg := grid.Range().Origin()
 		line := grid.Slice(rg.Line(h-1).Shift(2, 0, -2, 0))
 		lnumtext := fmt.Sprintf("%d-%d/%d", pg.index, pg.index+h-bh-1, len(pg.lines)-1)
 		pg.stt.With(lnumtext, pg.style.LineNum).Draw(line)
 		grid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
-	rg := grid.Range().Relative()
+	rg := grid.Range().Origin()
 	for i := 0; i < h-bh; i++ {
 		line := grid.Slice(rg.Line(i))
 		pg.stt.WithText(pg.lines[i+pg.index]).Draw(line)

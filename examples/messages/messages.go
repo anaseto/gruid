@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	var gd = gruid.NewGrid(gruid.GridConfig{})
+	var gd = gruid.NewGrid(80, 24)
 	m := NewModel(gd)
 	app := gruid.NewApp(gruid.AppConfig{
 		Driver: driver,
@@ -55,9 +55,6 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 		// The user requested the end of the application (for example
 		// by closing the window).
 		return gruid.End()
-	}
-	if _, ok := msg.(gruid.MsgScreen); ok {
-		m.grid.ClearCache()
 	}
 	if msg, ok := msg.(gruid.MsgKeyDown); ok {
 		switch msg.Key {
