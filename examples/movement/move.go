@@ -8,17 +8,11 @@ import (
 	"time"
 
 	"github.com/anaseto/gruid"
-	"github.com/anaseto/gruid/drivers/tcell"
 	"github.com/anaseto/gruid/paths"
 	"github.com/anaseto/gruid/ui"
-	tc "github.com/gdamore/tcell/v2"
 )
 
 func main() {
-
-	// use tcell terminal driver
-	st := styler{}
-	dri := tcell.NewDriver(tcell.Config{StyleManager: st})
 
 	// our application's state and grid with default config
 	gd := gruid.NewGrid(80, 24)
@@ -28,13 +22,14 @@ func main() {
 
 	// define new application
 	app := gruid.NewApp(gruid.AppConfig{
-		Driver:      dri,
+		Driver:      driver,
 		Model:       m,
 		FrameWriter: framebuf,
 	})
 
 	// start application
 	if err := app.Start(nil); err != nil {
+		driver.Close()
 		log.Fatal(err)
 	}
 
@@ -49,7 +44,7 @@ func main() {
 		FrameDecoder: fd,
 	})
 	app = gruid.NewApp(gruid.AppConfig{
-		Driver: dri,
+		Driver: driver,
 		Model:  rep,
 	})
 	if err := app.Start(nil); err != nil {
@@ -63,22 +58,6 @@ const (
 	ColorPlayer gruid.Color = 1 + iota // skip special zero value gruid.ColorDefault
 	ColorPath
 )
-
-// type that implements driver's style manager interface
-type styler struct{}
-
-func (sty styler) GetStyle(st gruid.Style) tc.Style {
-	ts := tc.StyleDefault
-	switch st.Fg {
-	case ColorPlayer:
-		ts = ts.Foreground(tc.ColorNavy) // blue color for the player
-	}
-	switch st.Bg {
-	case ColorPath:
-		ts = ts.Reverse(true)
-	}
-	return ts
-}
 
 // models represents our main application state.
 type model struct {

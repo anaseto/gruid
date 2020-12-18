@@ -46,6 +46,7 @@ type Driver struct {
 	done      chan struct{}
 	init      bool
 	reqredraw chan bool // request redraw
+	noQuit    bool      // do not quit on close
 }
 
 // Config contains configurations options for the driver.
@@ -93,6 +94,14 @@ func (dr *Driver) SetTileManager(tm TileManager) {
 	}
 }
 
+// PreventQuit will make next call to Close keep sdl and the main window
+// running. It can be used to chain two applications with the same sdl session
+// and window. It is then your reponsibility to either run another application
+// or call Close manually to properly quit.
+func (dr *Driver) PreventQuit() {
+	dr.noQuit = true
+}
+
 // Init implements gruid.Driver.Init. It initializes structures and calls
 // sdl.Init().
 func (dr *Driver) Init() error {
@@ -101,26 +110,30 @@ func (dr *Driver) Init() error {
 		return errors.New("no tile manager provided")
 	}
 	var err error
-	if err = sdl.Init(sdl.INIT_VIDEO); err != nil {
-		return err
+	if dr.init {
+		dr.window.SetSize(dr.width*dr.tw, dr.height*dr.th)
+	} else {
+		if err = sdl.Init(sdl.INIT_VIDEO); err != nil {
+			return err
+		}
+		dr.window, err = sdl.CreateWindow("gruid go-sdl2", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
+			dr.width*dr.tw, dr.height*dr.th, sdl.WINDOW_SHOWN)
+		if err != nil {
+			return fmt.Errorf("failed to create sdl window: %v", err)
+		}
+		dr.renderer, err = sdl.CreateRenderer(dr.window, -1, sdl.RENDERER_ACCELERATED)
+		if err != nil {
+			return fmt.Errorf("failed to create sdl renderer: %v", err)
+		}
+		dr.window.SetResizable(false)
+		if dr.fullscreen {
+			dr.window.SetFullscreen(sdl.WINDOW_FULLSCREEN)
+		}
+		dr.renderer.Clear()
+		sdl.StartTextInput()
+		rect := sdl.Rect{0, 0, 100, 100}
+		sdl.SetTextInputRect(&rect)
 	}
-	dr.window, err = sdl.CreateWindow("gruid go-sdl2", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
-		dr.width*dr.tw, dr.height*dr.th, sdl.WINDOW_SHOWN)
-	if err != nil {
-		return fmt.Errorf("failed to create sdl window: %v", err)
-	}
-	dr.renderer, err = sdl.CreateRenderer(dr.window, -1, sdl.RENDERER_ACCELERATED)
-	if err != nil {
-		return fmt.Errorf("failed to create sdl renderer: %v", err)
-	}
-	dr.window.SetResizable(false)
-	if dr.fullscreen {
-		dr.window.SetFullscreen(sdl.WINDOW_FULLSCREEN)
-	}
-	dr.renderer.Clear()
-	sdl.StartTextInput()
-	rect := sdl.Rect{0, 0, 100, 100}
-	sdl.SetTextInputRect(&rect)
 	dr.textures = make(map[gruid.Cell]*sdl.Texture)
 	dr.surfaces = make(map[gruid.Cell]*sdl.Surface)
 	dr.mousedrag = -1
@@ -450,14 +463,20 @@ func (dr *Driver) draw(cs gruid.Cell, x, y int) {
 
 // Close implements gruid.Driver.Close. It releases some resources and calls sdl.Quit.
 func (dr *Driver) Close() {
+	if !dr.init {
+		return
+	}
 	dr.ClearCache()
 	dr.surfaces = nil
 	dr.textures = nil
-	sdl.StopTextInput()
-	dr.renderer.Destroy()
-	dr.window.Destroy()
-	sdl.Quit()
-	dr.init = false
+	if !dr.noQuit {
+		sdl.StopTextInput()
+		dr.renderer.Destroy()
+		dr.window.Destroy()
+		sdl.Quit()
+		dr.init = false
+		dr.noQuit = false
+	}
 }
 
 // ClearCache clears the tile textures internal cache.

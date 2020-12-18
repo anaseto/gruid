@@ -308,6 +308,9 @@ func (dr *Driver) draw(cell gruid.Cell, x, y int) {
 // Close implements gruid.Driver.Close. It releases some resources, such as
 // event listeners.
 func (dr *Driver) Close() {
+	if !dr.init {
+		return
+	}
 	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
 	canvas.Call("removeEventListener", "contextmenu", dr.listeners.menu, false)
 	js.Global().Get("document").Call("removeEventListener", "keydown", dr.listeners.keydown)

@@ -313,8 +313,8 @@ type Driver interface {
 	PollMsgs(context.Context, chan<- Msg) error
 
 	// Close may execute needed code to finalize the screen and release
-	// resources. After Close, the driver can be initialized again in order
-	// to be used in another application.
+	// resources. Redundant Close() calls are ignored. After Close() it is
+	// possible to call Init() again.
 	Close()
 }
 

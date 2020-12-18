@@ -23,7 +23,7 @@ type Driver struct {
 	screen    tcell.Screen
 	mousedrag bool
 	mousePos  gruid.Position
-	closed    bool
+	init      bool
 }
 
 // Config contains configurations options for the driver.
@@ -58,6 +58,7 @@ func (t *Driver) Init() error {
 	// try to send initial size
 	w, h := t.screen.Size()
 	t.screen.PostEvent(tcell.NewEventResize(w, h))
+	t.init = true
 	return nil
 }
 
@@ -226,5 +227,9 @@ func (t *Driver) Flush(frame gruid.Frame) {
 // Close implements gruid.Driver.Close. It finalizes the screen and releases
 // resources.
 func (t *Driver) Close() {
+	if !t.init {
+		return
+	}
 	t.screen.Fini()
+	t.init = false
 }
