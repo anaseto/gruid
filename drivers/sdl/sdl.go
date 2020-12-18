@@ -145,7 +145,7 @@ func (dr *Driver) Init() error {
 		}
 		dr.renderer.Clear()
 		sdl.StartTextInput()
-		rect := sdl.Rect{0, 0, 100, 100}
+		rect := sdl.Rect{X: 0, Y: 0, W: 100, H: 100}
 		sdl.SetTextInputRect(&rect)
 	}
 	dr.textures = make(map[gruid.Cell]*sdl.Texture)
@@ -476,7 +476,7 @@ func (dr *Driver) draw(cs gruid.Cell, x, y int) {
 		}
 		dr.textures[cs] = tx
 	}
-	rect := sdl.Rect{int32(x) * dr.tw, int32(y) * dr.th, dr.tw, dr.th}
+	rect := sdl.Rect{X: int32(x) * dr.tw, Y: int32(y) * dr.th, W: dr.tw, H: dr.th}
 	dr.renderer.Copy(tx, nil, &rect)
 }
 
