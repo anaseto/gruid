@@ -47,6 +47,7 @@ type Driver struct {
 	init      bool
 	reqredraw chan bool // request redraw
 	noQuit    bool      // do not quit on close
+	actions   chan func()
 }
 
 // Config contains configurations options for the driver.
@@ -73,24 +74,36 @@ func NewDriver(cfg Config) *Driver {
 	return dr
 }
 
-// SetTileManager allows to change the used tile manager.
+// SetTileManager allows to change the used tile manager. If the driver is
+// already running, change will take effect with next Flush so that the
+// function is thread safe.
 func (dr *Driver) SetTileManager(tm TileManager) {
-	dr.tm = tm
-	w, h := tm.TileSize()
-	dr.tw, dr.th = int32(w), int32(h)
-	if dr.tw <= 0 {
-		dr.tw = 1
-	}
-	if dr.th <= 0 {
-		dr.th = 1
+	fn := func() {
+		dr.tm = tm
+		w, h := tm.TileSize()
+		dr.tw, dr.th = int32(w), int32(h)
+		if dr.tw <= 0 {
+			dr.tw = 1
+		}
+		if dr.th <= 0 {
+			dr.th = 1
+		}
+		if dr.init {
+			dr.ClearCache()
+			dr.window.SetSize(dr.width*dr.tw, dr.height*dr.th)
+			select {
+			case dr.reqredraw <- true:
+			default:
+			}
+		}
 	}
 	if dr.init {
-		dr.ClearCache()
-		dr.window.SetSize(dr.width*dr.tw, dr.height*dr.th)
 		select {
-		case dr.reqredraw <- true:
+		case dr.actions <- fn:
 		default:
 		}
+	} else {
+		fn()
 	}
 }
 
@@ -106,6 +119,7 @@ func (dr *Driver) PreventQuit() {
 // sdl.Init().
 func (dr *Driver) Init() error {
 	dr.reqredraw = make(chan bool, 1)
+	dr.actions = make(chan func(), 1)
 	if dr.tm == nil {
 		return errors.New("no tile manager provided")
 	}
@@ -410,6 +424,11 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 
 // Flush implements gruid.Driver.Flush.
 func (dr *Driver) Flush(frame gruid.Frame) {
+	select {
+	case fn := <-dr.actions:
+		fn()
+	default:
+	}
 	if frame.Width != int(dr.width) || frame.Height != int(dr.height) {
 		dr.width = int32(frame.Width)
 		dr.height = int32(frame.Height)
