@@ -385,7 +385,10 @@ func (gd Grid) ComputeFrame() Frame {
 		gd.ug.cellBackBuffer = make([]Cell, len(gd.ug.cellBuffer))
 	}
 	ug := gd.ug
-	ug.frame = Frame{Time: time.Now(), Width: ug.width, Height: ug.height}
+	ug.frame.Time = time.Now()
+	ug.frame.Width = ug.width
+	ug.frame.Height = ug.height
+	ug.frame.Cells = ug.frame.Cells[:0]
 	for i := 0; i < len(ug.cellBuffer); i++ {
 		if ug.cellBuffer[i] == ug.cellBackBuffer[i] {
 			continue
