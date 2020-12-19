@@ -21,10 +21,10 @@ func (b box) draw() {
 	crg := cgrid.Range().Origin()
 	cell := gruid.Cell{Style: b.style}
 	cell.Rune = '─'
-	w, h := crg.Size()
+	max := crg.Size()
 	if b.title.Text() != "" {
 		nchars := utf8.RuneCountInString(b.title.Text())
-		dist := (w - nchars) / 2
+		dist := (max.X - nchars) / 2
 		line := cgrid.Slice(crg.Line(0))
 		line.Fill(cell)
 		b.title.Draw(cgrid.Slice(crg.Line(0).Shift(dist, 0, 0, 0)))
@@ -34,16 +34,16 @@ func (b box) draw() {
 		line := cgrid.Slice(crg.Line(0))
 		line.Fill(cell)
 	}
-	line := cgrid.Slice(crg.Line(h - 1))
+	line := cgrid.Slice(crg.Line(max.Y - 1))
 	line.Fill(cell)
-	w, h = rg.Size()
+	max = rg.Size()
 	b.grid.Set(rg.Min, cell.WithRune('┌'))
-	b.grid.Set(gruid.Point{X: w - 1}, cell.WithRune('┐'))
-	b.grid.Set(gruid.Point{Y: h - 1}, cell.WithRune('└'))
+	b.grid.Set(gruid.Point{X: max.X - 1}, cell.WithRune('┐'))
+	b.grid.Set(gruid.Point{Y: max.Y - 1}, cell.WithRune('└'))
 	b.grid.Set(rg.Max.Shift(-1, -1), cell.WithRune('┘'))
 	cell.Rune = '│'
 	col := b.grid.Slice(rg.Shift(0, 1, 0, -1).Column(0))
 	col.Fill(cell)
-	col = b.grid.Slice(rg.Shift(0, 1, 0, -1).Column(w - 1))
+	col = b.grid.Slice(rg.Shift(0, 1, 0, -1).Column(max.X - 1))
 	col.Fill(cell)
 }

@@ -233,8 +233,8 @@ func (m *Menu) drawGrid() gruid.Grid {
 	if m.style.Boxed {
 		h += 2 // borders height
 	}
-	w, _ := m.grid.Size()
-	return m.grid.Slice(gruid.NewRange(0, 0, w, h))
+	max := m.grid.Size()
+	return m.grid.Slice(gruid.NewRange(0, 0, max.X, h))
 }
 
 func (m *Menu) cursorAtFirstChoice() {
@@ -289,10 +289,10 @@ func (m *Menu) Draw() gruid.Grid {
 				st.Fg = m.style.Selected
 			}
 			text := m.stt.With(c.Text, st)
-			w, _ := text.Size()
+			max := text.Size()
 			m.stt.With(c.Text, st).Draw(cgrid.Slice(crg.Line(i)))
 			cell := gruid.Cell{Rune: ' ', Style: st}
-			line := cgrid.Slice(crg.Line(i).Shift(w, 0, 0, 0))
+			line := cgrid.Slice(crg.Line(i).Shift(max.X, 0, 0, 0))
 			line.Fill(cell)
 		} else {
 			alt = false

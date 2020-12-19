@@ -23,7 +23,7 @@ type TileManager interface {
 
 	// TileSize returns the (width, height) in pixels of the tiles. Both
 	// should be positive and non-zero.
-	TileSize() (int, int)
+	TileSize() gruid.Point
 }
 
 // Driver implements gruid.Driver using the go-sdl2 bindings for the SDL
@@ -80,8 +80,8 @@ func NewDriver(cfg Config) *Driver {
 func (dr *Driver) SetTileManager(tm TileManager) {
 	fn := func() {
 		dr.tm = tm
-		w, h := tm.TileSize()
-		dr.tw, dr.th = int32(w), int32(h)
+		p := tm.TileSize()
+		dr.tw, dr.th = int32(p.X), int32(p.Y)
 		if dr.tw <= 0 {
 			dr.tw = 1
 		}

@@ -31,7 +31,7 @@ func (stt StyledText) WithText(text string) StyledText {
 }
 
 // Size returns the minimum (w, h) size in cells which can fit the text.
-func (stt StyledText) Size() (int, int) {
+func (stt StyledText) Size() gruid.Point {
 	x := 0
 	xmax := 0
 	y := 0
@@ -65,7 +65,7 @@ func (stt StyledText) Size() (int, int) {
 	if xmax > 0 || y > 0 {
 		y++ // at least one line
 	}
-	return xmax, y
+	return gruid.Point{X: xmax, Y: y}
 }
 
 // Style returns the text default style.

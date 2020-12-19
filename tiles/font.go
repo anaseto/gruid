@@ -9,6 +9,8 @@ import (
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
+
+	"github.com/anaseto/gruid"
 )
 
 // Drawer can be used to draw a text rune on an image of appropiate size to be
@@ -51,7 +53,7 @@ func (d *Drawer) Draw(r rune, fg, bg image.Image) *image.RGBA {
 }
 
 // Size returns the size of drawn tiles, in pixel points.
-func (d *Drawer) Size() (int, int) {
+func (d *Drawer) Size() gruid.Point {
 	p := d.rect.Size()
 	if p.X <= 0 {
 		p.X = 1
@@ -59,5 +61,5 @@ func (d *Drawer) Size() (int, int) {
 	if p.Y <= 0 {
 		p.Y = 1
 	}
-	return p.X, p.Y
+	return gruid.Point{X: p.X, Y: p.Y}
 }

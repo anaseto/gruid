@@ -183,8 +183,8 @@ func (rep *Replay) draw() {
 		frame := rep.frames[rep.fidx-1]
 		rep.undo = append(rep.undo, []gruid.FrameCell{})
 		j := len(rep.undo) - 1
-		w, h := rep.gd.Size()
-		if frame.Width > w || frame.Height > h {
+		max := rep.gd.Size()
+		if frame.Width > max.X || frame.Height > max.Y {
 			rep.gd = rep.gd.Resize(frame.Width, frame.Height)
 		}
 		for _, fc := range frame.Cells {

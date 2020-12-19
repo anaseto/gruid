@@ -24,9 +24,9 @@ type Dijkstra interface {
 func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost int) {
 	if pr.dijkstraNodes == nil {
 		pr.dijkstraNodes = &nodeMap{}
-		w, h := pr.rg.Size()
-		pr.dijkstraNodes.Nodes = make([]node, w*h)
-		pr.dijkstraQueue = make(priorityQueue, 0, w*h)
+		max := pr.rg.Size()
+		pr.dijkstraNodes.Nodes = make([]node, max.X*max.Y)
+		pr.dijkstraQueue = make(priorityQueue, 0, max.X*max.Y)
 		pr.iterNodeCache = []Node{}
 	}
 	pr.iterNodeCache = pr.iterNodeCache[:0]

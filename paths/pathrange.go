@@ -37,9 +37,9 @@ func NewPathRange(rg gruid.Range) *PathRange {
 func (pr *PathRange) SetRange(rg gruid.Range) {
 	org := pr.rg
 	pr.rg = rg
-	w, h := rg.Size()
-	ow, oh := org.Size()
-	if w == ow && h == oh {
+	max := rg.Size()
+	omax := org.Size()
+	if max == omax {
 		return
 	}
 	*pr = PathRange{rg: rg}
@@ -47,7 +47,7 @@ func (pr *PathRange) SetRange(rg gruid.Range) {
 
 func (pr *PathRange) idx(p gruid.Point) int {
 	p = p.Rel(pr.rg)
-	w, _ := pr.rg.Size()
+	w := pr.rg.Size().X
 	return p.Y*w + p.X
 }
 

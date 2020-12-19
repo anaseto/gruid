@@ -30,7 +30,8 @@ type bfNode struct {
 // with a cost function that returns 1 for all neighbors, but it is more
 // efficient.
 func (pr *PathRange) BreadthFirstMap(nb Pather, sources []gruid.Point, maxCost int) {
-	w, h := pr.rg.Size()
+	max := pr.rg.Size()
+	w, h := max.X, max.Y
 	if pr.bfmap == nil {
 		pr.bfmap = make([]bfNode, w*h)
 		pr.bfqueue = make([]int, w*h)

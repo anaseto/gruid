@@ -18,7 +18,7 @@ type TileManager interface {
 
 	// TileSize returns the (width, height) in pixels of the tiles. Both
 	// should be positive and non-zero.
-	TileSize() (int, int)
+	TileSize() gruid.Point
 }
 
 // Driver implements gruid.Driver using the syscall/js interface for
@@ -66,8 +66,8 @@ func NewDriver(cfg Config) *Driver {
 // SetTileManager allows to change the used tile manager.
 func (dr *Driver) SetTileManager(tm TileManager) {
 	dr.tm = tm
-	w, h := tm.TileSize()
-	dr.tw, dr.th = w, h
+	p := tm.TileSize()
+	dr.tw, dr.th = p.X, p.Y
 	if dr.tw <= 0 {
 		dr.tw = 1
 	}

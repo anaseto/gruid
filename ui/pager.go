@@ -111,7 +111,7 @@ const (
 
 // Update implements gruid.Model.Update for Pager.
 func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
-	_, nlines := pg.grid.Size()
+	nlines := pg.grid.Size().Y
 	if pg.style.Boxed {
 		nlines -= 2
 	}
@@ -209,7 +209,8 @@ func (pg *Pager) Draw() gruid.Grid {
 		pg.grid.Fill(gruid.Cell{Rune: ' '})
 	}
 	grid := pg.grid
-	w, h := grid.Size()
+	max := grid.Size()
+	w, h := max.X, max.Y
 	bh := 0
 	if pg.style.Boxed {
 		bh = 2

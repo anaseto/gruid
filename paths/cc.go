@@ -11,7 +11,8 @@ type ccNode struct {
 // assumption that the paths are bidirectional, allowing for efficient
 // computation. It uses the same caching structures as ComputeCC.
 func (pr *PathRange) ComputeCCAll(nb Pather) {
-	w, h := pr.rg.Size()
+	max := pr.rg.Size()
+	w, h := max.X, max.Y
 	if pr.cc == nil {
 		pr.cc = make([]ccNode, w*h)
 	}
@@ -51,7 +52,8 @@ func (pr *PathRange) ComputeCCAll(nb Pather) {
 // It makes the assumption that the paths are bidirectional, allowing for
 // efficient computation.
 func (pr *PathRange) ComputeCC(nb Pather, p gruid.Point) {
-	w, h := pr.rg.Size()
+	max := pr.rg.Size()
+	w, h := max.X, max.Y
 	if pr.cc == nil {
 		pr.cc = make([]ccNode, w*h)
 	}
@@ -109,7 +111,7 @@ func (pr *PathRange) CCIter(fn func(gruid.Point)) {
 	if pr.ccIterCache == nil {
 		return
 	}
-	w, _ := pr.rg.Size()
+	w := pr.rg.Size().X
 	for _, idx := range pr.ccIterCache {
 		p := idxToPos(idx, w)
 		fn(p)

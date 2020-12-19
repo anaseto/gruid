@@ -172,7 +172,7 @@ func (ti *TextInput) Draw() gruid.Grid {
 	ti.stt.With(ti.prompt, ti.style.Prompt).Draw(cgrid)
 	crg := cgrid.Range().Origin()
 	start := 0
-	w, _ := crg.Size()
+	w := crg.Size().X
 	w -= ti.cursorMin
 	if ti.cursor >= w-1 {
 		if w > 2 {

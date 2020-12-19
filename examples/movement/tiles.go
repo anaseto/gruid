@@ -59,6 +59,6 @@ func (t *TileDrawer) GetImage(c gruid.Cell) *image.RGBA {
 	return t.drawer.Draw(c.Rune, fg, bg)
 }
 
-func (t *TileDrawer) TileSize() (int, int) {
+func (t *TileDrawer) TileSize() gruid.Point {
 	return t.drawer.Size()
 }

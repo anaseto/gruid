@@ -15,7 +15,8 @@ func randInt(n int) int {
 
 func TestRange(t *testing.T) {
 	rg := NewRange(2, 3, 20, 30)
-	w, h := rg.Size()
+	max := rg.Size()
+	w, h := max.X, max.Y
 	count := 0
 	rg.Iter(func(p Point) {
 		if !p.In(rg) {
@@ -27,7 +28,8 @@ func TestRange(t *testing.T) {
 		t.Errorf("bad count: %d", count)
 	}
 	rg = rg.Origin()
-	nw, nh := rg.Size()
+	max = rg.Size()
+	nw, nh := max.X, max.Y
 	if nw != w || nh != h {
 		t.Errorf("bad size for range %+v", rg)
 	}
@@ -45,16 +47,18 @@ func TestRange(t *testing.T) {
 
 func TestNewGrid(t *testing.T) {
 	gd := NewGrid(80, 24)
-	w, h := gd.Size()
-	if w != 80 && h != 24 {
-		t.Errorf("bad default size: (%d,%d)", w, h)
+	max := gd.Size()
+	if max.X != 80 && max.Y != 24 {
+		t.Errorf("bad default size: (%d,%d)", max.X, max.Y)
 	}
 	gd = NewGrid(50, 50)
-	w, h = gd.Size()
+	max = gd.Size()
+	w, h := max.X, max.Y
 	if w != 50 && h != 50 {
 		t.Errorf("grid size does not match configuration: (%d,%d)", w, h)
 	}
-	rw, rh := gd.Range().Size()
+	max = gd.Range().Size()
+	rw, rh := max.X, max.Y
 	if w != rw || rh != h {
 		t.Errorf("incompatible sizes: grid (%d,%d) range (%d,%d)", w, h, rw, rh)
 	}
@@ -71,7 +75,8 @@ func TestNewGrid(t *testing.T) {
 
 func TestSetCell(t *testing.T) {
 	gd := NewGrid(80, 24)
-	w, h := gd.Size()
+	max := gd.Size()
+	w, h := max.X, max.Y
 	st := Style{}
 	gd.Fill(Cell{Rune: '.'})
 	for i := 0; i < w*h; i++ {
@@ -96,7 +101,8 @@ func TestSetCell(t *testing.T) {
 
 func TestGridSlice(t *testing.T) {
 	gd := NewGrid(80, 24)
-	w, h := gd.Size()
+	max := gd.Size()
+	w, h := max.X, max.Y
 	gd.Fill(Cell{Rune: '.'})
 	slice := gd.Slice(NewRange(5, 5, 10, 10))
 	slice.Fill(Cell{Rune: 's'})
@@ -162,7 +168,8 @@ func TestGridSlice(t *testing.T) {
 
 func TestCopy(t *testing.T) {
 	gd := NewGrid(80, 30)
-	w, h := gd.Size()
+	max := gd.Size()
+	w, h := max.X, max.Y
 	gd.Fill(Cell{Rune: '.'})
 	gd2 := NewGrid(10, 10)
 	gd2.Fill(Cell{Rune: '+'})

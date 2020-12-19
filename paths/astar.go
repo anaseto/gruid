@@ -54,9 +54,9 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 	}
 	if pr.astarNodes == nil {
 		pr.astarNodes = &nodeMap{}
-		w, h := pr.rg.Size()
-		pr.astarNodes.Nodes = make([]node, w*h)
-		pr.astarQueue = make(priorityQueue, 0, w*h)
+		max := pr.rg.Size()
+		pr.astarNodes.Nodes = make([]node, max.X*max.Y)
+		pr.astarQueue = make(priorityQueue, 0, max.X*max.Y)
 	}
 	nm := pr.astarNodes
 	nm.Index++

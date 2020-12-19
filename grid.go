@@ -128,8 +128,8 @@ func NewRange(x0, y0, x1, y1 int) Range {
 }
 
 // Size returns the (width, height) of the range in cells.
-func (rg Range) Size() (int, int) {
-	return rg.Max.X - rg.Min.X, rg.Max.Y - rg.Min.Y
+func (rg Range) Size() Point {
+	return rg.Max.Sub(rg.Min)
 }
 
 // Shift returns a new range with coordinates shifted by (x0,y0) and (x1,y1).
@@ -274,9 +274,9 @@ func (rg Range) Iter(fn func(Point)) {
 // represented internally, it is more efficient to iterate whole lines first,
 // as in the following pattern:
 //
-// 	w, h := gd.Size()
-//	for y := 0; y < h; y++ {
-//		for x := 0; x < w; x++ {
+// 	max := gd.Size()
+//	for y := 0; y < max.Y; y++ {
+//		for x := 0; x < max.X; x++ {
 //			p := Point{X: x, Y: y}
 //			// do something with p and the grid gd
 //		}
@@ -342,12 +342,12 @@ func (gd Grid) Slice(rg Range) Grid {
 	if rg.Min.Y < 0 {
 		rg.Min.Y = 0
 	}
-	w, h := gd.rg.Size()
-	if rg.Max.X > w {
-		rg.Max.X = w
+	max := gd.rg.Size()
+	if rg.Max.X > max.X {
+		rg.Max.X = max.X
 	}
-	if rg.Max.Y > h {
-		rg.Max.Y = h
+	if rg.Max.Y > max.Y {
+		rg.Max.Y = max.Y
 	}
 	min := gd.rg.Min
 	rg.Min = rg.Min.Add(min)
@@ -355,9 +355,9 @@ func (gd Grid) Slice(rg Range) Grid {
 	return Grid{ug: gd.ug, rg: rg}
 }
 
-// Size returns the grid (width, height) in celles, and is a shorthand for
+// Size returns the grid (width, height) in cells, and is a shorthand for
 // gd.Range().Size().
-func (gd Grid) Size() (int, int) {
+func (gd Grid) Size() Point {
 	return gd.rg.Size()
 }
 
@@ -368,7 +368,8 @@ func (gd Grid) Size() (int, int) {
 // Note that this only modifies the size of the grid, which may be different
 // than the window screen size.
 func (gd Grid) Resize(w, h int) Grid {
-	ow, oh := gd.Size()
+	max := gd.Size()
+	ow, oh := max.X, max.Y
 	if ow == w && oh == h {
 		return gd
 	}
@@ -446,11 +447,11 @@ func idxToPos(i, w int) Point {
 
 // Fill sets the given cell as content for all the grid positions.
 func (gd Grid) Fill(c Cell) {
-	w, h := gd.Size()
+	max := gd.Size()
 	upos := gd.Range().Min
-	for y := 0; y < h; y++ {
+	for y := 0; y < max.Y; y++ {
 		yidx := (upos.Y + y) * gd.ug.width
-		for x := 0; x < w; x++ {
+		for x := 0; x < max.X; x++ {
 			xidx := x + upos.X
 			gd.ug.cells[xidx+yidx] = c
 		}
@@ -459,9 +460,9 @@ func (gd Grid) Fill(c Cell) {
 
 // Iter iterates a function on all the grid positions and cells.
 func (gd Grid) Iter(fn func(Point, Cell)) {
-	w, h := gd.Size()
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	max := gd.Size()
+	for y := 0; y < max.Y; y++ {
+		for x := 0; x < max.X; x++ {
 			p := Point{X: x, Y: y}
 			c := gd.At(p)
 			fn(p, c)
@@ -473,7 +474,7 @@ func (gd Grid) Iter(fn func(Point, Cell)) {
 // and returns the copied grid-slice size, which is the minimum of both grids
 // for each dimension. The result is independent of whether the two grids
 // referenced memory overlaps or not.
-func (gd Grid) Copy(src Grid) (int, int) {
+func (gd Grid) Copy(src Grid) Point {
 	if gd.ug != src.ug {
 		return gd.cp(src)
 	}
@@ -486,28 +487,28 @@ func (gd Grid) Copy(src Grid) (int, int) {
 	return gd.cprev(src)
 }
 
-func (gd Grid) cp(src Grid) (int, int) {
+func (gd Grid) cp(src Grid) Point {
 	rg := gd.Range()
 	rgsrc := src.Range()
-	wmin, hmin := rg.Origin().Intersect(rgsrc.Origin()).Size()
-	for j := 0; j < hmin; j++ {
+	max := rg.Origin().Intersect(rgsrc.Origin()).Size()
+	for j := 0; j < max.Y; j++ {
 		idx := (rg.Min.Y+j)*gd.ug.width + rg.Min.X
 		idxsrc := (rgsrc.Min.Y+j)*src.ug.width + rgsrc.Min.X
-		copy(gd.ug.cells[idx:idx+wmin], src.ug.cells[idxsrc:idxsrc+wmin])
+		copy(gd.ug.cells[idx:idx+max.X], src.ug.cells[idxsrc:idxsrc+max.X])
 	}
-	return wmin, hmin
+	return max
 }
 
-func (gd Grid) cprev(src Grid) (int, int) {
+func (gd Grid) cprev(src Grid) Point {
 	rg := gd.Range()
 	rgsrc := src.Range()
-	wmin, hmin := rg.Origin().Intersect(rgsrc.Origin()).Size()
-	for j := hmin - 1; j >= 0; j-- {
+	max := rg.Origin().Intersect(rgsrc.Origin()).Size()
+	for j := max.Y - 1; j >= 0; j-- {
 		idx := (rg.Min.Y+j)*gd.ug.width + rg.Min.X
 		idxsrc := (rgsrc.Min.Y+j)*src.ug.width + rgsrc.Min.X
-		copy(gd.ug.cells[idx:idx+wmin], src.ug.cells[idxsrc:idxsrc+wmin])
+		copy(gd.ug.cells[idx:idx+max.X], src.ug.cells[idxsrc:idxsrc+max.X])
 	}
-	return wmin, hmin
+	return max
 }
 
 // computeFrame computes next frame minimal changes and returns them.
