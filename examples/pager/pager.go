@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -39,7 +40,9 @@ func main() {
 		Driver: dri,
 		Model:  pager,
 	})
-	app.Start(nil)
+	if err := app.Start(context.Background()); err != nil {
+		log.Fatal(err)
+	}
 	fmt.Printf("Successful quit.\n")
 }
 

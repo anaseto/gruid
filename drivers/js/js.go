@@ -28,7 +28,6 @@ type Driver struct {
 	width  int         // initial screen width in cells
 	height int         // initial screen height in celles
 
-	display   js.Value
 	ctx       js.Value
 	cache     map[gruid.Cell]js.Value
 	tw        int
@@ -95,7 +94,8 @@ func (dr *Driver) Init() error {
 	canvas.Call("setAttribute", "tabindex", "1")
 	dr.ctx = canvas.Call("getContext", "2d")
 	dr.ctx.Set("imageSmoothingEnabled", false)
-	dr.tw, dr.th = dr.tm.TileSize()
+	max := dr.tm.TileSize()
+	dr.tw, dr.th = max.X, max.Y
 	canvas.Set("height", dr.th*dr.height)
 	canvas.Set("width", dr.tw*dr.width)
 	dr.cache = make(map[gruid.Cell]js.Value)

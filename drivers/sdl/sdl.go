@@ -43,7 +43,6 @@ type Driver struct {
 	surfaces  map[gruid.Cell]*sdl.Surface
 	mousepos  gruid.Point
 	mousedrag gruid.MouseAction
-	done      chan struct{}
 	init      bool
 	reqredraw chan bool // request redraw
 	noQuit    bool      // do not quit on close
@@ -141,9 +140,15 @@ func (dr *Driver) Init() error {
 		}
 		dr.window.SetResizable(false)
 		if dr.fullscreen {
-			dr.window.SetFullscreen(sdl.WINDOW_FULLSCREEN)
+			err := dr.window.SetFullscreen(sdl.WINDOW_FULLSCREEN)
+			if err != nil {
+				log.Printf("set fullscreen: %v", err)
+			}
 		}
-		dr.renderer.Clear()
+		err := dr.renderer.Clear()
+		if err != nil {
+			log.Printf("renderer clear: %v", err)
+		}
 		sdl.StartTextInput()
 		rect := sdl.Rect{X: 0, Y: 0, W: 100, H: 100}
 		sdl.SetTextInputRect(&rect)
@@ -477,7 +482,10 @@ func (dr *Driver) draw(cs gruid.Cell, x, y int) {
 		dr.textures[cs] = tx
 	}
 	rect := sdl.Rect{X: int32(x) * dr.tw, Y: int32(y) * dr.th, W: dr.tw, H: dr.th}
-	dr.renderer.Copy(tx, nil, &rect)
+	err := dr.renderer.Copy(tx, nil, &rect)
+	if err != nil {
+		log.Printf("draw: copy: %v", err)
+	}
 }
 
 // Close implements gruid.Driver.Close. It releases some resources and calls sdl.Quit.
@@ -490,8 +498,14 @@ func (dr *Driver) Close() {
 	dr.textures = nil
 	if !dr.noQuit {
 		sdl.StopTextInput()
-		dr.renderer.Destroy()
-		dr.window.Destroy()
+		err := dr.renderer.Destroy()
+		if err != nil {
+			log.Printf("renderer destroy: %v", err)
+		}
+		err = dr.window.Destroy()
+		if err != nil {
+			log.Printf("window destroy: %v", err)
+		}
 		sdl.Quit()
 		dr.init = false
 	}
@@ -505,7 +519,10 @@ func (dr *Driver) ClearCache() {
 		delete(dr.surfaces, i)
 	}
 	for i, s := range dr.textures {
-		s.Destroy()
+		err := s.Destroy()
+		if err != nil {
+			log.Printf("surface destroy: %v", err)
+		}
 		delete(dr.textures, i)
 	}
 }

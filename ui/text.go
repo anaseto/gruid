@@ -150,7 +150,6 @@ func (stt StyledText) Format(width int) StyledText {
 				} else if wantspace {
 					pbuf.WriteRune(' ')
 					col++
-					wantspace = false
 				}
 				pbuf.Write(wordbuf.Bytes())
 				col += wlen
@@ -164,10 +163,8 @@ func (stt StyledText) Format(width int) StyledText {
 			if wlen > 0 {
 				if col+wlen > width && wantspace {
 					pbuf.WriteRune('\n')
-					col = 0
 				}
 				pbuf.Write(wordbuf.Bytes())
-				col += wlen
 				wordbuf.Reset()
 				wlen = 0
 			}

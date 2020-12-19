@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -15,7 +16,7 @@ func main() {
 		Driver: driver,
 		Model:  m,
 	})
-	if err := app.Start(nil); err != nil {
+	if err := app.Start(context.Background()); err != nil {
 		log.Fatal(err)
 	} else {
 		fmt.Printf("Successful quit.\n")

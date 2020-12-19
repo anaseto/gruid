@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -19,7 +20,7 @@ func main() {
 		Driver: dri,
 		Model:  m,
 	})
-	if err := app.Start(nil); err != nil {
+	if err := app.Start(context.Background()); err != nil {
 		log.Fatal(err)
 	} else {
 		fmt.Printf("Successful quit.\n")
@@ -100,9 +101,9 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	case ui.MenuQuit:
 		return gruid.End()
 	case ui.MenuMove:
-		m.label.SetText(fmt.Sprintf("moved selection to entry number %d", m.menu.Active()))
-	case ui.MenuInvoke:
 		m.label.SetText(fmt.Sprintf("activated entry number %d", m.menu.Active()))
+	case ui.MenuInvoke:
+		m.label.SetText(fmt.Sprintf("invoked entry number %d", m.menu.Active()))
 	}
 	return nil
 }

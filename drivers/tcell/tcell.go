@@ -69,6 +69,7 @@ func (dr *Driver) Init() error {
 	// try to send initial size
 	w, h := dr.screen.Size()
 	dr.screen.PostEvent(tcell.NewEventResize(w, h))
+
 	dr.init = true
 	return nil
 }
@@ -77,7 +78,13 @@ func (dr *Driver) Init() error {
 func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 	go func(ctx context.Context) {
 		<-ctx.Done()
-		dr.screen.PostEvent(tcell.NewEventInterrupt(0))
+		n := 0
+		err := dr.screen.PostEvent(tcell.NewEventInterrupt(0))
+		for err != nil && n < 10 {
+			// should not happen in practice
+			n++
+			err = dr.screen.PostEvent(tcell.NewEventInterrupt(0))
+		}
 	}(ctx)
 	send := func(msg gruid.Msg) {
 		select {
