@@ -36,10 +36,10 @@ func NewModel(gd gruid.Grid) *model {
 	m := &model{grid: gd}
 	st := gruid.Style{}
 	m.grid = m.grid.Slice(gruid.NewRange(0, 0, 80, 5))
-	label := ui.NewLabel(ui.LabelConfig{
+	label := &ui.Label{
 		Box:        &ui.Box{Title: ui.NewStyledText("Last Message").WithStyle(st.WithFg(ColorHeader))},
 		StyledText: ui.NewStyledText("No input messages yet!"),
-	})
+	}
 	m.label = label
 	m.init = true
 	return m
@@ -60,7 +60,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 			return gruid.End()
 		}
 	}
-	m.label.SetStyledText(ui.NewStyledText(fmt.Sprintf("%+v", msg)).Format(78))
+	m.label.StyledText = ui.NewStyledText(fmt.Sprintf("%+v", msg)).Format(78)
 	return nil
 }
 

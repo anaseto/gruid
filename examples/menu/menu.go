@@ -81,11 +81,11 @@ func NewModel(gd gruid.Grid) *model {
 		Style:      style,
 	})
 	m.menu = menu
-	label := ui.NewLabel(ui.LabelConfig{
+	label := &ui.Label{
 		Box:         &ui.Box{Title: ui.NewStyledText("Menu Last Action").WithStyle(st.WithFg(ColorHeader))},
 		StyledText:  ui.NewStyledText("Nothing done yet!"),
 		AdjustWidth: true,
-	})
+	}
 	m.label = label
 	return m
 }
