@@ -6,24 +6,27 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-// MenuEntry represents an entry in the menu. It is displayed on one line, and
-// for example can be a choice or a header.
+// MenuEntry represents an entry in the menu. By default they behave much like
+// a button and can be activated and invoked.
 type MenuEntry struct {
-	Text   string // displayed text on the entry line
-	Header bool   // not an activable entry, but a sub-header entry
+	// Text is the text displayed on the entry line.
+	Text string
 
-	// Keys contains entry shortcuts, if any, and only for non-header
-	// activable entries. Other menu key bindings take precedence over
-	// those.
+	// Disabled means that the entry is not activable nor invokable. It may
+	// represent a header or an unavailable choice, for example.
+	Disabled bool
+
+	// Keys contains entry shortcuts, if any, and only for activable
+	// entries. Other menu key bindings take precedence over those.
 	Keys []gruid.Key
 }
 
 // MenuKeys contains key bindings configuration for the menu.
 type MenuKeys struct {
-	Up       []gruid.Key // move selection up
-	Down     []gruid.Key // move selection down
-	Activate []gruid.Key // activate selection
-	Quit     []gruid.Key // quit menu
+	Up     []gruid.Key // move up active entry (default: ArrowUp, k)
+	Down   []gruid.Key // move down active entry (default: ArrowDown, j)
+	Invoke []gruid.Key // invoke selection (default: Enter)
+	Quit   []gruid.Key // requist menu quit (default: Escape, q, Q)
 }
 
 // MenuAction represents an user action with the menu.
@@ -35,17 +38,17 @@ const (
 	// mouse motion outside the menu, or within a same entry line).
 	MenuPass MenuAction = iota
 
-	// MenuMove reports that the user moved the selection cursor by using
-	// the arrow keys or a mouse motion.
+	// MenuMove reports that the user moved the active entry. This happens
+	// by default when using the arrow keys or a mouse motion.
 	MenuMove
 
-	// MenuActivate reports that the user clicked or pressed enter to
-	// activate/accept a selected entry, or used a shortcut key to select
-	// and activate/accept a specific entry.
-	MenuActivate
+	// MenuInvoke reports that the user clicked or pressed enter to invoke
+	// an already active entry, or used a shortcut key to both activate and
+	// invoke a specific entry.
+	MenuInvoke
 
-	// MenuQuit reports that the user clicked outside the menu, or
-	// pressed Esc, Space or X.
+	// MenuQuit reports that the user requested to quit the menu, either by
+	// clicking outside the menu, or by using a key shortcut.
 	MenuQuit
 )
 
@@ -53,7 +56,7 @@ const (
 type MenuStyle struct {
 	BgAlt    gruid.Color // alternate background on even choice lines
 	Selected gruid.Color // foreground for selected entry
-	Header   gruid.Style // header entry
+	Disabled gruid.Style // disabled entry style (default: same as non-disabled)
 	Boxed    bool        // draw a box around the menu
 	Box      gruid.Style // box style, if any
 	Title    gruid.Style // box title style, if any
@@ -80,11 +83,15 @@ func NewMenu(cfg MenuConfig) *Menu {
 		keys:    cfg.Keys,
 		draw:    true,
 	}
+	st := gruid.Style{}
+	if m.style.Disabled == st {
+		m.style.Disabled = m.stt.Style()
+	}
 	if m.title != "" {
 		m.style.Boxed = true
 	}
-	if m.keys.Activate == nil {
-		m.keys.Activate = []gruid.Key{gruid.KeyEnter}
+	if m.keys.Invoke == nil {
+		m.keys.Invoke = []gruid.Key{gruid.KeyEnter}
 	}
 	if m.keys.Down == nil {
 		m.keys.Down = []gruid.Key{gruid.KeyArrowDown, "j"}
@@ -99,8 +106,8 @@ func NewMenu(cfg MenuConfig) *Menu {
 	return m
 }
 
-// Menu is a widget that asks the user to select an option among a list of
-// entries.
+// Menu is a widget that displays a list of entries to the user. It allows to
+// move the active entry, as well as invoke a particular entry.
 type Menu struct {
 	grid    gruid.Grid
 	entries []MenuEntry
@@ -114,8 +121,8 @@ type Menu struct {
 	keys    MenuKeys
 }
 
-// Selection return the index of the currently selected entry.
-func (m *Menu) Selection() int {
+// Active return the index of the currently active entry.
+func (m *Menu) Active() int {
 	return m.cursor
 }
 
@@ -161,7 +168,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 		case msg.Key.In(m.keys.Down):
 			m.action = MenuMove
 			m.cursor++
-			for m.cursor < l && m.entries[m.cursor].Header {
+			for m.cursor < l && m.entries[m.cursor].Disabled {
 				m.cursor++
 			}
 			if m.cursor >= l {
@@ -170,15 +177,15 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 		case msg.Key.In(m.keys.Up):
 			m.action = MenuMove
 			m.cursor--
-			for m.cursor >= 0 && m.entries[m.cursor].Header {
+			for m.cursor >= 0 && m.entries[m.cursor].Disabled {
 				m.cursor--
 			}
 			if m.cursor < 0 {
 				m.cursor = 0
 				m.cursorAtLastChoice()
 			}
-		case msg.Key.In(m.keys.Activate) && m.cursor < l && !m.entries[m.cursor].Header:
-			m.action = MenuActivate
+		case msg.Key.In(m.keys.Invoke) && m.cursor < l && !m.entries[m.cursor].Disabled:
+			m.action = MenuInvoke
 		default:
 			nchars := utf8.RuneCountInString(string(msg.Key))
 			if nchars != 1 {
@@ -188,7 +195,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 				for _, k := range e.Keys {
 					if k == msg.Key {
 						m.cursor = i
-						m.action = MenuActivate
+						m.action = MenuInvoke
 						break
 					}
 				}
@@ -220,8 +227,8 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 			}
 			m.cursor = p.Y
 			m.action = MenuMove
-			if !m.entries[m.cursor].Header {
-				m.action = MenuActivate
+			if !m.entries[m.cursor].Disabled {
+				m.action = MenuInvoke
 			}
 		}
 	}
@@ -240,7 +247,7 @@ func (m *Menu) drawGrid() gruid.Grid {
 func (m *Menu) cursorAtFirstChoice() {
 	m.cursor = 0
 	for i, c := range m.entries {
-		if !c.Header {
+		if !c.Disabled {
 			m.cursor = i
 			break
 		}
@@ -250,7 +257,7 @@ func (m *Menu) cursorAtFirstChoice() {
 func (m *Menu) cursorAtLastChoice() {
 	m.cursor = 0
 	for i, c := range m.entries {
-		if !c.Header {
+		if !c.Disabled {
 			m.cursor = i
 		}
 	}
@@ -279,7 +286,7 @@ func (m *Menu) Draw() gruid.Grid {
 	}
 	crg := cgrid.Range().Origin()
 	for i, c := range m.entries {
-		if !c.Header {
+		if !c.Disabled {
 			st := m.stt.Style()
 			if alt {
 				st.Bg = m.style.BgAlt
@@ -296,7 +303,7 @@ func (m *Menu) Draw() gruid.Grid {
 			line.Fill(cell)
 		} else {
 			alt = false
-			st := m.style.Header
+			st := m.style.Disabled
 			nchars := utf8.RuneCountInString(c.Text)
 			m.stt.With(c.Text, st).Draw(cgrid.Slice(crg.Line(i)))
 			cell := gruid.Cell{Rune: ' ', Style: st}

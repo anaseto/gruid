@@ -62,7 +62,7 @@ type model struct {
 func NewModel(gd gruid.Grid) *model {
 	m := &model{grid: gd}
 	entries := []ui.MenuEntry{
-		{Header: true, Text: "Header"},
+		{Disabled: true, Text: "Header"},
 		{Text: "(@kF@N)irst", Keys: []gruid.Key{"f", "F"}},
 		{Text: "(@kS@N)econd", Keys: []gruid.Key{"s", "S"}},
 		{Text: "(@kT@N)hird", Keys: []gruid.Key{"t", "T"}},
@@ -71,7 +71,7 @@ func NewModel(gd gruid.Grid) *model {
 	style := ui.MenuStyle{
 		BgAlt:    ColorAltBg,
 		Selected: ColorSelected,
-		Header:   st.WithFg(ColorHeader),
+		Disabled:   st.WithFg(ColorHeader),
 		Title:    st.WithFg(ColorTitle),
 	}
 	menu := ui.NewMenu(ui.MenuConfig{
@@ -102,9 +102,9 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	case ui.MenuQuit:
 		return gruid.End()
 	case ui.MenuMove:
-		m.label.SetText(fmt.Sprintf("moved selection to entry number %d", m.menu.Selection()))
-	case ui.MenuActivate:
-		m.label.SetText(fmt.Sprintf("activated entry number %d", m.menu.Selection()))
+		m.label.SetText(fmt.Sprintf("moved selection to entry number %d", m.menu.Active()))
+	case ui.MenuInvoke:
+		m.label.SetText(fmt.Sprintf("activated entry number %d", m.menu.Active()))
 	}
 	return nil
 }
