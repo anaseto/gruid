@@ -125,8 +125,8 @@ func (stt StyledText) WithMarkups(markups map[rune]gruid.Style) StyledText {
 }
 
 // Format formats the text so that lines longer than a certain width get
-// wrapped at word boundaries. It preserves spaces at the beginning of a line.
-// It returns the modified style for convenience.
+// wrapped at word boundaries, if possible. It preserves spaces at the
+// beginning of a line.  It returns the modified style for convenience.
 func (stt StyledText) Format(width int) StyledText {
 	pbuf := bytes.Buffer{}
 	wordbuf := bytes.Buffer{}
@@ -144,7 +144,7 @@ func (stt StyledText) Format(width int) StyledText {
 				col++
 				continue
 			case wlen > 0:
-				if col+wlen > width && wantspace {
+				if col+wlen+1 > width && wantspace {
 					pbuf.WriteRune('\n')
 					col = 0
 				} else if wantspace {
