@@ -270,7 +270,19 @@ func (rg Range) Iter(fn func(Position)) {
 
 // Grid represents the grid that is used to draw a model logical contents that
 // are then sent to the driver. It is a slice type, so it represents a
-// rectangular range within the whole grid of the application.
+// rectangular range within the whole grid of the application. Due to how it is
+// represented internally, it is more efficient to iterate whole lines first,
+// as in the following pattern:
+//
+// 	w, h := gd.Size()
+//	for y := 0; y < h; y++ {
+//		for x := 0; x < w; x++ {
+//			pos := Position{X: x, Y: y}
+//			// do something with pos and the grid gd
+//		}
+//	}
+//
+// You may also look into the Iter and Fill methods.
 type Grid struct {
 	ug *grid // underlying whole grid
 	rg Range // range within the whole grid
@@ -299,7 +311,8 @@ type FrameCell struct {
 }
 
 // NewGrid returns a new grid with given width and height in cells. The width
-// and height should be positive or null.
+// and height should be positive or null. The new grid contains all positions
+// (X,Y) with 0 <= X < w and 0 <= Y < h.
 func NewGrid(w, h int) Grid {
 	gd := Grid{}
 	gd.ug = &grid{}
@@ -430,13 +443,25 @@ func idxToPos(i, w int) Position {
 
 // Fill sets the given cell as content for all the grid positions.
 func (gd Grid) Fill(c Cell) {
-	xmax, ymax := gd.Size()
+	w, h := gd.Size()
 	upos := gd.Range().Min
-	for y := 0; y < ymax; y++ {
+	for y := 0; y < h; y++ {
 		yidx := (upos.Y + y) * gd.ug.width
-		for x := 0; x < xmax; x++ {
+		for x := 0; x < w; x++ {
 			xidx := x + upos.X
 			gd.ug.cells[xidx+yidx] = c
+		}
+	}
+}
+
+// Iter iterates a function on all the grid positions and cells.
+func (gd Grid) Iter(fn func(Position, Cell)) {
+	w, h := gd.Size()
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			pos := Position{X: x, Y: y}
+			c := gd.GetCell(pos)
+			fn(pos, c)
 		}
 	}
 }
