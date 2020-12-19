@@ -6,7 +6,6 @@ import (
 
 // LabelConfig describes configuration options for creating a label.
 type LabelConfig struct {
-	Grid        gruid.Grid // grid slice where the label is drawn // TODO: remove
 	StyledText  StyledText // styled text with initial label text content
 	Box         *Box       // draw optional box around the  label
 	AdjustWidth bool       // reduce the width of the label if possible
@@ -15,7 +14,6 @@ type LabelConfig struct {
 // Label represents a bunch of text in a grid. It may be boxed and provided
 // with a title.
 type Label struct {
-	grid gruid.Grid
 	stt  StyledText
 	box  *Box
 	adjw bool
@@ -24,7 +22,6 @@ type Label struct {
 // NewLabel returns a new label with given configuration options.
 func NewLabel(cfg LabelConfig) *Label {
 	lb := &Label{
-		grid: cfg.Grid,
 		stt:  cfg.StyledText,
 		box:  cfg.Box,
 		adjw: cfg.AdjustWidth,
@@ -47,7 +44,7 @@ func (lb *Label) Text() string {
 	return lb.stt.Text()
 }
 
-func (lb *Label) drawGrid() gruid.Grid {
+func (lb *Label) drawGrid(gd gruid.Grid) gruid.Grid {
 	max := lb.stt.Size()
 	w, h := max.X, max.Y
 	if lb.box != nil {
@@ -61,15 +58,15 @@ func (lb *Label) drawGrid() gruid.Grid {
 		w += 2
 	}
 	if !lb.adjw {
-		w = lb.grid.Range().Size().X
+		w = gd.Range().Size().X
 	}
-	return lb.grid.Slice(gruid.NewRange(0, 0, w, h))
+	return gd.Slice(gruid.NewRange(0, 0, w, h))
 }
 
 // Draw draws the label into the grid. It returns the grid slice that was
 // drawn.
-func (lb *Label) Draw() gruid.Grid {
-	grid := lb.drawGrid()
+func (lb *Label) Draw(gd gruid.Grid) gruid.Grid {
+	grid := lb.drawGrid(gd)
 	cgrid := grid
 	if lb.box != nil {
 		lb.box.Draw(grid)

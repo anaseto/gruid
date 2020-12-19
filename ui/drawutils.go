@@ -14,17 +14,20 @@ type Box struct {
 }
 
 // Draw draws a rectangular box in a grid, taking the whole grid. It does not
-// draw anything in the interior region.
-func (b Box) Draw(gd gruid.Grid) {
+// draw anything in the interior region. It returns the grid slice that was
+// drawn, which usually is the whole grid, except if the grid was too small to
+// draw a box.
+func (b Box) Draw(gd gruid.Grid) gruid.Grid {
 	rg := gd.Range().Origin()
-	if rg.Empty() {
-		return
+	max := rg.Size()
+	if max.X < 2 || max.Y < 2 {
+		return gd.Slice(gruid.Range{})
 	}
 	cgrid := gd.Slice(rg.Shift(1, 0, -1, 0))
 	crg := cgrid.Range().Origin()
 	cell := gruid.Cell{Style: b.Style}
 	cell.Rune = '─'
-	max := crg.Size()
+	max = crg.Size()
 	if b.Title.Text() != "" {
 		nchars := utf8.RuneCountInString(b.Title.Text())
 		dist := (max.X - nchars) / 2
@@ -49,4 +52,5 @@ func (b Box) Draw(gd gruid.Grid) {
 	col.Fill(cell)
 	col = gd.Slice(rg.Shift(0, 1, 0, -1).Column(max.X - 1))
 	col.Fill(cell)
+	return gd
 }

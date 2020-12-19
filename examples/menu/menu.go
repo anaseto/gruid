@@ -82,7 +82,6 @@ func NewModel(gd gruid.Grid) *model {
 	})
 	m.menu = menu
 	label := ui.NewLabel(ui.LabelConfig{
-		Grid:        m.grid.Slice(gruid.NewRange(22, 0, 70, 5)),
 		Box:         &ui.Box{Title: ui.NewStyledText("Menu Last Action").WithStyle(st.WithFg(ColorHeader))},
 		StyledText:  ui.NewStyledText("Nothing done yet!"),
 		AdjustWidth: true,
@@ -111,6 +110,6 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 func (m *model) Draw() gruid.Grid {
 	m.grid.Fill(gruid.Cell{Rune: ' '})
 	m.menu.Draw()
-	m.label.Draw()
+	m.label.Draw(m.grid.Slice(gruid.NewRange(22, 0, 70, 5)))
 	return m.grid
 }

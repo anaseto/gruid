@@ -68,7 +68,6 @@ func NewModel(gd gruid.Grid) *model {
 	})
 	m.input = input
 	label := ui.NewLabel(ui.LabelConfig{
-		Grid:        gruid.NewGrid(30, 10),
 		Box:         &ui.Box{Title: ui.NewStyledText("Last Entered Text").WithStyle(st.WithFg(ColorTitle))},
 		StyledText:  ui.NewStyledText("Nothing entered yet!"),
 		AdjustWidth: true,
@@ -96,6 +95,6 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 func (m *model) Draw() gruid.Grid {
 	m.grid.Fill(gruid.Cell{Rune: ' '})
 	m.grid.Copy(m.input.Draw())
-	m.grid.Slice(m.grid.Range().Shift(0, 6, 0, 0)).Copy(m.label.Draw())
+	m.label.Draw(m.grid.Slice(gruid.NewRange(0, 5, 20, 15)))
 	return m.grid
 }

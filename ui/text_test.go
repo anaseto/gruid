@@ -54,6 +54,11 @@ func TestFormatWithMarkup(t *testing.T) {
 	}
 	stt = stt.Format(9)
 	max = stt.Size()
+	gd := gruid.NewGrid(80, 20)
+	gd = stt.Draw(gd)
+	if gd.Size() != max {
+		t.Errorf("bad size %v vs grid %v", max, gd.Size())
+	}
 	newlines := strings.Count(stt.Text(), "\n")
 	if newlines != 2 {
 		t.Errorf("bad formatted text number of lines: %d. Text:\n%s", newlines, stt.Text())

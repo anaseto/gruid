@@ -216,12 +216,16 @@ func (stt StyledText) Format(width int) StyledText {
 	return stt
 }
 
-// Draw displays the styled text in a given grid.
-func (stt StyledText) Draw(gd gruid.Grid) {
+// Draw displays the styled text in a given grid. It returns the smallest grid
+// slice containing the drawn part. Note that the grid is not cleared with
+// spaces beforehand by this function, not even the returned one, you should
+// use the styled text with a label for this.
+func (stt StyledText) Draw(gd gruid.Grid) gruid.Grid {
 	x, y := 0, 0
 	c := gruid.Cell{Style: stt.style}
 	markup := stt.markups != nil // whether markup is activated
 	procm := false               // processing markup
+	xmax := 0
 	for _, r := range stt.text {
 		if markup {
 			if procm {
@@ -243,6 +247,9 @@ func (stt StyledText) Draw(gd gruid.Grid) {
 			}
 		}
 		if r == '\n' {
+			if x > xmax {
+				xmax = x
+			}
 			x = 0
 			y++
 			continue
@@ -251,4 +258,11 @@ func (stt StyledText) Draw(gd gruid.Grid) {
 		gd.Set(gruid.Point{X: x, Y: y}, c)
 		x++
 	}
+	if x > xmax {
+		xmax = x
+	}
+	if xmax > 0 || y > 0 {
+		y++ // at least one line
+	}
+	return gd.Slice(gruid.NewRange(0, 0, xmax, y))
 }
