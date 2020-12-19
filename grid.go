@@ -376,6 +376,9 @@ func (gd Grid) Resize(w, h int) Grid {
 		gd.rg.Max = gd.rg.Min
 		return gd
 	}
+	if gd.ug == nil {
+		gd.ug = &grid{}
+	}
 	gd.rg.Max = gd.rg.Min.Shift(w, h)
 	uw := gd.ug.width
 	uh := gd.ug.height
@@ -509,6 +512,9 @@ func (gd Grid) cprev(src Grid) (int, int) {
 
 // computeFrame computes next frame minimal changes and returns them.
 func (app App) computeFrame(gd Grid) Frame {
+	if gd.ug == nil {
+		return Frame{}
+	}
 	ug := gd.ug
 	if len(app.cellbuf) < len(ug.cells) {
 		app.cellbuf = make([]Cell, len(ug.cells))
