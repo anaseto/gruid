@@ -71,22 +71,21 @@ func NewModel(gd gruid.Grid) *model {
 	style := ui.MenuStyle{
 		BgAlt:    ColorAltBg,
 		Selected: ColorSelected,
-		Disabled:   st.WithFg(ColorHeader),
-		Title:    st.WithFg(ColorTitle),
+		Disabled: st.WithFg(ColorHeader),
 	}
 	menu := ui.NewMenu(ui.MenuConfig{
 		Grid:       m.grid.Slice(gruid.NewRange(0, 0, 20, len(entries)+2)),
 		Entries:    entries,
 		StyledText: ui.NewStyledText("").WithMarkup('k', st.WithFg(ColorKey)),
-		Title:      "Menu",
+		Box:        &ui.Box{Title: ui.NewStyledText("Menu").WithStyle(st.WithFg(ColorTitle))},
 		Style:      style,
 	})
 	m.menu = menu
 	label := ui.NewLabel(ui.LabelConfig{
-		Grid:       m.grid.Slice(gruid.NewRange(22, 0, 70, 5)),
-		Title:      "Menu Last Action",
-		StyledText: ui.NewStyledText("Nothing done yet!"),
-		Style:      ui.LabelStyle{Title: st.WithFg(ColorHeader), AdjustWidth: true},
+		Grid:        m.grid.Slice(gruid.NewRange(22, 0, 70, 5)),
+		Box:         &ui.Box{Title: ui.NewStyledText("Menu Last Action").WithStyle(st.WithFg(ColorHeader))},
+		StyledText:  ui.NewStyledText("Nothing done yet!"),
+		AdjustWidth: true,
 	})
 	m.label = label
 	return m

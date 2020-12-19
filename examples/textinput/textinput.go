@@ -58,21 +58,20 @@ func NewModel(gd gruid.Grid) *model {
 	st := gruid.Style{}
 	style := ui.TextInputStyle{
 		Cursor: st.WithFg(ColorCursor),
-		Title:  st.WithFg(ColorTitle),
 		Prompt: st.WithFg(ColorPrompt),
 	}
 	input := ui.NewTextInput(ui.TextInputConfig{
 		Grid:   gruid.NewGrid(20, 3),
-		Title:  "Text Input",
+		Box:    &ui.Box{Title: ui.NewStyledText("Text Input").WithStyle(st.WithFg(ColorTitle))},
 		Prompt: "> ",
 		Style:  style,
 	})
 	m.input = input
 	label := ui.NewLabel(ui.LabelConfig{
-		Grid:       gruid.NewGrid(30, 10),
-		Title:      "Last Entered Text",
-		StyledText: ui.NewStyledText("Nothing entered yet!"),
-		Style:      ui.LabelStyle{Title: st.WithFg(ColorTitle), AdjustWidth: true},
+		Grid:        gruid.NewGrid(30, 10),
+		Box:         &ui.Box{Title: ui.NewStyledText("Last Entered Text").WithStyle(st.WithFg(ColorTitle))},
+		StyledText:  ui.NewStyledText("Nothing entered yet!"),
+		AdjustWidth: true,
 	})
 	m.label = label
 	return m

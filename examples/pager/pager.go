@@ -64,14 +64,13 @@ func (sty styler) GetStyle(st gruid.Style) tc.Style {
 func NewPager(grid gruid.Grid, lines []string, fname string) *ui.Pager {
 	st := gruid.Style{}
 	style := ui.PagerStyle{
-		Title:   st.WithFg(ColorTitle),
 		LineNum: st.WithFg(ColorLnum),
 	}
 	pager := ui.NewPager(ui.PagerConfig{
 		Grid:       grid,
 		StyledText: ui.StyledText{},
 		Lines:      lines,
-		Title:      fname,
+		Box:        &ui.Box{Title: ui.NewStyledText(fname).WithStyle(st.WithFg(ColorTitle))},
 		Style:      style,
 	})
 	return pager

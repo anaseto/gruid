@@ -56,10 +56,7 @@ const (
 type MenuStyle struct {
 	BgAlt    gruid.Color // alternate background on even choice lines
 	Selected gruid.Color // foreground for selected entry
-	Disabled gruid.Style // disabled entry style (default: same as non-disabled)
-	Boxed    bool        // draw a box around the menu
-	Box      gruid.Style // box style, if any
-	Title    gruid.Style // box title style, if any
+	Disabled gruid.Style // disabled entry style
 }
 
 // MenuConfig contains configuration options for creating a menu.
@@ -67,8 +64,8 @@ type MenuConfig struct {
 	Grid       gruid.Grid  // grid slice where the menu is drawn
 	Entries    []MenuEntry // menu entries
 	StyledText StyledText  // default styled text formatter for content
-	Title      string      // optional title, implies Boxed style
 	Keys       MenuKeys    // optional custom key bindings
+	Box        *Box        // draw optional box around the menu
 	Style      MenuStyle
 }
 
@@ -77,18 +74,11 @@ func NewMenu(cfg MenuConfig) *Menu {
 	m := &Menu{
 		grid:    cfg.Grid,
 		entries: cfg.Entries,
-		title:   cfg.Title,
+		box:     cfg.Box,
 		stt:     cfg.StyledText,
 		style:   cfg.Style,
 		keys:    cfg.Keys,
 		draw:    true,
-	}
-	st := gruid.Style{}
-	if m.style.Disabled == st {
-		m.style.Disabled = m.stt.Style()
-	}
-	if m.title != "" {
-		m.style.Boxed = true
 	}
 	if m.keys.Invoke == nil {
 		m.keys.Invoke = []gruid.Key{gruid.KeyEnter}
@@ -111,7 +101,7 @@ func NewMenu(cfg MenuConfig) *Menu {
 type Menu struct {
 	grid    gruid.Grid
 	entries []MenuEntry
-	title   string
+	box     *Box
 	stt     StyledText
 	style   MenuStyle
 	cursor  int
@@ -203,7 +193,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 		}
 	case gruid.MsgMouse:
 		crg := rg // content range
-		if m.style.Boxed {
+		if m.box != nil {
 			crg = crg.Shift(1, 1, -1, -1)
 		}
 		p := msg.P.Rel(crg)
@@ -215,7 +205,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 			m.cursor = p.Y
 			m.action = MenuMove
 		case gruid.MouseMain:
-			if !msg.P.In(rg) || !m.style.Boxed && p.Y >= len(m.entries) {
+			if !msg.P.In(rg) || m.box == nil && p.Y >= len(m.entries) {
 				m.action = MenuQuit
 				if m.init {
 					return gruid.End()
@@ -237,7 +227,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 
 func (m *Menu) drawGrid() gruid.Grid {
 	h := len(m.entries) // menu content height
-	if m.style.Boxed {
+	if m.box != nil {
 		h += 2 // borders height
 	}
 	max := m.grid.Size()
@@ -270,18 +260,13 @@ func (m *Menu) Draw() gruid.Grid {
 	}
 	grid := m.drawGrid()
 
-	if m.style.Boxed {
-		b := box{
-			grid:  grid,
-			title: m.stt.With(m.title, m.style.Title),
-			style: m.style.Box,
-		}
-		b.draw()
+	if m.box != nil {
+		m.box.Draw(grid)
 	}
 	alt := false
 	rg := grid.Range().Origin()
 	cgrid := grid
-	if m.style.Boxed {
+	if m.box != nil {
 		cgrid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
 	crg := cgrid.Range().Origin()

@@ -8,10 +8,7 @@ import (
 
 // PagerStyle describes styling options for a Pager.
 type PagerStyle struct {
-	Boxed   bool        // draw a box around the pager
-	Box     gruid.Style // box style, if any
-	Title   gruid.Style // box title style
-	LineNum gruid.Style // line num display style
+	LineNum gruid.Style // line num display style (for boxed pager)
 }
 
 // PagerKeys contains key bindings configuration for the pager.
@@ -32,7 +29,7 @@ type PagerConfig struct {
 	Grid       gruid.Grid // grid slice where the viewable content is drawn
 	StyledText StyledText // styled text for markup rendering
 	Lines      []string   // content lines to be read
-	Title      string     // optional title, implies Boxed style
+	Box        *Box       // draw optional box around the  label
 	Keys       PagerKeys  // optional custom key bindings for the pager
 	Style      PagerStyle
 }
@@ -41,7 +38,7 @@ type PagerConfig struct {
 type Pager struct {
 	grid   gruid.Grid
 	stt    StyledText
-	title  string
+	box    *Box
 	lines  []string
 	style  PagerStyle
 	index  int // current index
@@ -55,7 +52,7 @@ func NewPager(cfg PagerConfig) *Pager {
 	pg := &Pager{
 		grid:  cfg.Grid,
 		stt:   cfg.StyledText,
-		title: cfg.Title,
+		box:   cfg.Box,
 		lines: cfg.Lines,
 		style: cfg.Style,
 		keys:  cfg.Keys,
@@ -87,9 +84,6 @@ func NewPager(cfg PagerConfig) *Pager {
 	if pg.keys.Quit == nil {
 		pg.keys.Quit = []gruid.Key{gruid.KeyEscape, "q", "Q"}
 	}
-	if pg.title != "" {
-		pg.style.Boxed = true
-	}
 	return pg
 }
 
@@ -112,7 +106,7 @@ const (
 // Update implements gruid.Model.Update for Pager.
 func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 	nlines := pg.grid.Size().Y
-	if pg.style.Boxed {
+	if pg.box != nil {
 		nlines -= 2
 	}
 	pg.action = PagerPass
@@ -212,20 +206,15 @@ func (pg *Pager) Draw() gruid.Grid {
 	max := grid.Size()
 	w, h := max.X, max.Y
 	bh := 0
-	if pg.style.Boxed {
+	if pg.box != nil {
 		bh = 2
 	}
 	if h > bh+len(pg.lines) {
 		h = bh + len(pg.lines)
 		grid = grid.Slice(gruid.NewRange(0, 0, w, h))
 	}
-	if pg.style.Boxed {
-		b := box{
-			grid:  grid,
-			title: pg.stt.With(pg.title, pg.style.Title),
-			style: pg.style.Box,
-		}
-		b.draw()
+	if pg.box != nil {
+		pg.box.Draw(grid)
 		rg := grid.Range().Origin()
 		line := grid.Slice(rg.Line(h-1).Shift(2, 0, -2, 0))
 		lnumtext := fmt.Sprintf("%d-%d/%d", pg.index, pg.index+h-bh-1, len(pg.lines)-1)

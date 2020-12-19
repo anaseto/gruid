@@ -38,9 +38,8 @@ func NewModel(gd gruid.Grid) *model {
 	m.grid = m.grid.Slice(gruid.NewRange(0, 0, 80, 5))
 	label := ui.NewLabel(ui.LabelConfig{
 		Grid:       m.grid,
-		Title:      "Menu Last Action",
+		Box:        &ui.Box{Title: ui.NewStyledText("Last Message").WithStyle(st.WithFg(ColorHeader))},
 		StyledText: ui.NewStyledText("No input messages yet!"),
-		Style:      ui.LabelStyle{Title: st.WithFg(ColorHeader)},
 	})
 	m.label = label
 	m.init = true

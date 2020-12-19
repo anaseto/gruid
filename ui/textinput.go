@@ -8,10 +8,7 @@ import (
 
 // TextInputStyle describes styling options for a TextInput.
 type TextInputStyle struct {
-	Boxed  bool        // draw a box around the text input
-	Box    gruid.Style // box style, if any
 	Cursor gruid.Style // cursor style
-	Title  gruid.Style // box title style, if any
 	Prompt gruid.Style // prompt style, if any
 }
 
@@ -19,8 +16,8 @@ type TextInputStyle struct {
 type TextInputConfig struct {
 	Grid       gruid.Grid // grid slice where the text input is drawn
 	StyledText StyledText // styled text with initial text input text content
-	Title      string     // optional title, implies Boxed style
 	Prompt     string     // optional prompt text
+	Box        *Box       // draw optional box around the text input
 	Style      TextInputStyle
 }
 
@@ -29,7 +26,7 @@ type TextInputConfig struct {
 type TextInput struct {
 	grid      gruid.Grid
 	stt       StyledText
-	title     string
+	box       *Box
 	prompt    string
 	content   []rune
 	style     TextInputStyle
@@ -56,7 +53,7 @@ func NewTextInput(cfg TextInputConfig) *TextInput {
 	ti := &TextInput{
 		grid:   cfg.Grid,
 		stt:    cfg.StyledText,
-		title:  cfg.Title,
+		box:    cfg.Box,
 		prompt: cfg.Prompt,
 		style:  cfg.Style,
 	}
@@ -67,9 +64,6 @@ func NewTextInput(cfg TextInputConfig) *TextInput {
 	ti.cursorMin = utf8.RuneCountInString(ti.prompt)
 	ti.content = []rune(ti.stt.Text())
 	ti.cursor = len(ti.content)
-	if ti.title != "" {
-		ti.style.Boxed = true
-	}
 	return ti
 }
 
@@ -159,13 +153,8 @@ func (ti *TextInput) cursorRune() rune {
 // Draw implements gruid.Model.Draw.
 func (ti *TextInput) Draw() gruid.Grid {
 	cgrid := ti.grid
-	if ti.style.Boxed {
-		b := box{
-			grid:  ti.grid,
-			title: ti.stt.With(ti.title, ti.style.Title),
-			style: ti.style.Box,
-		}
-		b.draw()
+	if ti.box != nil {
+		ti.box.Draw(ti.grid)
 		rg := ti.grid.Range().Origin()
 		cgrid = ti.grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
