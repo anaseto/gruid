@@ -24,6 +24,7 @@ type Driver struct {
 	mousedrag bool
 	mousePos  gruid.Point
 	init      bool
+	noQuit    bool
 }
 
 // Config contains configurations options for the driver.
@@ -36,37 +37,47 @@ func NewDriver(cfg Config) *Driver {
 	return &Driver{sm: cfg.StyleManager}
 }
 
+// PreventQuit will make next call to Close keep the same tcell screen. It can
+// be used to chain two applications with the same screen. It is then your
+// reponsibility to either run another application or call Close manually to
+// properly quit.
+func (dr *Driver) PreventQuit() {
+	dr.noQuit = true
+}
+
 // Init implements gruid.Driver.Init. It initializes a screen using the tcell
 // terminal library.
-func (t *Driver) Init() error {
-	if t.sm == nil {
+func (dr *Driver) Init() error {
+	if dr.sm == nil {
 		return errors.New("no style manager provided")
 	}
-	screen, err := tcell.NewScreen()
-	t.screen = screen
-	if err != nil {
-		return err
+	if !dr.init {
+		screen, err := tcell.NewScreen()
+		dr.screen = screen
+		if err != nil {
+			return err
+		}
+		err = dr.screen.Init()
+		if err != nil {
+			return err
+		}
+		dr.screen.SetStyle(tcell.StyleDefault)
+		dr.screen.EnableMouse()
+		dr.screen.HideCursor()
 	}
-	err = t.screen.Init()
-	if err != nil {
-		return err
-	}
-	t.screen.SetStyle(tcell.StyleDefault)
-	t.screen.EnableMouse()
-	t.screen.HideCursor()
 
 	// try to send initial size
-	w, h := t.screen.Size()
-	t.screen.PostEvent(tcell.NewEventResize(w, h))
-	t.init = true
+	w, h := dr.screen.Size()
+	dr.screen.PostEvent(tcell.NewEventResize(w, h))
+	dr.init = true
 	return nil
 }
 
 // PollMsgs implements gruid.Driver.PollMsgs.
-func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
+func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 	go func(ctx context.Context) {
 		<-ctx.Done()
-		t.screen.PostEvent(tcell.NewEventInterrupt(0))
+		dr.screen.PostEvent(tcell.NewEventInterrupt(0))
 	}(ctx)
 	send := func(msg gruid.Msg) {
 		select {
@@ -75,10 +86,10 @@ func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 		}
 	}
 	for {
-		ev := t.screen.PollEvent()
+		ev := dr.screen.PollEvent()
 		if ev == nil {
 			// screen is finished, should not happen
-			return nil
+			return errors.New("screen was finished")
 		}
 		switch tev := ev.(type) {
 		case *tcell.EventInterrupt:
@@ -148,33 +159,33 @@ func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
 				msg.P = gruid.Point{X: x, Y: y}
-				if t.mousedrag {
+				if dr.mousedrag {
 					msg.Action = gruid.MouseMove
 				} else {
 					msg.Action = gruid.MouseMain
-					t.mousedrag = true
+					dr.mousedrag = true
 				}
 				send(msg)
 			case tcell.Button3:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
 				msg.P = gruid.Point{X: x, Y: y}
-				if t.mousedrag {
+				if dr.mousedrag {
 					msg.Action = gruid.MouseMove
 				} else {
 					msg.Action = gruid.MouseAuxiliary
-					t.mousedrag = true
+					dr.mousedrag = true
 				}
 				send(msg)
 			case tcell.Button2:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
 				msg.P = gruid.Point{X: x, Y: y}
-				if t.mousedrag {
+				if dr.mousedrag {
 					msg.Action = gruid.MouseMove
 				} else {
 					msg.Action = gruid.MouseSecondary
-					t.mousedrag = true
+					dr.mousedrag = true
 				}
 				send(msg)
 			case tcell.WheelUp:
@@ -193,15 +204,15 @@ func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
 				msg.P = gruid.Point{X: x, Y: y}
-				if t.mousedrag {
-					t.mousedrag = false
+				if dr.mousedrag {
+					dr.mousedrag = false
 					msg.Action = gruid.MouseRelease
 				} else {
-					if t.mousePos == msg.P {
+					if dr.mousePos == msg.P {
 						continue
 					}
 					msg.Action = gruid.MouseMove
-					t.mousePos = msg.P
+					dr.mousePos = msg.P
 				}
 				send(msg)
 			}
@@ -215,21 +226,24 @@ func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 }
 
 // Flush implements gruid.Driver.Flush.
-func (t *Driver) Flush(frame gruid.Frame) {
+func (dr *Driver) Flush(frame gruid.Frame) {
 	for _, cdraw := range frame.Cells {
 		c := cdraw.Cell
-		st := t.sm.GetStyle(c.Style)
-		t.screen.SetContent(cdraw.P.X, cdraw.P.Y, c.Rune, nil, st)
+		st := dr.sm.GetStyle(c.Style)
+		dr.screen.SetContent(cdraw.P.X, cdraw.P.Y, c.Rune, nil, st)
 	}
-	t.screen.Show()
+	dr.screen.Show()
 }
 
 // Close implements gruid.Driver.Close. It finalizes the screen and releases
 // resources.
-func (t *Driver) Close() {
-	if !t.init {
+func (dr *Driver) Close() {
+	if !dr.init {
 		return
 	}
-	t.screen.Fini()
-	t.init = false
+	if !dr.noQuit {
+		dr.screen.Fini()
+		dr.init = false
+	}
+	dr.noQuit = false
 }

@@ -512,8 +512,9 @@ func (gd Grid) cprev(src Grid) Point {
 }
 
 // computeFrame computes next frame minimal changes and returns them.
-func (app App) computeFrame(gd Grid) Frame {
+func (app *App) computeFrame(gd Grid) Frame {
 	if gd.ug == nil {
+		app.frame.Cells = app.frame.Cells[:0]
 		return Frame{}
 	}
 	ug := gd.ug
@@ -538,7 +539,7 @@ func (app App) computeFrame(gd Grid) Frame {
 
 // clearCache clears internal cache buffers, forcing a complete redraw of the
 // screen with the next Draw call, even for cells that did not change.
-func (app App) clearCellCache() {
+func (app *App) clearCellCache() {
 	for i := range app.cellbuf {
 		app.cellbuf[i] = Cell{}
 	}

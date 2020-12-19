@@ -494,8 +494,8 @@ func (dr *Driver) Close() {
 		dr.window.Destroy()
 		sdl.Quit()
 		dr.init = false
-		dr.noQuit = false
 	}
+	dr.noQuit = false
 }
 
 // ClearCache clears the tile textures internal cache.
