@@ -248,7 +248,7 @@ func (stt StyledText) Draw(gd gruid.Grid) {
 			continue
 		}
 		c.Rune = r
-		gd.SetCell(gruid.Position{X: x, Y: y}, c)
+		gd.Set(gruid.Point{X: x, Y: y}, c)
 		x++
 	}
 }

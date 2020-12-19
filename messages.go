@@ -136,7 +136,7 @@ func (ma MouseAction) String() string {
 // MsgMouse represents a mouse user input event.
 type MsgMouse struct {
 	Action MouseAction // mouse action (click, release, move)
-	Pos    Position    // mouse position in the grid
+	P    Point       // mouse position in the grid
 	Mod    ModMask     // modifier keys: not reported in most drivers
 	Time   time.Time   // time when the event was generated
 }

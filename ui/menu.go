@@ -199,26 +199,26 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 		if m.style.Boxed {
 			crg = crg.Shift(1, 1, -1, -1)
 		}
-		pos := msg.Pos.Relative(crg)
+		p := msg.P.Rel(crg)
 		switch msg.Action {
 		case gruid.MouseMove:
-			if !pos.In(crg.Origin()) || pos.Y == m.cursor || pos.Y >= len(m.entries) {
+			if !p.In(crg.Origin()) || p.Y == m.cursor || p.Y >= len(m.entries) {
 				break
 			}
-			m.cursor = pos.Y
+			m.cursor = p.Y
 			m.action = MenuMove
 		case gruid.MouseMain:
-			if !msg.Pos.In(rg) || !m.style.Boxed && pos.Y >= len(m.entries) {
+			if !msg.P.In(rg) || !m.style.Boxed && p.Y >= len(m.entries) {
 				m.action = MenuQuit
 				if m.init {
 					return gruid.End()
 				}
 				break
 			}
-			if !pos.In(crg.Origin()) || pos.Y >= len(m.entries) {
+			if !p.In(crg.Origin()) || p.Y >= len(m.entries) {
 				break
 			}
-			m.cursor = pos.Y
+			m.cursor = p.Y
 			m.action = MenuMove
 			if !m.entries[m.cursor].Header {
 				m.action = MenuActivate

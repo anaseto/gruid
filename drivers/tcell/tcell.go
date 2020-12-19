@@ -22,7 +22,7 @@ type Driver struct {
 	sm        StyleManager
 	screen    tcell.Screen
 	mousedrag bool
-	mousePos  gruid.Position
+	mousePos  gruid.Point
 	init      bool
 }
 
@@ -147,7 +147,7 @@ func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			case tcell.Button1:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
-				msg.Pos = gruid.Position{X: x, Y: y}
+				msg.P = gruid.Point{X: x, Y: y}
 				if t.mousedrag {
 					msg.Action = gruid.MouseMove
 				} else {
@@ -158,7 +158,7 @@ func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			case tcell.Button3:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
-				msg.Pos = gruid.Position{X: x, Y: y}
+				msg.P = gruid.Point{X: x, Y: y}
 				if t.mousedrag {
 					msg.Action = gruid.MouseMove
 				} else {
@@ -169,7 +169,7 @@ func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			case tcell.Button2:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
-				msg.Pos = gruid.Position{X: x, Y: y}
+				msg.P = gruid.Point{X: x, Y: y}
 				if t.mousedrag {
 					msg.Action = gruid.MouseMove
 				} else {
@@ -180,28 +180,28 @@ func (t *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			case tcell.WheelUp:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
-				msg.Pos = gruid.Position{X: x, Y: y}
+				msg.P = gruid.Point{X: x, Y: y}
 				msg.Action = gruid.MouseWheelUp
 				send(msg)
 			case tcell.WheelDown:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
-				msg.Pos = gruid.Position{X: x, Y: y}
+				msg.P = gruid.Point{X: x, Y: y}
 				msg.Action = gruid.MouseWheelDown
 				send(msg)
 			case tcell.ButtonNone:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
-				msg.Pos = gruid.Position{X: x, Y: y}
+				msg.P = gruid.Point{X: x, Y: y}
 				if t.mousedrag {
 					t.mousedrag = false
 					msg.Action = gruid.MouseRelease
 				} else {
-					if t.mousePos == msg.Pos {
+					if t.mousePos == msg.P {
 						continue
 					}
 					msg.Action = gruid.MouseMove
-					t.mousePos = msg.Pos
+					t.mousePos = msg.P
 				}
 				send(msg)
 			}
@@ -219,7 +219,7 @@ func (t *Driver) Flush(frame gruid.Frame) {
 	for _, cdraw := range frame.Cells {
 		c := cdraw.Cell
 		st := t.sm.GetStyle(c.Style)
-		t.screen.SetContent(cdraw.Pos.X, cdraw.Pos.Y, c.Rune, nil, st)
+		t.screen.SetContent(cdraw.P.X, cdraw.P.Y, c.Rune, nil, st)
 	}
 	t.screen.Show()
 }

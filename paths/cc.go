@@ -10,7 +10,7 @@ type ccNode struct {
 // ComputeCCAll computes a map of the connected components. It makes the
 // assumption that the paths are bidirectional, allowing for efficient
 // computation. It uses the same caching structures as ComputeCC.
-func (pr *PathRange) ComputeCCAll(nb Neighborer) {
+func (pr *PathRange) ComputeCCAll(nb Pather) {
 	w, h := pr.rg.Size()
 	if pr.cc == nil {
 		pr.cc = make([]ccNode, w*h)
@@ -29,12 +29,12 @@ func (pr *PathRange) ComputeCCAll(nb Neighborer) {
 		for len(pr.ccstack) > 0 {
 			idx := pr.ccstack[len(pr.ccstack)-1]
 			pr.ccstack = pr.ccstack[:len(pr.ccstack)-1]
-			pos := idxToPos(idx, w)
-			for _, npos := range nb.Neighbors(pos) {
-				if !npos.In(pr.rg) {
+			p := idxToPos(idx, w)
+			for _, q := range nb.Neighbors(p) {
+				if !q.In(pr.rg) {
 					continue
 				}
-				nidx := pr.idx(npos)
+				nidx := pr.idx(q)
 				if pr.cc[nidx].idx == pr.ccidx {
 					continue
 				}
@@ -50,7 +50,7 @@ func (pr *PathRange) ComputeCCAll(nb Neighborer) {
 // ComputeCC computes the connected component which contains a given position.
 // It makes the assumption that the paths are bidirectional, allowing for
 // efficient computation.
-func (pr *PathRange) ComputeCC(nb Neighborer, pos gruid.Position) {
+func (pr *PathRange) ComputeCC(nb Pather, p gruid.Point) {
 	w, h := pr.rg.Size()
 	if pr.cc == nil {
 		pr.cc = make([]ccNode, w*h)
@@ -63,7 +63,7 @@ func (pr *PathRange) ComputeCC(nb Neighborer, pos gruid.Position) {
 	pr.neighbors = nb
 	pr.ccstack = pr.ccstack[:0]
 	ccid := 0
-	idx := pr.idx(pos)
+	idx := pr.idx(p)
 	pr.cc[idx].id = ccid
 	pr.cc[idx].idx = pr.ccidx
 	pr.ccstack = append(pr.ccstack, idx)
@@ -71,12 +71,12 @@ func (pr *PathRange) ComputeCC(nb Neighborer, pos gruid.Position) {
 		idx = pr.ccstack[len(pr.ccstack)-1]
 		pr.ccstack = pr.ccstack[:len(pr.ccstack)-1]
 		pr.ccIterCache = append(pr.ccIterCache, idx)
-		pos := idxToPos(idx, w)
-		for _, npos := range nb.Neighbors(pos) {
-			if !npos.In(pr.rg) {
+		p := idxToPos(idx, w)
+		for _, q := range nb.Neighbors(p) {
+			if !q.In(pr.rg) {
 				continue
 			}
-			nidx := pr.idx(npos)
+			nidx := pr.idx(q)
 			if pr.cc[nidx].idx == pr.ccidx {
 				continue
 			}
@@ -90,11 +90,11 @@ func (pr *PathRange) ComputeCC(nb Neighborer, pos gruid.Position) {
 // CCAt returns a positive number identifying the position's connected
 // component as computed by either the last ComputeCC or ComputeCCAll call. It
 // returns -1 on out of range positions.
-func (pr *PathRange) CCAt(pos gruid.Position) int {
-	if !pos.In(pr.rg) || pr.cc == nil {
+func (pr *PathRange) CCAt(p gruid.Point) int {
+	if !p.In(pr.rg) || pr.cc == nil {
 		return -1
 	}
-	node := pr.cc[pr.idx(pos)]
+	node := pr.cc[pr.idx(p)]
 	if node.idx != pr.ccidx {
 		return -1
 	}
@@ -105,13 +105,13 @@ func (pr *PathRange) CCAt(pos gruid.Position) int {
 // component computed by the last ComputeCC call.  Caching is used for
 // efficiency, so the iteration function should avoid calling CCIter and
 // ComputeCC.
-func (pr *PathRange) CCIter(fn func(gruid.Position)) {
+func (pr *PathRange) CCIter(fn func(gruid.Point)) {
 	if pr.ccIterCache == nil {
 		return
 	}
 	w, _ := pr.rg.Size()
 	for _, idx := range pr.ccIterCache {
-		pos := idxToPos(idx, w)
-		fn(pos)
+		p := idxToPos(idx, w)
+		fn(p)
 	}
 }

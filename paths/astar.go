@@ -34,21 +34,21 @@ import (
 type Astar interface {
 	// Neighbors returns the available neighbor positions of a given
 	// position. Implementations may use a cache to avoid allocations.
-	Neighbors(gruid.Position) []gruid.Position
+	Neighbors(gruid.Point) []gruid.Point
 
 	// Cost represents the cost from one position to an adjacent one. It
 	// should not produce paths with negative costs.
-	Cost(gruid.Position, gruid.Position) int
+	Cost(gruid.Point, gruid.Point) int
 
 	// Estimation offers an estimation cost for a path from a position to
 	// another one. The estimation should always give a value lower or
 	// equal to the cost of the best possible path.
-	Estimation(gruid.Position, gruid.Position) int
+	Estimation(gruid.Point, gruid.Point) int
 }
 
 // AstarPath return a path from a position to another, including thoses
 // positions. It returns nil if no path was found.
-func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Position) []gruid.Position {
+func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 	if !from.In(pr.rg) || !to.In(pr.rg) {
 		return nil
 	}
@@ -77,12 +77,12 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Position) []gruid.Posit
 		current.Open = false
 		current.Closed = true
 
-		if current.Pos == to {
+		if current.P == to {
 			// Found a path to the goal.
-			p := []gruid.Position{}
+			p := []gruid.Point{}
 			curr := current
 			for {
-				p = append(p, curr.Pos)
+				p = append(p, curr.P)
 				if curr.Parent == nil {
 					break
 				}
@@ -91,11 +91,11 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Position) []gruid.Posit
 			return p
 		}
 
-		for _, neighbor := range ast.Neighbors(current.Pos) {
+		for _, neighbor := range ast.Neighbors(current.P) {
 			if !neighbor.In(pr.rg) {
 				continue
 			}
-			cost := current.Cost + ast.Cost(current.Pos, neighbor)
+			cost := current.Cost + ast.Cost(current.P, neighbor)
 			neighborNode := nm.get(pr, neighbor)
 			if cost < neighborNode.Cost {
 				if neighborNode.Open {
@@ -108,7 +108,7 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Position) []gruid.Posit
 				neighborNode.Cost = cost
 				neighborNode.Open = true
 				neighborNode.Rank = cost + ast.Estimation(neighbor, to)
-				neighborNode.Parent = &current.Pos
+				neighborNode.Parent = &current.P
 				num++
 				neighborNode.Num = num
 				heap.Push(nq, neighborNode)

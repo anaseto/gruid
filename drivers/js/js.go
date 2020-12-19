@@ -33,7 +33,7 @@ type Driver struct {
 	cache     map[gruid.Cell]js.Value
 	tw        int
 	th        int
-	mousepos  gruid.Position
+	mousepos  gruid.Point
 	frame     gruid.Frame
 	flushdone chan bool
 	mousedrag int
@@ -104,14 +104,14 @@ func (dr *Driver) Init() error {
 	return nil
 }
 
-func (dr *Driver) getMousePos(evt js.Value) gruid.Position {
+func (dr *Driver) getMousePos(evt js.Value) gruid.Point {
 	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
 	rect := canvas.Call("getBoundingClientRect")
 	scaleX := canvas.Get("width").Float() / rect.Get("width").Float()
 	scaleY := canvas.Get("height").Float() / rect.Get("height").Float()
 	x := (evt.Get("clientX").Float() - rect.Get("left").Float()) * scaleX
 	y := (evt.Get("clientY").Float() - rect.Get("top").Float()) * scaleY
-	return gruid.Position{X: (int(x) - 1) / dr.tw, Y: (int(y) - 1) / dr.th}
+	return gruid.Point{X: (int(x) - 1) / dr.tw, Y: (int(y) - 1) / dr.th}
 }
 
 func getMsgKeyDown(s, code string) (gruid.MsgKeyDown, bool) {
@@ -212,7 +212,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 	js.Global().Get("document").Call("addEventListener", "keydown", dr.listeners.keydown)
 	dr.listeners.mousedown = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
-		pos := dr.getMousePos(e)
+		p := dr.getMousePos(e)
 		if dr.mousedrag >= 0 {
 			return nil
 		}
@@ -220,37 +220,37 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 		switch n {
 		case 0, 1, 2:
 			dr.mousedrag = n
-			send(gruid.MsgMouse{Pos: pos, Action: gruid.MouseAction(n), Time: time.Now()})
+			send(gruid.MsgMouse{P: p, Action: gruid.MouseAction(n), Time: time.Now()})
 		}
 		return nil
 	})
 	canvas.Call("addEventListener", "mousedown", dr.listeners.mousedown)
 	dr.listeners.mouseup = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
-		pos := dr.getMousePos(e)
+		p := dr.getMousePos(e)
 		n := e.Get("button").Int()
 		if dr.mousedrag != n {
 			return nil
 		}
 		dr.mousedrag = -1
-		send(gruid.MsgMouse{Pos: pos, Action: gruid.MouseAction(n), Time: time.Now()})
+		send(gruid.MsgMouse{P: p, Action: gruid.MouseAction(n), Time: time.Now()})
 		return nil
 	})
 	canvas.Call("addEventListener", "mouseup", dr.listeners.mouseup)
 	dr.listeners.mousemove = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
-		pos := dr.getMousePos(e)
-		if pos.X != dr.mousepos.X || pos.Y != dr.mousepos.Y {
-			dr.mousepos.X = pos.X
-			dr.mousepos.Y = pos.Y
-			send(gruid.MsgMouse{Action: gruid.MouseMove, Pos: pos, Time: time.Now()})
+		p := dr.getMousePos(e)
+		if p.X != dr.mousepos.X || p.Y != dr.mousepos.Y {
+			dr.mousepos.X = p.X
+			dr.mousepos.Y = p.Y
+			send(gruid.MsgMouse{Action: gruid.MouseMove, P: p, Time: time.Now()})
 		}
 		return nil
 	})
 	canvas.Call("addEventListener", "mousemove", dr.listeners.mousemove)
 	dr.listeners.wheel = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
-		pos := dr.getMousePos(e)
+		p := dr.getMousePos(e)
 		var action gruid.MouseAction
 		delta := e.Get("deltaY").Float()
 		if delta > 0 {
@@ -260,7 +260,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 		} else {
 			return nil
 		}
-		send(gruid.MsgMouse{Action: action, Pos: pos, Time: time.Now()})
+		send(gruid.MsgMouse{Action: action, P: p, Time: time.Now()})
 		return nil
 	})
 	canvas.Call("addEventListener", "onwheel", dr.listeners.wheel)
@@ -279,7 +279,7 @@ func (dr *Driver) Flush(frame gruid.Frame) {
 func (dr *Driver) flushCallback() {
 	for _, cdraw := range dr.frame.Cells {
 		cell := cdraw.Cell
-		dr.draw(cell, cdraw.Pos.X, cdraw.Pos.Y)
+		dr.draw(cell, cdraw.P.X, cdraw.P.Y)
 	}
 	dr.flushdone <- true
 }

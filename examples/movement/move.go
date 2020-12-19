@@ -62,17 +62,17 @@ const (
 // models represents our main application state.
 type model struct {
 	grid      gruid.Grid       // drawing grid
-	playerPos gruid.Position   // tracks player position
+	playerPos gruid.Point      // tracks player position
 	move      autoMove         // automatic movement
 	pr        *paths.PathRange // path finding in the grid range
-	path      []gruid.Position // current path (reverse highlighting)
+	path      []gruid.Point    // current path (reverse highlighting)
 }
 
 type autoMove struct {
 	// diff represents a position variation such as (0,1), that
 	// will be used in position arithmetic to move from one position to an
 	// adjacent one in a certain direction.
-	diff gruid.Position
+	diff gruid.Point
 
 	path bool // whether following a path (instead of a simple direction)
 }
@@ -89,26 +89,26 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 		// remove mouse path highlighting
 		m.path = nil
 
-		posdiff := gruid.Position{}
+		pdiff := gruid.Point{}
 		switch msg.Key {
 		case gruid.KeyArrowDown, "j", "J":
-			posdiff = posdiff.Shift(0, 1)
+			pdiff = pdiff.Shift(0, 1)
 		case gruid.KeyArrowLeft, "h", "H":
-			posdiff = posdiff.Shift(-1, 0)
+			pdiff = pdiff.Shift(-1, 0)
 		case gruid.KeyArrowRight, "l", "L":
-			posdiff = posdiff.Shift(1, 0)
+			pdiff = pdiff.Shift(1, 0)
 		case gruid.KeyArrowUp, "k", "K":
-			posdiff = posdiff.Shift(0, -1)
+			pdiff = pdiff.Shift(0, -1)
 		case "Q", "q", gruid.KeyEscape:
 			return gruid.End()
 		}
-		if posdiff.X != 0 || posdiff.Y != 0 {
-			newpos := m.playerPos.Add(posdiff) //
-			if m.grid.Contains(newpos) {
-				m.playerPos = newpos
+		if pdiff.X != 0 || pdiff.Y != 0 {
+			np := m.playerPos.Add(pdiff) //
+			if m.grid.Contains(np) {
+				m.playerPos = np
 				if msg.Mod&gruid.ModShift != 0 || strings.ToUpper(string(msg.Key)) == string(msg.Key) {
 					// activate automatic movement in that direction
-					m.move.diff = posdiff
+					m.move.diff = pdiff
 					return automoveCmd(m.move.diff)
 				}
 			}
@@ -118,7 +118,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 		case gruid.MouseMain:
 			if m.autoMove() {
 				m.stopAuto()
-				m.pathAt(msg.Pos)
+				m.pathAt(msg.P)
 				break
 			}
 			if len(m.path) > 1 {
@@ -128,7 +128,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 			if m.autoMove() {
 				break
 			}
-			m.pathAt(msg.Pos)
+			m.pathAt(msg.P)
 		}
 	case msgAutoMove:
 		if m.move.diff != msg.diff {
@@ -139,10 +139,10 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 				return m.pathNext()
 			}
 		} else {
-			newpos := m.playerPos.Add(msg.diff)
-			if m.grid.Contains(newpos) {
+			np := m.playerPos.Add(msg.diff)
+			if m.grid.Contains(np) {
 				m.path = nil // remove path highlighting if any
-				m.playerPos = newpos
+				m.playerPos = np
 				return automoveCmd(msg.diff)
 			}
 		}
@@ -153,8 +153,8 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 
 // autoMove checks whether automatic movement is activated.
 func (m *model) autoMove() bool {
-	pos := gruid.Position{}
-	return m.move.diff != pos
+	p := gruid.Point{}
+	return m.move.diff != p
 }
 
 // stopAuto resets automatic movement information.
@@ -164,30 +164,30 @@ func (m *model) stopAuto() {
 }
 
 // pathAt updates the path from player to a new position.
-func (m *model) pathAt(pos gruid.Position) {
-	p := &pather{}
-	p.neighbors = &paths.Neighbors{}
-	m.path = m.pr.AstarPath(p, m.playerPos, pos)
+func (m *model) pathAt(p gruid.Point) {
+	pp := &playerPath{}
+	pp.neighbors = &paths.Neighbors{}
+	m.path = m.pr.AstarPath(pp, m.playerPos, p)
 }
 
 // pathNext moves the player to next position in the path, and updates the path
 // accordingly.
 func (m *model) pathNext() gruid.Cmd {
-	pos := m.path[len(m.path)-2]
+	p := m.path[len(m.path)-2]
 	m.path = m.path[:len(m.path)-1]
 	m.move.path = true
-	m.move.diff = pos.Sub(m.playerPos)
-	m.playerPos = pos
+	m.move.diff = p.Sub(m.playerPos)
+	m.playerPos = p
 	return automoveCmd(m.move.diff)
 }
 
 type msgAutoMove struct {
-	diff gruid.Position
+	diff gruid.Point
 }
 
 // automoveCmd returns a command that signals automatic movement in a given
 // direction.
-func automoveCmd(posdiff gruid.Position) gruid.Cmd {
+func automoveCmd(posdiff gruid.Point) gruid.Cmd {
 	d := time.Millisecond * 30 // automatic movement time interval
 	return func() gruid.Msg {
 		t := time.NewTimer(d)
@@ -196,13 +196,13 @@ func automoveCmd(posdiff gruid.Position) gruid.Cmd {
 	}
 }
 
-// pather implements paths.Astar interface.
-type pather struct {
+// playerPath implements paths.Astar interface.
+type playerPath struct {
 	neighbors *paths.Neighbors
 }
 
-func (p *pather) Neighbors(pos gruid.Position) []gruid.Position {
-	return p.neighbors.All(pos, func(pos gruid.Position) bool {
+func (pp *playerPath) Neighbors(p gruid.Point) []gruid.Point {
+	return pp.neighbors.All(p, func(q gruid.Point) bool {
 		// This is were in a real game we would filter non passable
 		// neighbors, such as walls. For this example, we return always
 		// true, as there are no obstacles.
@@ -210,15 +210,15 @@ func (p *pather) Neighbors(pos gruid.Position) []gruid.Position {
 	})
 }
 
-func (p *pather) Cost(pos, npos gruid.Position) int {
+func (pp *playerPath) Cost(p, q gruid.Point) int {
 	return 1
 }
 
-func (p *pather) Estimation(pos, npos gruid.Position) int {
+func (pp *playerPath) Estimation(p, q gruid.Point) int {
 	// The manhattan distance corresponds here to the optimal distance and
 	// is hence an acceptable estimation for astar.
-	pos = pos.Sub(npos)
-	return abs(pos.X) + abs(pos.Y)
+	p = p.Sub(q)
+	return abs(p.X) + abs(p.Y)
 }
 
 func abs(x int) int {
@@ -232,16 +232,16 @@ func abs(x int) int {
 // grid.
 func (m *model) Draw() gruid.Grid {
 	c := gruid.Cell{Rune: '.'} // default cell
-	m.grid.Range().Origin().Iter(func(pos gruid.Position) {
-		if pos == m.playerPos {
-			m.grid.SetCell(pos, gruid.Cell{Rune: '@', Style: c.Style.WithFg(ColorPlayer)})
+	m.grid.Range().Origin().Iter(func(p gruid.Point) {
+		if p == m.playerPos {
+			m.grid.Set(p, gruid.Cell{Rune: '@', Style: c.Style.WithFg(ColorPlayer)})
 		} else {
-			m.grid.SetCell(pos, c)
+			m.grid.Set(p, c)
 		}
 	})
-	for _, pos := range m.path {
-		c := m.grid.GetCell(pos)
-		m.grid.SetCell(pos, c.WithStyle(c.Style.WithBg(ColorPath)))
+	for _, p := range m.path {
+		c := m.grid.At(p)
+		m.grid.Set(p, c.WithStyle(c.Style.WithBg(ColorPath)))
 	}
 	return m.grid
 }

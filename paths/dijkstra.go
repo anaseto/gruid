@@ -11,17 +11,17 @@ import (
 type Dijkstra interface {
 	// Neighbors returns the available neighbor positions of a given
 	// position. Implementations may use a cache to avoid allocations.
-	Neighbors(gruid.Position) []gruid.Position
+	Neighbors(gruid.Point) []gruid.Point
 
 	// Cost represents the cost from one position to an adjacent one. It
 	// should not produce paths with negative costs.
-	Cost(gruid.Position, gruid.Position) int
+	Cost(gruid.Point, gruid.Point) int
 }
 
 // DijkstraMap computes a dijkstra map given a list of source positions and a
 // maximal cost from those sources. The resulting map can then be iterated with
 // Iter.
-func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Position, maxCost int) {
+func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost int) {
 	if pr.dijkstraNodes == nil {
 		pr.dijkstraNodes = &nodeMap{}
 		w, h := pr.rg.Size()
@@ -51,13 +51,13 @@ func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Position, maxCost
 		current := heap.Pop(nq).(*node)
 		current.Open = false
 		current.Closed = true
-		pr.iterNodeCache = append(pr.iterNodeCache, Node{Pos: current.Pos, Cost: current.Cost})
+		pr.iterNodeCache = append(pr.iterNodeCache, Node{P: current.P, Cost: current.Cost})
 
-		for _, neighbor := range dij.Neighbors(current.Pos) {
+		for _, neighbor := range dij.Neighbors(current.P) {
 			if !neighbor.In(pr.rg) {
 				continue
 			}
-			cost := current.Cost + dij.Cost(current.Pos, neighbor)
+			cost := current.Cost + dij.Cost(current.P, neighbor)
 			neighborNode := nm.get(pr, neighbor)
 			if cost < neighborNode.Cost {
 				if neighborNode.Open {
@@ -81,13 +81,13 @@ func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Position, maxCost
 // Node represents a position in a dijkstra map with a related distance cost
 // relative to the most close source.
 type Node struct {
-	Pos  gruid.Position
+	P    gruid.Point
 	Cost int
 }
 
 // idxToPos returns a grid position given an index and the width of the grid.
-func idxToPos(i, w int) gruid.Position {
-	return gruid.Position{X: i - (i/w)*w, Y: i / w}
+func idxToPos(i, w int) gruid.Point {
+	return gruid.Point{X: i - (i/w)*w, Y: i / w}
 }
 
 // MapIter iterates a function on the nodes of the last computed dijkstra map,

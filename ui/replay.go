@@ -188,14 +188,14 @@ func (rep *Replay) draw() {
 			rep.gd = rep.gd.Resize(frame.Width, frame.Height)
 		}
 		for _, fc := range frame.Cells {
-			c := rep.gd.GetCell(fc.Pos)
-			rep.undo[j] = append(rep.undo[j], gruid.FrameCell{Cell: c, Pos: fc.Pos})
-			rep.gd.SetCell(fc.Pos, fc.Cell)
+			c := rep.gd.At(fc.P)
+			rep.undo[j] = append(rep.undo[j], gruid.FrameCell{Cell: c, P: fc.P})
+			rep.gd.Set(fc.P, fc.Cell)
 		}
 	case replayPrevious:
 		fcells := rep.undo[len(rep.undo)-1]
 		for _, fc := range fcells {
-			rep.gd.SetCell(fc.Pos, fc.Cell)
+			rep.gd.Set(fc.P, fc.Cell)
 		}
 		rep.undo = rep.undo[:len(rep.undo)-1]
 	}

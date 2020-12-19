@@ -21,7 +21,7 @@ type PathRange struct {
 	ccstack       []int
 	ccidx         int // cc map number
 	ccIterCache   []int
-	neighbors     Neighborer
+	neighbors     Pather
 }
 
 // NewPathRange returns a new PathFinder for positions in a given range,
@@ -45,22 +45,22 @@ func (pr *PathRange) SetRange(rg gruid.Range) {
 	*pr = PathRange{rg: rg}
 }
 
-func (pr *PathRange) idx(pos gruid.Position) int {
-	pos = pos.Relative(pr.rg)
+func (pr *PathRange) idx(p gruid.Point) int {
+	p = p.Rel(pr.rg)
 	w, _ := pr.rg.Size()
-	return pos.Y*w + pos.X
+	return p.Y*w + p.X
 }
 
-func (nm nodeMap) get(pr *PathRange, pos gruid.Position) *node {
-	n := &nm.Nodes[pr.idx(pos)]
+func (nm nodeMap) get(pr *PathRange, p gruid.Point) *node {
+	n := &nm.Nodes[pr.idx(p)]
 	if n.CacheIndex != nm.Index {
-		nm.Nodes[pr.idx(pos)] = node{Pos: pos, CacheIndex: nm.Index}
+		nm.Nodes[pr.idx(p)] = node{P: p, CacheIndex: nm.Index}
 	}
 	return n
 }
 
-func (nm nodeMap) at(pr *PathRange, pos gruid.Position) (*node, bool) {
-	n := &nm.Nodes[pr.idx(pos)]
+func (nm nodeMap) at(pr *PathRange, p gruid.Point) (*node, bool) {
+	n := &nm.Nodes[pr.idx(p)]
 	if n.CacheIndex != nm.Index {
 		return nil, false
 	}
@@ -68,10 +68,10 @@ func (nm nodeMap) at(pr *PathRange, pos gruid.Position) (*node, bool) {
 }
 
 type node struct {
-	Pos        gruid.Position
+	P          gruid.Point
 	Cost       int
 	Rank       int
-	Parent     *gruid.Position
+	Parent     *gruid.Point
 	Open       bool
 	Closed     bool
 	Index      int

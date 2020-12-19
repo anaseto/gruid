@@ -67,51 +67,51 @@ func (st Style) WithAttrs(cl Color) Style {
 	return st
 }
 
-// Position represents an (X,Y) position in a grid.
-type Position struct {
+// Point represents an (X,Y) position in a grid.
+type Point struct {
 	X int
 	Y int
 }
 
-// Shift returns a new position with coordinates shifted by (x,y).
-func (pos Position) Shift(x, y int) Position {
-	return Position{X: pos.X + x, Y: pos.Y + y}
+// Shift returns a new point with coordinates shifted by (x,y).
+func (p Point) Shift(x, y int) Point {
+	return Point{X: p.X + x, Y: p.Y + y}
 }
 
-// Add returns vector pos+p.
-func (pos Position) Add(p Position) Position {
-	return Position{X: pos.X + p.X, Y: pos.Y + p.Y}
+// Add returns vector p+q.
+func (p Point) Add(q Point) Point {
+	return Point{X: p.X + q.X, Y: p.Y + q.Y}
 }
 
-// Sub returns vector pos-p.
-func (pos Position) Sub(p Position) Position {
-	return Position{X: pos.X - p.X, Y: pos.Y - p.Y}
+// Sub returns vector p-q.
+func (p Point) Sub(q Point) Point {
+	return Point{X: p.X - q.X, Y: p.Y - q.Y}
 }
 
 // In reports whether the absolute position is withing the given range.
-func (pos Position) In(rg Range) bool {
-	return pos.X >= rg.Min.X && pos.Y >= rg.Min.Y && pos.X < rg.Max.X && pos.Y < rg.Max.Y
+func (p Point) In(rg Range) bool {
+	return p.X >= rg.Min.X && p.Y >= rg.Min.Y && p.X < rg.Max.X && p.Y < rg.Max.Y
 }
 
-// Relative changes an absolute position into a position relative to a given
-// range. You may use it for example when dealing with mouse coordinates from a
-// MsgMouse message. See also the method of the same name for the Range type,
-// which may serve a similar purpose.
-func (pos Position) Relative(rg Range) Position {
-	return Position{X: pos.X - rg.Min.X, Y: pos.Y - rg.Min.Y}
+// Rel changes an absolute position into a position relative to a given
+// range. It's the same as p.Sub(rg.Min). You may use it for example when
+// dealing with mouse coordinates from a MsgMouse message. See also the method
+// of the same name for the Range type, which may serve a similar purpose.
+func (p Point) Rel(rg Range) Point {
+	return p.Sub(rg.Min)
 }
 
-// Absolute returns the absolute position given a range.
-func (pos Position) Absolute(rg Range) Position {
-	return Position{X: pos.X + rg.Min.X, Y: pos.Y + rg.Min.Y}
+// Abs returns the absolute position given a range. It's the same as
+// p.Add(rg.Min).
+func (p Point) Abs(rg Range) Point {
+	return p.Add(rg.Min)
 }
 
 // Range represents a rectangle in a grid with upper left position Min and
 // bottom right position Max (excluded). In other terms, it contains all the
-// positions Pos such that Min <= Pos < Max. A range is well-formed if Min <=
-// Max.
+// positions P such that Min <= P < Max. A range is well-formed if Min <= Max.
 type Range struct {
-	Min, Max Position
+	Min, Max Point
 }
 
 // NewRange returns a new Range with coordinates (x0, y0) for Min and (x1, y1)
@@ -124,7 +124,7 @@ func NewRange(x0, y0, x1, y1 int) Range {
 	if y1 < y0 {
 		y0, y1 = y1, y0
 	}
-	return Range{Min: Position{X: x0, Y: y0}, Max: Position{X: x1, Y: y1}}
+	return Range{Min: Point{X: x0, Y: y0}, Max: Point{X: x1, Y: y1}}
 }
 
 // Size returns the (width, height) of the range in cells.
@@ -195,7 +195,7 @@ func (rg Range) Empty() bool {
 // define grid slices as a Shift of a relative original range.
 func (rg Range) Origin() Range {
 	rg.Max = rg.Max.Sub(rg.Min)
-	rg.Min = Position{}
+	rg.Min = Point{}
 	return rg
 }
 
@@ -204,7 +204,7 @@ func (rg Range) Origin() Range {
 // positions relative to the range.
 func (rg Range) Relative(msg Msg) Msg {
 	if msg, ok := msg.(MsgMouse); ok {
-		msg.Pos = msg.Pos.Relative(rg)
+		msg.P = msg.P.Rel(rg)
 		return msg
 	}
 	return msg
@@ -259,11 +259,11 @@ func (rg Range) In(r Range) bool {
 }
 
 // Iter calls a given function for all the positions of the range.
-func (rg Range) Iter(fn func(Position)) {
+func (rg Range) Iter(fn func(Point)) {
 	for y := rg.Min.Y; y < rg.Max.Y; y++ {
 		for x := rg.Min.X; x < rg.Max.X; x++ {
-			pos := Position{X: x, Y: y}
-			fn(pos)
+			p := Point{X: x, Y: y}
+			fn(p)
 		}
 	}
 }
@@ -277,8 +277,8 @@ func (rg Range) Iter(fn func(Position)) {
 // 	w, h := gd.Size()
 //	for y := 0; y < h; y++ {
 //		for x := 0; x < w; x++ {
-//			pos := Position{X: x, Y: y}
-//			// do something with pos and the grid gd
+//			p := Point{X: x, Y: y}
+//			// do something with p and the grid gd
 //		}
 //	}
 //
@@ -306,8 +306,8 @@ type Frame struct {
 // FrameCell represents a cell drawing instruction at a specific absolute
 // position in the whole grid.
 type FrameCell struct {
-	Cell Cell
-	Pos  Position
+	Cell Cell  // cell content and styling
+	P    Point // absolute position in the whole grid
 }
 
 // NewGrid returns a new grid with given width and height in cells. The width
@@ -397,8 +397,8 @@ func (gd Grid) Resize(w, h int) Grid {
 			newBuf[i] = Cell{Rune: ' '}
 		}
 		for i := range gd.ug.cells {
-			pos := idxToPos(i, uw)           // old absolute position
-			idx := pos.X + gd.ug.width*pos.Y // new index
+			p := idxToPos(i, uw)         // old absolute position
+			idx := p.X + gd.ug.width*p.Y // new index
 			newBuf[idx] = gd.ug.cells[i]
 		}
 		gd.ug.cells = newBuf
@@ -407,41 +407,41 @@ func (gd Grid) Resize(w, h int) Grid {
 }
 
 // Contains returns true if the relative position is within the grid range.
-func (gd Grid) Contains(pos Position) bool {
-	return pos.Absolute(gd.rg).In(gd.rg)
+func (gd Grid) Contains(p Point) bool {
+	return p.Abs(gd.rg).In(gd.rg)
 }
 
-// SetCell draws cell content and styling at a given position in the grid. If
-// the position is out of range, the function does nothing.
-func (gd Grid) SetCell(pos Position, c Cell) {
-	if !gd.Contains(pos) {
+// Set draws cell content and styling at a given position in the grid. If the
+// position is out of range, the function does nothing.
+func (gd Grid) Set(p Point, c Cell) {
+	if !gd.Contains(p) {
 		return
 	}
-	i := gd.getIdx(pos)
+	i := gd.getIdx(p)
 	gd.ug.cells[i] = c
 }
 
-// GetCell returns the cell content and styling at a given position. If the
-// position is out of range, it returns de zero value. The returned cell is the
-// content as it is in the logical grid, which may be different from what is
-// currently displayed on the screen.
-func (gd Grid) GetCell(pos Position) Cell {
-	if !gd.Contains(pos) {
+// At returns the cell content and styling at a given position. If the position
+// is out of range, it returns de zero value. The returned cell is the content
+// as it is in the logical grid, which may be different from what is currently
+// displayed on the screen.
+func (gd Grid) At(p Point) Cell {
+	if !gd.Contains(p) {
 		return Cell{}
 	}
-	i := gd.getIdx(pos)
+	i := gd.getIdx(p)
 	return gd.ug.cells[i]
 }
 
 // getIdx returns the buffer index of a relative position.
-func (gd Grid) getIdx(pos Position) int {
-	pos = pos.Absolute(gd.rg)
-	return pos.Y*gd.ug.width + pos.X
+func (gd Grid) getIdx(p Point) int {
+	p = p.Abs(gd.rg)
+	return p.Y*gd.ug.width + p.X
 }
 
 // idxToPos returns a grid position given an index and the width of the grid.
-func idxToPos(i, w int) Position {
-	return Position{X: i - (i/w)*w, Y: i / w}
+func idxToPos(i, w int) Point {
+	return Point{X: i - (i/w)*w, Y: i / w}
 }
 
 // Fill sets the given cell as content for all the grid positions.
@@ -458,13 +458,13 @@ func (gd Grid) Fill(c Cell) {
 }
 
 // Iter iterates a function on all the grid positions and cells.
-func (gd Grid) Iter(fn func(Position, Cell)) {
+func (gd Grid) Iter(fn func(Point, Cell)) {
 	w, h := gd.Size()
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
-			pos := Position{X: x, Y: y}
-			c := gd.GetCell(pos)
-			fn(pos, c)
+			p := Point{X: x, Y: y}
+			c := gd.At(p)
+			fn(p, c)
 		}
 	}
 }
@@ -527,8 +527,8 @@ func (app App) computeFrame(gd Grid) Frame {
 		if c == app.cellbuf[i] {
 			continue
 		}
-		pos := idxToPos(i, ug.width)
-		cdraw := FrameCell{Cell: c, Pos: pos}
+		p := idxToPos(i, ug.width)
+		cdraw := FrameCell{Cell: c, P: p}
 		app.frame.Cells = append(app.frame.Cells, cdraw)
 		app.cellbuf[i] = c
 	}

@@ -41,7 +41,7 @@ type Driver struct {
 	renderer  *sdl.Renderer
 	textures  map[gruid.Cell]*sdl.Texture
 	surfaces  map[gruid.Cell]*sdl.Surface
-	mousepos  gruid.Position
+	mousepos  gruid.Point
 	mousedrag gruid.MouseAction
 	done      chan struct{}
 	init      bool
@@ -301,14 +301,14 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 				continue
 			}
 			msg := gruid.MsgMouse{}
-			msg.Pos = gruid.Position{X: int((ev.X - 1) / dr.tw), Y: int((ev.Y - 1) / dr.th)}
+			msg.P = gruid.Point{X: int((ev.X - 1) / dr.tw), Y: int((ev.Y - 1) / dr.th)}
 			switch ev.Type {
 			case sdl.MOUSEBUTTONDOWN:
 				if dr.mousedrag != -1 {
 					continue
 				}
-				if msg.Pos.X < 0 || msg.Pos.X >= int(dr.width) ||
-					msg.Pos.Y < 0 || msg.Pos.Y >= int(dr.height) {
+				if msg.P.X < 0 || msg.P.X >= int(dr.width) ||
+					msg.P.Y < 0 || msg.P.Y >= int(dr.height) {
 					continue
 				}
 				msg.Time = time.Now()
@@ -318,9 +318,9 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 				if dr.mousedrag != action {
 					continue
 				}
-				if msg.Pos.X < 0 || msg.Pos.X >= int(dr.width) ||
-					msg.Pos.Y < 0 || msg.Pos.Y >= int(dr.height) {
-					msg.Pos = gruid.Position{}
+				if msg.P.X < 0 || msg.P.X >= int(dr.width) ||
+					msg.P.Y < 0 || msg.P.Y >= int(dr.height) {
+					msg.P = gruid.Point{}
 				}
 				msg.Time = time.Now()
 				msg.Action = gruid.MouseRelease
@@ -339,21 +339,21 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			if sdl.KMOD_RGUI&mod != 0 {
 				msg.Mod |= gruid.ModMeta
 			}
-			dr.mousepos = msg.Pos
+			dr.mousepos = msg.P
 			send(msg)
 		case *sdl.MouseMotionEvent:
 			msg := gruid.MsgMouse{}
-			msg.Pos = gruid.Position{X: int((ev.X - 1) / dr.tw), Y: int((ev.Y - 1) / dr.th)}
-			if msg.Pos == dr.mousepos {
+			msg.P = gruid.Point{X: int((ev.X - 1) / dr.tw), Y: int((ev.Y - 1) / dr.th)}
+			if msg.P == dr.mousepos {
 				continue
 			}
-			if msg.Pos.X < 0 || msg.Pos.X >= int(dr.width) ||
-				msg.Pos.Y < 0 || msg.Pos.Y >= int(dr.height) {
+			if msg.P.X < 0 || msg.P.X >= int(dr.width) ||
+				msg.P.Y < 0 || msg.P.Y >= int(dr.height) {
 				continue
 			}
 			msg.Time = time.Now()
 			msg.Action = gruid.MouseMove
-			dr.mousepos = msg.Pos
+			dr.mousepos = msg.P
 			mod := sdl.GetModState()
 			if sdl.KMOD_LALT&mod != 0 {
 				msg.Mod |= gruid.ModAlt
@@ -377,7 +377,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			} else {
 				continue
 			}
-			msg.Pos = dr.mousepos
+			msg.P = dr.mousepos
 			msg.Time = time.Now()
 			send(msg)
 		case *sdl.WindowEvent:
@@ -436,7 +436,7 @@ func (dr *Driver) Flush(frame gruid.Frame) {
 	}
 	for _, cdraw := range frame.Cells {
 		cs := cdraw.Cell
-		x, y := cdraw.Pos.X, cdraw.Pos.Y
+		x, y := cdraw.P.X, cdraw.P.Y
 		dr.draw(cs, x, y)
 	}
 	dr.renderer.Present()
