@@ -54,7 +54,7 @@ const (
 
 // MenuStyle describes styling options for a menu.
 type MenuStyle struct {
-	Layout   gruid.Point // menu layout in (lines, columns); 0 means any
+	Layout   gruid.Point // menu layout in (columns, lines); 0 means any
 	BgAlt    gruid.Color // alternate background on even choice lines
 	Selected gruid.Color // foreground for selected entry
 	Disabled gruid.Style // disabled entry style
@@ -128,6 +128,7 @@ type Menu struct {
 	draw    bool
 	init    bool // Update received MsgInit
 	keys    MenuKeys
+	layout  gruid.Point // current menu layout
 }
 
 // Active return the index of the currently active entry.
@@ -175,6 +176,9 @@ func (m *Menu) idxToPos(i int) gruid.Point {
 }
 
 func (m *Menu) moveTo(p gruid.Point) {
+	// TODO: handle more intuitively some cases, and add support for
+	// advancing pages, and show page number somewhere if possible, or at
+	// least that there is more.
 	q := m.active
 	for {
 		q = q.Add(p)
@@ -213,9 +217,9 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 		case msg.Key.In(m.keys.Up):
 			m.moveTo(gruid.Point{0, -1})
 		case msg.Key.In(m.keys.Left):
-			m.moveTo(gruid.Point{1, 0})
-		case msg.Key.In(m.keys.Right):
 			m.moveTo(gruid.Point{-1, 0})
+		case msg.Key.In(m.keys.Right):
+			m.moveTo(gruid.Point{1, 0})
 		case msg.Key.In(m.keys.Invoke) && m.contains(m.active):
 			it, ok := m.view[m.active]
 			if ok && !m.entries[it.i].Disabled {
@@ -283,8 +287,11 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 }
 
 func (m *Menu) drawGrid() gruid.Grid {
-	// TODO: handle layouts other than 1-column
 	h := len(m.entries) // menu content height
+	layout := m.layout
+	if layout.Y > 0 {
+		h = layout.Y
+	}
 	if m.box != nil {
 		h += 2 // borders height
 	}
@@ -301,6 +308,16 @@ const (
 )
 
 func (m *Menu) computeItems() {
+	m.layout = m.style.Layout
+	if m.layout.Y > m.grid.Size().Y {
+		m.layout.Y = m.grid.Size().Y
+	}
+	if m.layout.Y > len(m.entries) {
+		m.layout.Y = len(m.entries)
+	}
+	if m.layout.X > len(m.entries) {
+		m.layout.X = len(m.entries)
+	}
 	grid := m.drawGrid()
 	rg := grid.Range()
 	if m.box != nil {
@@ -308,12 +325,12 @@ func (m *Menu) computeItems() {
 	}
 	m.size = grid.Size()
 	w, h := m.size.X, m.size.Y
-	layout := m.style.Layout
-	lines := layout.X
+	layout := m.layout
+	lines := layout.Y
 	if lines <= 0 {
 		lines = len(m.entries)
 	}
-	columns := layout.Y
+	columns := layout.X
 	if columns <= 0 {
 		if lines == len(m.entries) {
 			columns = 1
@@ -321,12 +338,13 @@ func (m *Menu) computeItems() {
 			columns = len(m.entries)
 		}
 	}
+	if lines*columns > len(m.entries) {
+		columns = len(m.entries) / lines
+	}
 	var ml mlayout
 	if columns > 1 && lines > 1 {
 		ml = table
-		if columns < len(m.entries) {
-			w = w / columns
-		}
+		w = w / columns
 	} else if columns > 1 {
 		ml = line
 	} else {
@@ -395,9 +413,9 @@ func (m *Menu) computeItems() {
 			pageidx := i % (columns * h)
 			ln := pageidx % h
 			col := pageidx / h
-			p := gruid.Point{col, ln}
+			p := gruid.Point{col, ln + page*h}
 			m.view[p] = item{
-				grid: grid.Slice(gruid.NewRange(p.X*w, p.Y%h, p.X*(1+w), (p.Y%h)+1)),
+				grid: grid.Slice(gruid.NewRange(col*w, ln%h, (col+1)*w, (ln%h)+1)),
 				i:    i,
 				page: gruid.Point{0, page},
 				alt:  (col+ln)%h == 0,

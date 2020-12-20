@@ -110,6 +110,8 @@ func (p Point) Abs(rg Range) Point {
 // Range represents a rectangle in a grid with upper left position Min and
 // bottom right position Max (excluded). In other terms, it contains all the
 // positions P such that Min <= P < Max. A range is well-formed if Min <= Max.
+// Min represents the upper-left position in the range, and Max-(1,1) the
+// lower-right one.
 type Range struct {
 	Min, Max Point
 }
