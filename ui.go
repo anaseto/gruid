@@ -88,7 +88,7 @@ type AppConfig struct {
 	// Subscribe to MsgDraw messages that are in sync with redrawings and
 	// sent at the FPS rate. This can be used for adjusting animations and
 	// ensuring they are smooth and in sync with redrawings.
-	MsgDrawSubscription bool
+	MsgDrawSub bool
 
 	// FPS specifies the maximum number of frames per second. Should be a
 	// value between 60 and 240. Default is 60.
@@ -103,7 +103,7 @@ func NewApp(cfg AppConfig) *App {
 	app := &App{
 		model:       cfg.Model,
 		driver:      cfg.Driver,
-		msgdraw:     cfg.MsgDrawSubscription,
+		msgdraw:     cfg.MsgDrawSub,
 		fps:         cfg.FPS,
 		logger:      cfg.Logger,
 		CatchPanics: true,
@@ -194,7 +194,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 	}(ctx)
 
 	// subscribe to MsgDraw
-	go msgDrawSubscription(ctx, msgs, app.fps)
+	go msgDrawSub(ctx, msgs, app.fps)
 
 	// effect processing
 	go func(ctx context.Context) {
@@ -367,8 +367,8 @@ func (cmd Cmd) implementsEffect() {}
 // implementsEffect makes Sub satisfy Effect interface.
 func (sub Sub) implementsEffect() {}
 
-// msgDrawSubscription sends a MsgDraw message at an fps rate.
-func msgDrawSubscription(ctx context.Context, msgs chan<- Msg, fps time.Duration) {
+// msgDrawSub sends a MsgDraw message at an fps rate.
+func msgDrawSub(ctx context.Context, msgs chan<- Msg, fps time.Duration) {
 	ticker := time.NewTicker(time.Second / fps)
 	for {
 		select {

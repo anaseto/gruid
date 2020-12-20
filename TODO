@@ -1,6 +1,6 @@
 ----- TODO
-add more tests
 add horizontal menu option/status bar
+add more tests
 add game events queue package?
 add map generation utilities package?
 add field of view package?
