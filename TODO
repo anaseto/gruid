@@ -1,5 +1,5 @@
 ----- TODO
-add horizontal menu option/status bar
+add keybindigs config for text input, improve menu ergonomics
 add more tests
 add game events queue package?
 add map generation utilities package?
