@@ -313,14 +313,14 @@ type Driver interface {
 	// methods.
 	Init() error
 
-	// Flush sends last frame grid changes to the driver.
-	Flush(Frame)
-
 	// PollMsgs is a subscription for input messages. It returns an error
 	// in case the driver input loop suffered a non recoverable error. It
 	// should handle cancelation of the passed given context and return as
 	// appropiate.
 	PollMsgs(context.Context, chan<- Msg) error
+
+	// Flush sends last frame grid changes to the driver.
+	Flush(Frame)
 
 	// Close may execute needed code to finalize the screen and release
 	// resources. Redundant Close() calls are ignored. After Close() it is

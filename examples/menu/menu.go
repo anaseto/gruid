@@ -67,15 +67,17 @@ func NewModel(gd gruid.Grid) *model {
 		{Text: "(@kF@N)irst", Keys: []gruid.Key{"f", "F"}},
 		{Text: "(@kS@N)econd", Keys: []gruid.Key{"s", "S"}},
 		{Text: "(@kT@N)hird", Keys: []gruid.Key{"t", "T"}},
+		{Text: "(@kL@N)ast", Keys: []gruid.Key{"l", "L"}},
 	}
 	st := gruid.Style{}
 	style := ui.MenuStyle{
+		//Layout:   gruid.Point{1, 0},
 		BgAlt:    ColorAltBg,
 		Selected: ColorSelected,
 		Disabled: st.WithFg(ColorHeader),
 	}
 	menu := ui.NewMenu(ui.MenuConfig{
-		Grid:       m.grid.Slice(gruid.NewRange(0, 0, 20, len(entries)+2)),
+		Grid:       m.grid.Slice(gruid.NewRange(0, 0, 30, len(entries)+2)),
 		Entries:    entries,
 		StyledText: ui.NewStyledText("").WithMarkup('k', st.WithFg(ColorKey)),
 		Box:        &ui.Box{Title: ui.NewStyledText("Menu").WithStyle(st.WithFg(ColorTitle))},
@@ -111,6 +113,6 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 func (m *model) Draw() gruid.Grid {
 	m.grid.Fill(gruid.Cell{Rune: ' '})
 	m.menu.Draw()
-	m.label.Draw(m.grid.Slice(gruid.NewRange(22, 0, 70, 5)))
+	m.label.Draw(m.grid.Slice(gruid.NewRange(32, 0, 70, 5)))
 	return m.grid
 }

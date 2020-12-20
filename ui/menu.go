@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"unicode/utf8"
-
 	"github.com/anaseto/gruid"
 )
 
@@ -25,6 +23,8 @@ type MenuEntry struct {
 type MenuKeys struct {
 	Up     []gruid.Key // move up active entry (default: ArrowUp, k)
 	Down   []gruid.Key // move down active entry (default: ArrowDown, j)
+	Left   []gruid.Key // move left active entry (default: ArrowLeft, h)
+	Right  []gruid.Key // move right active entry (default: ArrowRight, l)
 	Invoke []gruid.Key // invoke selection (default: Enter)
 	Quit   []gruid.Key // requist menu quit (default: Escape, q, Q)
 }
@@ -54,6 +54,7 @@ const (
 
 // MenuStyle describes styling options for a menu.
 type MenuStyle struct {
+	Layout   gruid.Point // menu layout in (lines, columns); 0 means any
 	BgAlt    gruid.Color // alternate background on even choice lines
 	Selected gruid.Color // foreground for selected entry
 	Disabled gruid.Style // disabled entry style
@@ -89,11 +90,27 @@ func NewMenu(cfg MenuConfig) *Menu {
 	if m.keys.Up == nil {
 		m.keys.Up = []gruid.Key{gruid.KeyArrowUp, "k"}
 	}
+	if m.keys.Left == nil {
+		m.keys.Left = []gruid.Key{gruid.KeyArrowLeft, "h"}
+	}
+	if m.keys.Right == nil {
+		m.keys.Right = []gruid.Key{gruid.KeyArrowRight, "l"}
+	}
 	if m.keys.Quit == nil {
 		m.keys.Quit = []gruid.Key{gruid.KeyEscape, "q", "Q"}
 	}
+	m.computeItems()
 	m.cursorAtFirstChoice()
 	return m
+}
+
+// item represents a visible entry in the menu at a given position and with a
+// given slice.
+type item struct {
+	grid gruid.Grid  // its grid slice (may be empty)
+	i    int         // index of corresponding entry in menu entries
+	alt  bool        // even position (alternate background)
+	page gruid.Point // page number (x,y)
 }
 
 // Menu is a widget that displays a list of entries to the user. It allows to
@@ -101,10 +118,12 @@ func NewMenu(cfg MenuConfig) *Menu {
 type Menu struct {
 	grid    gruid.Grid
 	entries []MenuEntry
+	view    map[gruid.Point]item
+	size    gruid.Point // view size (w, h) in cells
 	box     *Box
 	stt     StyledText
 	style   MenuStyle
-	cursor  int
+	active  gruid.Point
 	action  MenuAction
 	draw    bool
 	init    bool // Update received MsgInit
@@ -113,7 +132,7 @@ type Menu struct {
 
 // Active return the index of the currently active entry.
 func (m *Menu) Active() int {
-	return m.cursor
+	return m.view[m.active].i
 }
 
 // Action returns the last action performed in the menu.
@@ -124,18 +143,53 @@ func (m *Menu) Action() MenuAction {
 // SetEntries updates the list of menu entries.
 func (m *Menu) SetEntries(entries []MenuEntry) {
 	m.entries = entries
-	if m.cursor >= len(m.entries) {
+	m.computeItems()
+	if !m.contains(m.active) {
 		m.cursorAtLastChoice()
 	}
 }
 
-// SetCursor updates the cursor selection index among entries. It may be used
+func (m *Menu) contains(p gruid.Point) bool {
+	_, ok := m.view[p]
+	return ok
+}
+
+// SetActive updates the active entry among entries. It may be used
 // to launch the menu at a specific default starting index.
-func (m *Menu) SetCursor(n int) {
-	if n < 0 || n >= len(m.entries) {
+func (m *Menu) SetActive(i int) {
+	if i < 0 || i >= len(m.entries) {
 		return
 	}
-	m.cursor = n
+	if !m.entries[i].Disabled {
+		m.active = m.idxToPos(i)
+	}
+}
+
+func (m *Menu) idxToPos(i int) gruid.Point {
+	for p, it := range m.view {
+		if it.i == i {
+			return p
+		}
+	}
+	return gruid.Point{}
+}
+
+func (m *Menu) moveTo(p gruid.Point) {
+	q := m.active
+	for {
+		q = q.Add(p)
+		it, ok := m.view[q]
+		if !ok {
+			break
+		}
+		if !m.entries[it.i].Disabled {
+			break
+		}
+	}
+	if m.contains(q) {
+		m.action = MenuMove
+		m.active = q
+	}
 }
 
 // Update implements gruid.Model.Update and updates the menu state in response to
@@ -144,7 +198,6 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 	grid := m.drawGrid()
 	rg := grid.Range()
 
-	l := len(m.entries)
 	switch msg := msg.(type) {
 	case gruid.MsgInit:
 		m.init = true
@@ -156,35 +209,23 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 				return gruid.End()
 			}
 		case msg.Key.In(m.keys.Down):
-			m.action = MenuMove
-			m.cursor++
-			for m.cursor < l && m.entries[m.cursor].Disabled {
-				m.cursor++
-			}
-			if m.cursor >= l {
-				m.cursorAtFirstChoice()
-			}
+			m.moveTo(gruid.Point{0, 1})
 		case msg.Key.In(m.keys.Up):
-			m.action = MenuMove
-			m.cursor--
-			for m.cursor >= 0 && m.entries[m.cursor].Disabled {
-				m.cursor--
+			m.moveTo(gruid.Point{0, -1})
+		case msg.Key.In(m.keys.Left):
+			m.moveTo(gruid.Point{1, 0})
+		case msg.Key.In(m.keys.Right):
+			m.moveTo(gruid.Point{-1, 0})
+		case msg.Key.In(m.keys.Invoke) && m.contains(m.active):
+			it, ok := m.view[m.active]
+			if ok && !m.entries[it.i].Disabled {
+				m.action = MenuInvoke
 			}
-			if m.cursor < 0 {
-				m.cursor = 0
-				m.cursorAtLastChoice()
-			}
-		case msg.Key.In(m.keys.Invoke) && m.cursor < l && !m.entries[m.cursor].Disabled:
-			m.action = MenuInvoke
 		default:
-			nchars := utf8.RuneCountInString(string(msg.Key))
-			if nchars != 1 {
-				break
-			}
 			for i, e := range m.entries {
 				for _, k := range e.Keys {
 					if k == msg.Key {
-						m.cursor = i
+						m.active = m.idxToPos(i)
 						m.action = MenuInvoke
 						break
 					}
@@ -196,29 +237,45 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 		if m.box != nil {
 			crg = crg.Shift(1, 1, -1, -1)
 		}
-		p := msg.P.Rel(crg)
+		p := msg.P
+		page := gruid.Point{}
+		if it, ok := m.view[m.active]; ok {
+			page = it.page
+		}
 		switch msg.Action {
 		case gruid.MouseMove:
-			if !p.In(crg.Origin()) || p.Y == m.cursor || p.Y >= len(m.entries) {
+			if !p.In(crg) {
 				break
 			}
-			m.cursor = p.Y
-			m.action = MenuMove
+			for q, it := range m.view {
+				if it.page == page && p.In(it.grid.Range()) {
+					if q == m.active {
+						break
+					}
+					m.active = q
+					m.action = MenuMove
+				}
+			}
 		case gruid.MouseMain:
-			if !msg.P.In(rg) || m.box == nil && p.Y >= len(m.entries) {
+			if !p.In(rg) {
 				m.action = MenuQuit
 				if m.init {
 					return gruid.End()
 				}
 				break
 			}
-			if !p.In(crg.Origin()) || p.Y >= len(m.entries) {
+			if !p.In(crg) {
 				break
 			}
-			m.cursor = p.Y
-			m.action = MenuMove
-			if !m.entries[m.cursor].Disabled {
-				m.action = MenuInvoke
+			for q, it := range m.view {
+				if it.page == page && p.In(it.grid.Range()) {
+					m.active = q
+					if m.entries[it.i].Disabled {
+						m.action = MenuMove
+					} else {
+						m.action = MenuInvoke
+					}
+				}
 			}
 		}
 	}
@@ -226,6 +283,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 }
 
 func (m *Menu) drawGrid() gruid.Grid {
+	// TODO: handle layouts other than 1-column
 	h := len(m.entries) // menu content height
 	if m.box != nil {
 		h += 2 // borders height
@@ -234,23 +292,139 @@ func (m *Menu) drawGrid() gruid.Grid {
 	return m.grid.Slice(gruid.NewRange(0, 0, max.X, h))
 }
 
-func (m *Menu) cursorAtFirstChoice() {
-	m.cursor = 0
-	for i, c := range m.entries {
-		if !c.Disabled {
-			m.cursor = i
-			break
+type mlayout int
+
+const (
+	table mlayout = iota
+	column
+	line
+)
+
+func (m *Menu) computeItems() {
+	grid := m.drawGrid()
+	rg := grid.Range()
+	if m.box != nil {
+		grid = grid.Slice(rg.Shift(1, 1, -1, -1))
+	}
+	m.size = grid.Size()
+	w, h := m.size.X, m.size.Y
+	layout := m.style.Layout
+	lines := layout.X
+	if lines <= 0 {
+		lines = len(m.entries)
+	}
+	columns := layout.Y
+	if columns <= 0 {
+		if lines == len(m.entries) {
+			columns = 1
+		} else {
+			columns = len(m.entries)
+		}
+	}
+	var ml mlayout
+	if columns > 1 && lines > 1 {
+		ml = table
+		if columns < len(m.entries) {
+			w = w / columns
+		}
+	} else if columns > 1 {
+		ml = line
+	} else {
+		ml = column
+	}
+	if m.view == nil {
+		m.view = make(map[gruid.Point]item)
+	} else {
+		for k := range m.view {
+			delete(m.view, k)
+		}
+	}
+	if w <= 0 {
+		w = 1
+	}
+	if h <= 0 {
+		h = 1
+	}
+	switch ml {
+	case column:
+		alt := true
+		for i, e := range m.entries {
+			if e.Disabled {
+				alt = false
+			}
+			p := gruid.Point{0, i}
+			m.view[p] = item{
+				grid: grid.Slice(gruid.NewRange(0, i%h, w, (i%h)+1)),
+				i:    i,
+				alt:  alt,
+				page: gruid.Point{0, i / h},
+			}
+			if !e.Disabled {
+				alt = !alt
+			}
+		}
+	case line:
+		var to, hpage int
+		alt := true
+		for i, e := range m.entries {
+			if e.Disabled {
+				alt = false
+			}
+			from := to
+			tw := m.stt.WithText(e.Text).Size().X
+			to += tw
+			if from > 0 && to > w {
+				from = 0
+				to = tw
+				hpage++
+			}
+			p := gruid.Point{i, 0}
+			m.view[p] = item{
+				grid: grid.Slice(gruid.NewRange(from, 0, to, 1)),
+				i:    i,
+				page: gruid.Point{hpage, 0},
+				alt:  alt,
+			}
+			if !e.Disabled {
+				alt = !alt
+			}
+		}
+	case table:
+		for i, _ := range m.entries {
+			page := i / (columns * h)
+			pageidx := i % (columns * h)
+			ln := pageidx % h
+			col := pageidx / h
+			p := gruid.Point{col, ln}
+			m.view[p] = item{
+				grid: grid.Slice(gruid.NewRange(p.X*w, p.Y%h, p.X*(1+w), (p.Y%h)+1)),
+				i:    i,
+				page: gruid.Point{0, page},
+				alt:  (col+ln)%h == 0,
+			}
 		}
 	}
 }
 
-func (m *Menu) cursorAtLastChoice() {
-	m.cursor = 0
+func (m *Menu) cursorAtFirstChoice() {
+	j := 0
 	for i, c := range m.entries {
 		if !c.Disabled {
-			m.cursor = i
+			j = i
+			break
 		}
 	}
+	m.active = m.idxToPos(j)
+}
+
+func (m *Menu) cursorAtLastChoice() {
+	j := len(m.entries) - 1
+	for i, c := range m.entries {
+		if !c.Disabled {
+			j = i
+		}
+	}
+	m.active = m.idxToPos(j)
 }
 
 // Draw implements gruid.Model.Draw. It returns the grid slice that was drawn.
@@ -259,41 +433,32 @@ func (m *Menu) Draw() gruid.Grid {
 		m.grid.Fill(gruid.Cell{Rune: ' '})
 	}
 	grid := m.drawGrid()
-
 	if m.box != nil {
 		m.box.Draw(grid)
 	}
-	alt := false
-	rg := grid.Range().Origin()
-	cgrid := grid
-	if m.box != nil {
-		cgrid = grid.Slice(rg.Shift(1, 1, -1, -1))
-	}
-	crg := cgrid.Range().Origin()
-	for i, c := range m.entries {
+	activeItem := m.view[m.active]
+	for p, it := range m.view {
+		if it.page != activeItem.page {
+			continue
+		}
+		i := it.i
+		c := m.entries[i]
 		if !c.Disabled {
 			st := m.stt.Style()
-			if alt {
+			if it.alt {
 				st.Bg = m.style.BgAlt
 			}
-			alt = !alt
-			if i == m.cursor {
+			if p == m.active {
 				st.Fg = m.style.Selected
 			}
-			text := m.stt.With(c.Text, st)
-			max := text.Size()
-			m.stt.With(c.Text, st).Draw(cgrid.Slice(crg.Line(i)))
 			cell := gruid.Cell{Rune: ' ', Style: st}
-			line := cgrid.Slice(crg.Line(i).Shift(max.X, 0, 0, 0))
-			line.Fill(cell)
+			it.grid.Fill(cell)
+			m.stt.With(c.Text, st).Draw(it.grid)
 		} else {
-			alt = false
 			st := m.style.Disabled
-			nchars := utf8.RuneCountInString(c.Text)
-			m.stt.With(c.Text, st).Draw(cgrid.Slice(crg.Line(i)))
 			cell := gruid.Cell{Rune: ' ', Style: st}
-			line := cgrid.Slice(crg.Line(i).Shift(nchars, 0, 0, 0))
-			line.Fill(cell)
+			it.grid.Fill(cell)
+			m.stt.With(c.Text, st).Draw(it.grid)
 		}
 	}
 	return grid

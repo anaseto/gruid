@@ -113,8 +113,7 @@ func (ti *TextInput) Update(msg gruid.Msg) gruid.Effect {
 				return gruid.End()
 			}
 		default:
-			nchars := utf8.RuneCountInString(string(msg.Key))
-			if nchars != 1 {
+			if !msg.Key.IsRune() {
 				break
 			}
 			r, _ := utf8.DecodeRuneInString(string(msg.Key))

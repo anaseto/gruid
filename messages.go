@@ -1,6 +1,9 @@
 package gruid
 
-import "time"
+import (
+	"time"
+	"unicode/utf8"
+)
 
 // Key represents the name of a key press.
 type Key string
@@ -13,6 +16,11 @@ func (k Key) In(keys []Key) bool {
 		}
 	}
 	return false
+}
+
+// IsRune reports whether the key is a single-rune string and not a named key.
+func (k Key) IsRune() bool {
+	return utf8.RuneCountInString(string(k)) == 1
 }
 
 // This is the list of the supported non single-character named keys. The
