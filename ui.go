@@ -63,11 +63,12 @@ type App struct {
 	// true.
 	CatchPanics bool
 
-	driver Driver
-	model  Model
-	enc    *frameEncoder
-	fps    time.Duration
-	logger *log.Logger
+	msgdraw bool
+	driver  Driver
+	model   Model
+	enc     *frameEncoder
+	fps     time.Duration
+	logger  *log.Logger
 
 	cellbuf []Cell
 	frame   Frame
@@ -84,6 +85,11 @@ type AppConfig struct {
 	// call Close on the Writer after Start returns.
 	FrameWriter io.Writer
 
+	// Subscribe to MsgDraw messages that are in sync with redrawings and
+	// sent at the FPS rate. This can be used for adjusting animations and
+	// ensuring they are smooth and in sync with redrawings.
+	MsgDrawSubscription bool
+
 	// FPS specifies the maximum number of frames per second. Should be a
 	// value between 60 and 240. Default is 60.
 	FPS time.Duration
@@ -97,6 +103,7 @@ func NewApp(cfg AppConfig) *App {
 	app := &App{
 		model:       cfg.Model,
 		driver:      cfg.Driver,
+		msgdraw:     cfg.MsgDrawSubscription,
 		fps:         cfg.FPS,
 		logger:      cfg.Logger,
 		CatchPanics: true,
@@ -187,7 +194,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 	}(ctx)
 
 	// subscribe to MsgDraw
-	go MsgDrawSubscription(ctx, msgs, app.fps)
+	go msgDrawSubscription(ctx, msgs, app.fps)
 
 	// effect processing
 	go func(ctx context.Context) {
@@ -253,13 +260,16 @@ func (app *App) Start(ctx context.Context) (err error) {
 				app.clearCellCache()
 			}
 
-			eff := app.model.Update(msg) // run update
-			select {
-			case effects <- eff: // process effect (if any)
-			case <-ctx.Done():
-				continue
+			_, draw := msg.(MsgDraw)
+			if app.msgdraw || !draw {
+				eff := app.model.Update(msg) // run update
+				select {
+				case effects <- eff: // process effect (if any)
+				case <-ctx.Done():
+					continue
+				}
 			}
-			if _, ok := msg.(MsgDraw); ok {
+			if draw {
 				gd := app.model.Draw()
 				frame := app.computeFrame(gd)
 				if len(frame.Cells) > 0 {
@@ -357,8 +367,8 @@ func (cmd Cmd) implementsEffect() {}
 // implementsEffect makes Sub satisfy Effect interface.
 func (sub Sub) implementsEffect() {}
 
-// MsgDrawSubscription sends a MsgDraw message at an fps rate.
-func MsgDrawSubscription(ctx context.Context, msgs chan<- Msg, fps time.Duration) {
+// msgDrawSubscription sends a MsgDraw message at an fps rate.
+func msgDrawSubscription(ctx context.Context, msgs chan<- Msg, fps time.Duration) {
 	ticker := time.NewTicker(time.Second / fps)
 	for {
 		select {

@@ -47,9 +47,6 @@ func NewModel(gd gruid.Grid) *model {
 }
 
 func (m *model) Update(msg gruid.Msg) gruid.Effect {
-	if _, ok := msg.(gruid.MsgDraw); ok {
-		return nil
-	}
 	if _, ok := msg.(gruid.MsgQuit); ok {
 		// The user requested the end of the application (for example
 		// by closing the window).

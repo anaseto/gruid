@@ -136,7 +136,7 @@ func (ma MouseAction) String() string {
 // MsgMouse represents a mouse user input event.
 type MsgMouse struct {
 	Action MouseAction // mouse action (click, release, move)
-	P    Point       // mouse position in the grid
+	P      Point       // mouse position in the grid
 	Mod    ModMask     // modifier keys: not reported in most drivers
 	Time   time.Time   // time when the event was generated
 }
@@ -157,8 +157,10 @@ type MsgScreen struct {
 // calling Start on the application.
 type MsgInit struct{}
 
-// MsgDraw reports that this Update will be followed by a call to Draw. It is
-// regularly reported at the FPS rate.
+// MsgDraw reports that this Update will be followed by a call to Draw. This
+// message is only sent to Update if the MsgDrawSubscription option was set
+// true when creating the application. In such a case, it is regularly reported
+// roughly at the FPS rate.
 type MsgDraw time.Time
 
 // MsgQuit may be reported by some drivers to request termination of the
