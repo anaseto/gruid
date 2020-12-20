@@ -68,7 +68,7 @@ func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost in
 			}
 			if !neighborNode.Open && !neighborNode.Closed {
 				neighborNode.Cost = cost
-				if cost < maxCost {
+				if cost <= maxCost {
 					neighborNode.Open = true
 					neighborNode.Rank = cost
 					heap.Push(nq, neighborNode)
