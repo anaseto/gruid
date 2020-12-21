@@ -133,6 +133,25 @@ func (pg *Pager) SetLines(lines []string) {
 	}
 }
 
+// View returns a range (Min, Max) such that the currently displayed lines are
+// the lines whose index is between Min.Y and Max.Y, and the displayed text
+// columns are the ones between Min.X and Max.X.
+func (pg *Pager) View() gruid.Range {
+	size := pg.grid.Size()
+	h := size.Y
+	bh := 0
+	if pg.box != nil {
+		bh = 2
+	}
+	if h > bh+len(pg.lines) {
+		h = bh + len(pg.lines)
+	}
+	if h-bh <= 0 {
+		return gruid.Range{}
+	}
+	return gruid.NewRange(pg.x, pg.index, pg.x+size.X, pg.index+h-bh)
+}
+
 func (pg *Pager) down(shift int) {
 	nlines := pg.grid.Size().Y
 	if pg.box != nil {
