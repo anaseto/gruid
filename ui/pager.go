@@ -15,6 +15,9 @@ type PagerStyle struct {
 type PagerKeys struct {
 	Down         []gruid.Key // go one line down (default: ArrowDown, j)
 	Up           []gruid.Key // go one line up (default: ArrowUp, k)
+	Left         []gruid.Key // go left (default: ArrowLeft, h)
+	Right        []gruid.Key // go right (default: ArrowRight, l)
+	Start        []gruid.Key // go to start of line (default: 0, ^)
 	PageDown     []gruid.Key // go one page down (default: PageDown, f)
 	PageUp       []gruid.Key // go one page up (default: PageUp, b)
 	HalfPageDown []gruid.Key // go half page down (default: Enter, d)
@@ -42,6 +45,7 @@ type Pager struct {
 	lines  []string
 	style  PagerStyle
 	index  int // current index
+	x      int // x position
 	action PagerAction
 	init   bool // Update received MsgInit
 	keys   PagerKeys
@@ -68,6 +72,15 @@ func NewPager(cfg PagerConfig) *Pager {
 	}
 	if pg.keys.PageUp == nil {
 		pg.keys.PageUp = []gruid.Key{gruid.KeyPageUp, "b"}
+	}
+	if pg.keys.Left == nil {
+		pg.keys.Left = []gruid.Key{gruid.KeyArrowLeft, "h"}
+	}
+	if pg.keys.Right == nil {
+		pg.keys.Right = []gruid.Key{gruid.KeyArrowRight, "l"}
+	}
+	if pg.keys.Start == nil {
+		pg.keys.Start = []gruid.Key{"^", "0"}
 	}
 	if pg.keys.HalfPageDown == nil {
 		pg.keys.HalfPageDown = []gruid.Key{gruid.KeyEnter, "d"}
@@ -103,6 +116,34 @@ const (
 	PagerQuit
 )
 
+func (pg *Pager) down(shift int) {
+	nlines := pg.grid.Size().Y
+	if pg.box != nil {
+		nlines -= 2
+	}
+	if pg.index+nlines+shift-1 >= len(pg.lines) {
+		shift = len(pg.lines) - pg.index - nlines
+	}
+	if shift > 0 {
+		pg.action = PagerMove
+		pg.index += shift
+	}
+}
+
+func (pg *Pager) up(shift int) {
+	nlines := pg.grid.Size().Y
+	if pg.box != nil {
+		nlines -= 2
+	}
+	if pg.index-shift < 0 {
+		shift = pg.index
+	}
+	if shift > 0 {
+		pg.action = PagerMove
+		pg.index -= shift
+	}
+}
+
 // Update implements gruid.Model.Update for Pager.
 func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 	nlines := pg.grid.Size().Y
@@ -118,39 +159,37 @@ func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 		key := msg.Key
 		switch {
 		case key.In(pg.keys.Down):
-			if pg.index+nlines < len(pg.lines) {
-				pg.action = PagerMove
-				pg.index++
-			}
+			pg.down(1)
 		case key.In(pg.keys.Up):
-			if pg.index > 0 {
+			pg.up(1)
+		case key.In(pg.keys.Left):
+			if pg.x > 0 {
 				pg.action = PagerMove
-				pg.index--
+				pg.x -= 8
+				if pg.x <= 0 {
+					pg.x = 0
+				}
+			}
+		case key.In(pg.keys.Right):
+			pg.action = PagerMove
+			pg.x += 8
+		case key.In(pg.keys.Start):
+			if pg.x > 0 {
+				pg.action = PagerMove
+				pg.x = 0
 			}
 		case key.In(pg.keys.PageDown), key.In(pg.keys.HalfPageDown):
 			shift := nlines - 1
 			if key.In(pg.keys.HalfPageDown) {
 				shift /= 2
 			}
-			if pg.index+nlines+shift-1 >= len(pg.lines) {
-				shift = len(pg.lines) - pg.index - nlines
-			}
-			if shift > 0 {
-				pg.action = PagerMove
-				pg.index += shift
-			}
+			pg.down(shift)
 		case key.In(pg.keys.PageUp), key.In(pg.keys.HalfPageUp):
 			shift := nlines - 1
 			if key.In(pg.keys.HalfPageUp) {
 				shift /= 2
 			}
-			if pg.index-shift < 0 {
-				shift = pg.index
-			}
-			if shift > 0 {
-				pg.action = PagerMove
-				pg.index -= shift
-			}
+			pg.up(shift)
 		case key.In(pg.keys.Top):
 			if pg.index != 0 {
 				pg.index = 0
@@ -176,16 +215,16 @@ func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 			return nil
 		}
 		switch msg.Action {
+		case gruid.MouseMain:
+			if msg.P.Rel(pg.grid.Range()).Y > nlines/2 {
+				pg.down(nlines - 1)
+			} else {
+				pg.up(nlines - 1)
+			}
 		case gruid.MouseWheelUp:
-			if pg.index > 0 {
-				pg.action = PagerMove
-				pg.index--
-			}
+			pg.up(1)
 		case gruid.MouseWheelDown:
-			if pg.index+nlines < len(pg.lines) {
-				pg.action = PagerMove
-				pg.index++
-			}
+			pg.down(1)
 		}
 	}
 	return nil
@@ -217,14 +256,32 @@ func (pg *Pager) Draw() gruid.Grid {
 		pg.box.Draw(grid)
 		rg := grid.Range().Origin()
 		line := grid.Slice(rg.Line(h-1).Shift(2, 0, -2, 0))
-		lnumtext := fmt.Sprintf("%d-%d/%d", pg.index, pg.index+h-bh-1, len(pg.lines)-1)
+		var lnumtext string
+		if pg.x > 0 {
+			lnumtext = fmt.Sprintf("%d-%d/%d+%d", pg.index, pg.index+h-bh-1, len(pg.lines)-1, pg.x)
+		} else {
+			lnumtext = fmt.Sprintf("%d-%d/%d", pg.index, pg.index+h-bh-1, len(pg.lines)-1)
+		}
 		pg.stt.With(lnumtext, pg.style.LineNum).Draw(line)
 		grid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
 	rg := grid.Range().Origin()
 	for i := 0; i < h-bh; i++ {
 		line := grid.Slice(rg.Line(i))
-		pg.stt.WithText(pg.lines[i+pg.index]).Draw(line)
+		s := pg.lines[i+pg.index]
+		count := 0
+		vs := s
+		for i, _ := range s {
+			if count <= pg.x {
+				vs = s[i:]
+			} else {
+				break
+			}
+			count++
+		}
+		if count >= pg.x {
+			pg.stt.WithText(vs).Draw(line)
+		}
 	}
 	return grid
 }
