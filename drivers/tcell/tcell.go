@@ -74,7 +74,8 @@ func (dr *Driver) Init() error {
 	return nil
 }
 
-// PollMsgs implements gruid.Driver.PollMsgs.
+// PollMsgs implements gruid.Driver.PollMsgs. It does not report KP_5 keypad
+// key when numlock is off.
 func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 	go func(ctx context.Context) {
 		<-ctx.Done()

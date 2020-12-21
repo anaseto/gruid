@@ -24,8 +24,8 @@ func (k Key) IsRune() bool {
 }
 
 // This is the list of the supported non single-character named keys. The
-// drivers that support non-numerical keypad may report some KP_* keypad keys
-// as one of this list, as specified in the comments.
+// drivers that support keypad with numlock off may report some KP_* keypad
+// keys as one of this list, as specified in the comments.
 const (
 	KeyArrowDown  Key = "ArrowDown"  // can be KP_2
 	KeyArrowLeft  Key = "ArrowLeft"  // can be KP_4
