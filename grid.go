@@ -334,7 +334,8 @@ func (gd Grid) Bounds() Range {
 	return gd.rg
 }
 
-// Range returns the range with Min set to (0,0) and Max set to gd.Size().
+// Range returns the range with Min set to (0,0) and Max set to gd.Size(). It
+// may be convenient to use it with Slice and a range Shift.
 func (gd Grid) Range() Range {
 	return gd.rg.Sub(gd.rg.Min)
 }

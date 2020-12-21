@@ -22,7 +22,7 @@
 //	}
 //
 //	func (m *model) Draw() gruid.Grid {
-//		// Write your rendering into the grid and return it or a grid slice.
+//		// Write your rendering into the grid and return it.
 //	}
 //
 //	func main() {
@@ -35,7 +35,7 @@
 //			Model: m,
 //		})
 //		// Start the main loop of the application.
-//		if err := app.Start(nil); err != nil {
+//		if err := app.Start(context.Background()); err != nil {
 //			log.Fatal(err)
 //		}
 //	}
