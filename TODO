@@ -3,5 +3,6 @@ add more tests
 add game events queue package?
 add map generation utilities package?
 add field of view package?
+add ecs package? (probably not: easy to reimplement and not easy to do generically without code generation)
 ----- Partial
 send MsgScreen at start and on resize (when sensible) [done for tcell, sdl]

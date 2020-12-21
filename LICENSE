@@ -14,8 +14,9 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 ----
 
-Some code from the core gruid package is copied or strongly inspired from
-github.com/charmbracelet/bubbletea, which uses the following license:
+Some code from the core gruid package relative to models and commands is
+strongly inspired from github.com/charmbracelet/bubbletea, which uses the
+following license:
 
 MIT License
 
