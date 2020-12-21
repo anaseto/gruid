@@ -26,7 +26,7 @@
 //	}
 //
 //	func main() {
-//		gd := gruid.NewGrid(gruid.GridConfig{})
+//		gd := gruid.NewGrid(80,24)
 //		m := &model{grid: gd, ...}
 //		// Specify a driver among the provided ones.
 //		driver := tcell.NewDriver(...)
