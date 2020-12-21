@@ -197,7 +197,7 @@ func (rg Range) Sub(p Point) Range {
 	return rg
 }
 
-// Sub returns a range of same size translated by +p.
+// Add returns a range of same size translated by +p.
 func (rg Range) Add(p Point) Range {
 	rg.Max = rg.Max.Add(p)
 	rg.Min = rg.Min.Add(p)
