@@ -21,6 +21,7 @@ type Driver struct {
 	// attributes.
 	sm        StyleManager
 	screen    tcell.Screen
+	mouse     bool
 	mousedrag bool
 	mousePos  gruid.Point
 	init      bool
@@ -30,11 +31,12 @@ type Driver struct {
 // Config contains configurations options for the driver.
 type Config struct {
 	StyleManager StyleManager // for cell styling
+	DisableMouse bool
 }
 
 // NewDriver returns a new driver with given configuration options.
 func NewDriver(cfg Config) *Driver {
-	return &Driver{sm: cfg.StyleManager}
+	return &Driver{sm: cfg.StyleManager, mouse: !cfg.DisableMouse}
 }
 
 // PreventQuit will make next call to Close keep the same tcell screen. It can
@@ -62,7 +64,11 @@ func (dr *Driver) Init() error {
 			return err
 		}
 		dr.screen.SetStyle(tcell.StyleDefault)
-		dr.screen.EnableMouse()
+		if dr.mouse {
+			dr.screen.EnableMouse()
+		} else {
+			dr.screen.DisableMouse()
+		}
 		dr.screen.HideCursor()
 	}
 
