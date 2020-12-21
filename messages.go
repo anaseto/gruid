@@ -34,7 +34,7 @@ const (
 	KeyBackspace  Key = "Backspace"
 	KeyDelete     Key = "Delete"
 	KeyEnd        Key = "End"   // can be KP_1
-	KeyEnter      Key = "Enter" // can be KP_5
+	KeyEnter      Key = "Enter" // can be KP_5 (arbitrary choice)
 	KeyEscape     Key = "Escape"
 	KeyHome       Key = "Home" // can be KP_7
 	KeyInsert     Key = "Insert"
