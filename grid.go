@@ -7,7 +7,7 @@ import (
 
 // AttrMask can be used to add custom styling information. It can for example
 // be used to map to specific terminal attributes (with GetStyle), or use
-// special images (with GetImage), when appropiate.
+// special images (with GetImage), when appropriate.
 //
 // It may be used as a bitmask, like terminal attributes, or as a generic
 // value for constants.
@@ -15,7 +15,7 @@ type AttrMask uint
 
 // Color is a generic value for representing colors. Except for the zero value,
 // which gets special treatment, those have to be mapped to concrete foreground
-// and background colors for each driver, as appropiate.
+// and background colors for each driver, as appropriate.
 type Color uint
 
 // ColorDefault gets special treatment by drivers and is mapped, when it makes
@@ -89,7 +89,7 @@ func (p Point) Sub(q Point) Point {
 	return Point{X: p.X - q.X, Y: p.Y - q.Y}
 }
 
-// In reports whether the position is withing the given range.
+// In reports whether the position is within the given range.
 func (p Point) In(rg Range) bool {
 	return p.X >= rg.Min.X && p.Y >= rg.Min.Y && p.X < rg.Max.X && p.Y < rg.Max.Y
 }
@@ -114,7 +114,7 @@ type Range struct {
 }
 
 // NewRange returns a new Range with coordinates (x0, y0) for Min and (x1, y1)
-// for Max. The returned range will have minumum and maximum coordinates
+// for Max. The returned range will have minimum and maximum coordinates
 // swapped if necessary, so that the range is well-formed.
 func NewRange(x0, y0, x1, y1 int) Range {
 	if x1 < x0 {

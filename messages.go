@@ -48,11 +48,11 @@ const (
 type ModMask int16
 
 // These values represent modifier keys for a MsgKeyDown message. Those are not
-// supported equally well accross all platforms and drivers, for both technical
+// supported equally well across all platforms and drivers, for both technical
 // and simplicity reasons. In particular, terminal drivers may not report shift
 // for key presses corresponding to upper case letters. Modifiers may conflict
 // in some cases with browser or system shortcuts too.  If you want portability
-// accross platforms and drivers, your application should not depend on them
+// across platforms and drivers, your application should not depend on them
 // for its core functionality.
 const (
 	ModShift ModMask = 1 << iota
@@ -95,7 +95,7 @@ func (m ModMask) String() string {
 type MsgKeyDown struct {
 	Key Key // name of the key in MsgKeyDown event
 
-	// Mod represents modifier keys. They are not portable accross
+	// Mod represents modifier keys. They are not portable across
 	// different platforms and drivers. Avoid using them for core
 	// functionality in portable applications.
 	Mod ModMask
@@ -107,7 +107,7 @@ type MsgKeyDown struct {
 type MouseAction int
 
 // This is the list of supported mouse buttons and actions. It is intentionally
-// short for simplicity and best portability accross drivers. Pressing several
+// short for simplicity and best portability across drivers. Pressing several
 // mouse buttons simultaneously is not reported and, in those cases, only one
 // release event will be send.
 const (

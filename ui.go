@@ -315,8 +315,8 @@ type Driver interface {
 
 	// PollMsgs is a subscription for input messages. It returns an error
 	// in case the driver input loop suffered a non recoverable error. It
-	// should handle cancelation of the passed given context and return as
-	// appropiate.
+	// should handle cancellation of the passed given context and return as
+	// appropriate.
 	PollMsgs(context.Context, chan<- Msg) error
 
 	// Flush sends last frame grid changes to the driver.
@@ -356,7 +356,7 @@ type Cmd func() Msg
 // to a channel. Subscriptions should only be used for long running functions
 // where more than one message will be produced, for example to send messages
 // delivered by a time.Ticker, or to report messages from listening on a
-// socket. The function should handle the context and terminate as appropiate.
+// socket. The function should handle the context and terminate as appropriate.
 //
 // It implements the Effect interface.
 type Sub func(context.Context, chan<- Msg)

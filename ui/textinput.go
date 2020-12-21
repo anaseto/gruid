@@ -46,8 +46,8 @@ type TextInput struct {
 // TextInputAction represents last user action with the text input.
 type TextInputAction int
 
-// These constants represent possible actions araising from interaction with
-// the text input.
+// These constants represent possible actions raising from interaction with the
+// text input.
 const (
 	TextInputPass     TextInputAction = iota // no change in state
 	TextInputChange                          // changed content or moved cursor
@@ -55,7 +55,7 @@ const (
 	TextInputQuit                            // quit/cancel text input
 )
 
-// NewTextInput returns a new text input with givent configuration options.
+// NewTextInput returns a new text input with given configuration options.
 func NewTextInput(cfg TextInputConfig) *TextInput {
 	ti := &TextInput{
 		grid:   cfg.Grid,

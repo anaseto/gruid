@@ -6,7 +6,7 @@ import "time"
 // demand, or cancel them before their due date.
 //
 // It does not belong to core gruid functionality, but may come handy for
-// example to plan cancelable animations that animate intermediate model state
+// example to plan cancellable animations that animate intermediate model state
 // changes during Update. In Update, you would make several calls to After,
 // adding functions drawing animation frames. Also, you would call Cancel as
 // needed (for example on user keyboard input). Then, in Draw you would call
