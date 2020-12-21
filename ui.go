@@ -29,7 +29,7 @@
 //		gd := gruid.NewGrid(gruid.GridConfig{})
 //		m := &model{grid: gd, ...}
 //		// Specify a driver among the provided ones.
-//		driver := &tcell.Driver{...}
+//		driver := tcell.NewDriver(...)
 //		app := gruid.NewApp(gruid.AppConfig{
 //			Driver: driver,
 //			Model: m,
