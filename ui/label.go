@@ -41,7 +41,7 @@ func (lb *Label) drawGrid(gd gruid.Grid) gruid.Grid {
 		w += 2
 	}
 	if !lb.AdjustWidth {
-		w = gd.Range().Size().X
+		w = gd.Size().X
 	}
 	return gd.Slice(gruid.NewRange(0, 0, w, h))
 }
@@ -53,7 +53,7 @@ func (lb *Label) Draw(gd gruid.Grid) gruid.Grid {
 	cgrid := grid
 	if lb.Box != nil {
 		lb.Box.Draw(grid)
-		rg := grid.Range().Origin()
+		rg := grid.Range()
 		cgrid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
 	cgrid.Fill(gruid.Cell{Rune: ' ', Style: lb.StyledText.Style()})

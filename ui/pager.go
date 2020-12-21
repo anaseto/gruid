@@ -225,7 +225,7 @@ func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 			}
 		}
 	case gruid.MsgMouse:
-		if !msg.P.In(pg.grid.Range()) {
+		if !msg.P.In(pg.grid.Bounds()) {
 			switch msg.Action {
 			case gruid.MouseMain:
 				pg.action = PagerQuit
@@ -234,7 +234,7 @@ func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 		}
 		switch msg.Action {
 		case gruid.MouseMain:
-			if msg.P.Sub(pg.grid.Range().Min).Y > nlines/2 {
+			if msg.P.Sub(pg.grid.Bounds().Min).Y > nlines/2 {
 				pg.down(nlines - 1)
 			} else {
 				pg.up(nlines - 1)
@@ -272,7 +272,7 @@ func (pg *Pager) Draw() gruid.Grid {
 	}
 	if pg.box != nil {
 		pg.box.Draw(grid)
-		rg := grid.Range().Origin()
+		rg := grid.Range()
 		line := grid.Slice(rg.Line(h-1).Shift(2, 0, -2, 0))
 		var lnumtext string
 		if pg.x > 0 {
@@ -283,7 +283,7 @@ func (pg *Pager) Draw() gruid.Grid {
 		pg.stt.With(lnumtext, pg.style.LineNum).Draw(line)
 		grid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
-	rg := grid.Range().Origin()
+	rg := grid.Range()
 	for i := 0; i < h-bh; i++ {
 		line := grid.Slice(rg.Line(i))
 		s := pg.lines[i+pg.index]

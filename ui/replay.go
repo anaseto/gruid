@@ -126,7 +126,7 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 			rep.auto = false
 		}
 	case gruid.MsgMouse:
-		if !msg.P.In(rep.grid.Range()) {
+		if !msg.P.In(rep.grid.Bounds()) {
 			break
 		}
 		switch msg.Action {

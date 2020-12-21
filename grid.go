@@ -190,12 +190,6 @@ func (rg Range) Empty() bool {
 	return rg.Min.X >= rg.Max.X || rg.Min.Y >= rg.Max.Y
 }
 
-// Origin returns an identical range with the origin at (0,0). It's the same as
-// rg.Sub(rg.Min).
-func (rg Range) Origin() Range {
-	return rg.Sub(rg.Min)
-}
-
 // Sub returns a range of same size translated by -p.
 func (rg Range) Sub(p Point) Range {
 	rg.Max = rg.Max.Sub(p)
@@ -334,15 +328,21 @@ func NewGrid(w, h int) Grid {
 	return gd
 }
 
-// Range returns the range that is represented by this grid within the
-// application's whole grid.
-func (gd Grid) Range() Range {
+// Bounds returns the range that is covered by this grid slice within the
+// underlying grid.
+func (gd Grid) Bounds() Range {
 	return gd.rg
+}
+
+// Range returns the range with Min set to (0,0) and Max set to gd.Size().
+func (gd Grid) Range() Range {
+	return gd.rg.Sub(gd.rg.Min)
 }
 
 // Slice returns a rectangular slice of the grid given by a range relative to
 // the grid. If the range is out of bounds of the parent grid, it will be
-// reduced to fit to the available space.
+// reduced to fit to the available space. The returned grid shares memory with
+// the parent.
 //
 // This makes it easy to use relative coordinates when working with UI
 // elements.
@@ -501,7 +501,7 @@ func (gd Grid) Copy(src Grid) Point {
 func (gd Grid) cp(src Grid) Point {
 	rg := gd.rg
 	rgsrc := src.rg
-	max := rg.Origin().Intersect(rgsrc.Origin()).Size()
+	max := gd.Range().Intersect(src.Range()).Size()
 	for j := 0; j < max.Y; j++ {
 		idx := (rg.Min.Y+j)*gd.ug.width + rg.Min.X
 		idxsrc := (rgsrc.Min.Y+j)*src.ug.width + rgsrc.Min.X
@@ -513,7 +513,7 @@ func (gd Grid) cp(src Grid) Point {
 func (gd Grid) cprev(src Grid) Point {
 	rg := gd.rg
 	rgsrc := src.rg
-	max := rg.Origin().Intersect(rgsrc.Origin()).Size()
+	max := gd.Range().Intersect(src.Range()).Size()
 	for j := max.Y - 1; j >= 0; j-- {
 		idx := (rg.Min.Y+j)*gd.ug.width + rg.Min.X
 		idxsrc := (rgsrc.Min.Y+j)*src.ug.width + rgsrc.Min.X

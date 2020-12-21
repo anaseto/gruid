@@ -147,14 +147,14 @@ func (ti *TextInput) Update(msg gruid.Msg) gruid.Effect {
 	case gruid.MsgMouse:
 		cgrid := ti.grid
 		if ti.box != nil {
-			rg := ti.grid.Range().Origin()
+			rg := ti.grid.Range()
 			cgrid = ti.grid.Slice(rg.Shift(1, 1, -1, -1))
 		}
 		start := ti.start()
-		p := msg.P.Sub(cgrid.Range().Min)
+		p := msg.P.Sub(cgrid.Bounds().Min)
 		switch msg.Action {
 		case gruid.MouseMain:
-			if !msg.P.In(ti.grid.Range()) {
+			if !msg.P.In(ti.grid.Bounds()) {
 				ti.action = TextInputQuit
 				if ti.init {
 					return gruid.End()
@@ -197,10 +197,10 @@ func (ti *TextInput) cursorRune() rune {
 func (ti *TextInput) start() int {
 	cgrid := ti.grid
 	if ti.box != nil {
-		rg := ti.grid.Range().Origin()
+		rg := ti.grid.Range()
 		cgrid = ti.grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
-	crg := cgrid.Range().Origin()
+	crg := cgrid.Range()
 	start := 0
 	w := crg.Size().X
 	w -= ti.cursorMin
@@ -219,12 +219,12 @@ func (ti *TextInput) Draw() gruid.Grid {
 	cgrid := ti.grid
 	if ti.box != nil {
 		ti.box.Draw(ti.grid)
-		rg := ti.grid.Range().Origin()
+		rg := ti.grid.Range()
 		cgrid = ti.grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
 	cgrid.Fill(gruid.Cell{Rune: ' ', Style: ti.stt.Style()})
 	ti.stt.With(ti.prompt, ti.style.Prompt).Draw(cgrid)
-	crg := cgrid.Range().Origin()
+	crg := cgrid.Range()
 	start := ti.start()
 	ti.stt.WithText(string(ti.content[start:])).Draw(cgrid.Slice(crg.Shift(ti.cursorMin, 0, 0, 0)))
 	ti.stt.With(string(ti.cursorRune()), ti.style.Cursor).Draw(cgrid.Slice(crg.Shift(ti.cursorMin+ti.cursor-start, 0, 0, 0)))

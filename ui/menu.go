@@ -258,7 +258,7 @@ func (m *Menu) nextPage(p gruid.Point) (gruid.Point, bool) {
 // its grid.
 func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 	grid := m.drawGrid()
-	rg := grid.Range()
+	rg := grid.Bounds()
 
 	switch msg := msg.(type) {
 	case gruid.MsgInit:
@@ -328,7 +328,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 				break
 			}
 			for q, it := range m.table {
-				if it.page == page && p.In(it.grid.Range()) {
+				if it.page == page && p.In(it.grid.Bounds()) {
 					if q == m.active {
 						break
 					}
@@ -372,7 +372,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 				break
 			}
 			for q, it := range m.table {
-				if it.page == page && p.In(it.grid.Range()) {
+				if it.page == page && p.In(it.grid.Bounds()) {
 					m.active = q
 					if m.entries[it.i].Disabled {
 						m.action = MenuMove
@@ -419,7 +419,7 @@ func (m *Menu) computeItems() {
 		m.layout.X = len(m.entries)
 	}
 	grid := m.drawGrid()
-	rg := grid.Range()
+	rg := grid.Bounds()
 	if m.box != nil {
 		grid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
@@ -566,7 +566,7 @@ func (m *Menu) Draw() gruid.Grid {
 	grid := m.drawGrid()
 	if m.box != nil {
 		m.box.Draw(grid)
-		rg := grid.Range().Origin()
+		rg := grid.Range()
 		h := grid.Size().Y
 		line := grid.Slice(rg.Line(h-1).Shift(2, 0, -2, 0))
 		pg := m.table[m.active].page

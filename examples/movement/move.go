@@ -17,7 +17,7 @@ func main() {
 
 	// our application's state and grid with default config
 	gd := gruid.NewGrid(80, 24)
-	pr := paths.NewPathRange(gd.Range())
+	pr := paths.NewPathRange(gd.Bounds())
 	m := &model{grid: gd, pr: pr}
 	framebuf := &bytes.Buffer{} // for compressed recording
 
@@ -233,7 +233,7 @@ func abs(x int) int {
 // grid.
 func (m *model) Draw() gruid.Grid {
 	c := gruid.Cell{Rune: '.'} // default cell
-	m.grid.Range().Origin().Iter(func(p gruid.Point) {
+	m.grid.Range().Iter(func(p gruid.Point) {
 		if p == m.playerPos {
 			m.grid.Set(p, gruid.Cell{Rune: '@', Style: c.Style.WithFg(ColorPlayer)})
 		} else {

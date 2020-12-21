@@ -18,13 +18,13 @@ type Box struct {
 // drawn, which usually is the whole grid, except if the grid was too small to
 // draw a box.
 func (b Box) Draw(gd gruid.Grid) gruid.Grid {
-	rg := gd.Range().Origin()
+	rg := gd.Range()
 	max := rg.Size()
 	if max.X < 2 || max.Y < 2 {
 		return gd.Slice(gruid.Range{})
 	}
 	cgrid := gd.Slice(rg.Shift(1, 0, -1, 0))
-	crg := cgrid.Range().Origin()
+	crg := cgrid.Range()
 	cell := gruid.Cell{Style: b.Style}
 	cell.Rune = '─'
 	max = crg.Size()
