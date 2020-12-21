@@ -67,7 +67,8 @@ func (st Style) WithAttrs(cl Color) Style {
 	return st
 }
 
-// Point represents an (X,Y) position in a grid.
+// Point represents an (X,Y) position in a grid. It follows conventions similar
+// to the ones used by the standard library image.Point.
 type Point struct {
 	X int
 	Y int
@@ -88,23 +89,19 @@ func (p Point) Sub(q Point) Point {
 	return Point{X: p.X - q.X, Y: p.Y - q.Y}
 }
 
-// In reports whether the absolute position is withing the given range.
+// In reports whether the position is withing the given range.
 func (p Point) In(rg Range) bool {
 	return p.X >= rg.Min.X && p.Y >= rg.Min.Y && p.X < rg.Max.X && p.Y < rg.Max.Y
 }
 
-// Rel changes an absolute position into a position relative to a given
-// range. It's the same as p.Sub(rg.Min). You may use it for example when
-// dealing with mouse coordinates from a MsgMouse message. See also the method
-// of the same name for the Range type, which may serve a similar purpose.
-func (p Point) Rel(rg Range) Point {
-	return p.Sub(rg.Min)
+// Mul returns the vector p*k.
+func (p Point) Mul(k int) Point {
+	return Point{X: p.X * k, Y: p.Y * k}
 }
 
-// Abs returns the absolute position given a range. It's the same as
-// p.Add(rg.Min).
-func (p Point) Abs(rg Range) Point {
-	return p.Add(rg.Min)
+// Div returns the vector p/k.
+func (p Point) Div(k int) Point {
+	return Point{X: p.X / k, Y: p.Y / k}
 }
 
 // Range represents a rectangle in a grid with upper left position Min and
@@ -193,20 +190,32 @@ func (rg Range) Empty() bool {
 	return rg.Min.X >= rg.Max.X || rg.Min.Y >= rg.Max.Y
 }
 
-// Origin returns a range of same size with Min = (0, 0). It may be useful to
-// define grid slices as a Shift of a relative original range.
+// Origin returns an identical range with the origin at (0,0). It's the same as
+// rg.Sub(rg.Min).
 func (rg Range) Origin() Range {
-	rg.Max = rg.Max.Sub(rg.Min)
-	rg.Min = Point{}
+	return rg.Sub(rg.Min)
+}
+
+// Sub returns a range of same size translated by -p.
+func (rg Range) Sub(p Point) Range {
+	rg.Max = rg.Max.Sub(p)
+	rg.Min = rg.Min.Sub(p)
 	return rg
 }
 
-// Relative returns a range-relative version of messages defined by the gruid
+// Sub returns a range of same size translated by +p.
+func (rg Range) Add(p Point) Range {
+	rg.Max = rg.Max.Add(p)
+	rg.Min = rg.Min.Add(p)
+	return rg
+}
+
+// RelMsg returns a range-relative version of messages defined by the gruid
 // package. Currently, it only affects mouse messages, which are given
 // positions relative to the range.
-func (rg Range) Relative(msg Msg) Msg {
+func (rg Range) RelMsg(msg Msg) Msg {
 	if msg, ok := msg.(MsgMouse); ok {
-		msg.P = msg.P.Rel(rg)
+		msg.P = msg.P.Sub(rg.Min)
 		return msg
 	}
 	return msg
@@ -409,9 +418,9 @@ func (gd Grid) Resize(w, h int) Grid {
 	return gd
 }
 
-// Contains returns true if the relative position is within the grid range.
+// Contains returns true if the relative position is within the grid.
 func (gd Grid) Contains(p Point) bool {
-	return p.Abs(gd.rg).In(gd.rg)
+	return p.Add(gd.rg.Min).In(gd.rg)
 }
 
 // Set draws cell content and styling at a given position in the grid. If the
@@ -438,7 +447,7 @@ func (gd Grid) At(p Point) Cell {
 
 // getIdx returns the buffer index of a relative position.
 func (gd Grid) getIdx(p Point) int {
-	p = p.Abs(gd.rg)
+	p = p.Add(gd.rg.Min)
 	return p.Y*gd.ug.width + p.X
 }
 
@@ -450,7 +459,7 @@ func idxToPos(i, w int) Point {
 // Fill sets the given cell as content for all the grid positions.
 func (gd Grid) Fill(c Cell) {
 	max := gd.Size()
-	upos := gd.Range().Min
+	upos := gd.rg.Min
 	for y := 0; y < max.Y; y++ {
 		yidx := (upos.Y + y) * gd.ug.width
 		for x := 0; x < max.X; x++ {
@@ -480,18 +489,18 @@ func (gd Grid) Copy(src Grid) Point {
 	if gd.ug != src.ug {
 		return gd.cp(src)
 	}
-	if gd.Range() == src.Range() {
-		return gd.Range().Size()
+	if gd.rg == src.rg {
+		return gd.rg.Size()
 	}
-	if !gd.Range().Overlaps(src.Range()) || gd.Range().Min.Y <= src.Range().Min.Y {
+	if !gd.rg.Overlaps(src.rg) || gd.rg.Min.Y <= src.rg.Min.Y {
 		return gd.cp(src)
 	}
 	return gd.cprev(src)
 }
 
 func (gd Grid) cp(src Grid) Point {
-	rg := gd.Range()
-	rgsrc := src.Range()
+	rg := gd.rg
+	rgsrc := src.rg
 	max := rg.Origin().Intersect(rgsrc.Origin()).Size()
 	for j := 0; j < max.Y; j++ {
 		idx := (rg.Min.Y+j)*gd.ug.width + rg.Min.X
@@ -502,8 +511,8 @@ func (gd Grid) cp(src Grid) Point {
 }
 
 func (gd Grid) cprev(src Grid) Point {
-	rg := gd.Range()
-	rgsrc := src.Range()
+	rg := gd.rg
+	rgsrc := src.rg
 	max := rg.Origin().Intersect(rgsrc.Origin()).Size()
 	for j := max.Y - 1; j >= 0; j-- {
 		idx := (rg.Min.Y+j)*gd.ug.width + rg.Min.X

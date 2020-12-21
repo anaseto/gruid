@@ -151,7 +151,7 @@ func (ti *TextInput) Update(msg gruid.Msg) gruid.Effect {
 			cgrid = ti.grid.Slice(rg.Shift(1, 1, -1, -1))
 		}
 		start := ti.start()
-		p := msg.P.Rel(cgrid.Range())
+		p := msg.P.Sub(cgrid.Range().Min)
 		switch msg.Action {
 		case gruid.MouseMain:
 			if !msg.P.In(ti.grid.Range()) {

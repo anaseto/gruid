@@ -234,7 +234,7 @@ func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 		}
 		switch msg.Action {
 		case gruid.MouseMain:
-			if msg.P.Rel(pg.grid.Range()).Y > nlines/2 {
+			if msg.P.Sub(pg.grid.Range().Min).Y > nlines/2 {
 				pg.down(nlines - 1)
 			} else {
 				pg.up(nlines - 1)

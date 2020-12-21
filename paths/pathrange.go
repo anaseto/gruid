@@ -46,7 +46,7 @@ func (pr *PathRange) SetRange(rg gruid.Range) {
 }
 
 func (pr *PathRange) idx(p gruid.Point) int {
-	p = p.Rel(pr.rg)
+	p = p.Sub(pr.rg.Min)
 	w := pr.rg.Size().X
 	return p.Y*w + p.X
 }
