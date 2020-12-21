@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"fmt"
+
 	"github.com/anaseto/gruid"
 )
 
@@ -10,8 +12,8 @@ type MenuEntry struct {
 	// Text is the text displayed on the entry line.
 	Text string
 
-	// Disabled means that the entry is not activable nor invokable. It may
-	// represent a header or an unavailable choice, for example.
+	// Disabled means that the entry is not invokable. It may represent a
+	// header or an unavailable choice, for example.
 	Disabled bool
 
 	// Keys contains entry shortcuts, if any, and only for activable
@@ -19,7 +21,8 @@ type MenuEntry struct {
 	Keys []gruid.Key
 }
 
-// MenuKeys contains key bindings configuration for the menu.
+// MenuKeys contains key bindings configuration for the menu. One step movement
+// keys skip disabled entries.
 type MenuKeys struct {
 	Up       []gruid.Key // move up active entry (default: ArrowUp, k)
 	Down     []gruid.Key // move down active entry (default: ArrowDown, j)
@@ -60,6 +63,7 @@ type MenuStyle struct {
 	BgAlt    gruid.Color // alternate background on even choice lines
 	Selected gruid.Color // foreground for selected entry
 	Disabled gruid.Style // disabled entry style
+	PageNum  gruid.Style // page num display style (for boxed menu)
 }
 
 // MenuConfig contains configuration options for creating a menu.
@@ -81,7 +85,6 @@ func NewMenu(cfg MenuConfig) *Menu {
 		stt:     cfg.StyledText,
 		style:   cfg.Style,
 		keys:    cfg.Keys,
-		draw:    true,
 	}
 	if m.keys.Invoke == nil {
 		m.keys.Invoke = []gruid.Key{gruid.KeyEnter}
@@ -128,13 +131,13 @@ type Menu struct {
 	entries []MenuEntry
 	table   map[gruid.Point]item
 	points  []gruid.Point
+	pages   gruid.Point
 	size    gruid.Point // view size (w, h) in cells
 	box     *Box
 	stt     StyledText
 	style   MenuStyle
 	active  gruid.Point
 	action  MenuAction
-	draw    bool
 	init    bool // Update received MsgInit
 	keys    MenuKeys
 	layout  gruid.Point // current menu layout
@@ -183,9 +186,6 @@ func (m *Menu) idxToPos(i int) gruid.Point {
 }
 
 func (m *Menu) moveTo(p gruid.Point) {
-	// TODO: handle more intuitively some cases, and add support for
-	// advancing pages, and show page number somewhere if possible, or at
-	// least that there is more.
 	q := m.active
 	for {
 		q = q.Add(p)
@@ -203,6 +203,13 @@ func (m *Menu) moveTo(p gruid.Point) {
 	} else if q, ok := m.nextPage(p); ok {
 		m.action = MenuMove
 		m.active = q
+	} else {
+		switch p {
+		case gruid.Point{0, 1}, gruid.Point{1, 0}:
+			m.cursorAtFirstChoice()
+		case gruid.Point{0, -1}, gruid.Point{-1, 0}:
+			m.cursorAtLastChoice()
+		}
 	}
 }
 
@@ -266,12 +273,20 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 		case msg.Key.In(m.keys.Left):
 			m.moveTo(gruid.Point{-1, 0})
 		case msg.Key.In(m.keys.PageDown):
-			if p, ok := m.nextPage(gruid.Point{0, 1}); ok {
+			p := gruid.Point{0, 1}
+			if m.pages.Y == 0 {
+				p = gruid.Point{1, 0}
+			}
+			if p, ok := m.nextPage(p); ok {
 				m.action = MenuMove
 				m.active = p
 			}
 		case msg.Key.In(m.keys.PageUp):
-			if p, ok := m.nextPage(gruid.Point{0, -1}); ok {
+			p := gruid.Point{0, -1}
+			if m.pages.Y == 0 {
+				p = gruid.Point{-1, 0}
+			}
+			if p, ok := m.nextPage(p); ok {
 				m.action = MenuMove
 				m.active = p
 			}
@@ -314,6 +329,30 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 					m.active = q
 					m.action = MenuMove
 				}
+			}
+		case gruid.MouseWheelDown:
+			if !p.In(crg) {
+				break
+			}
+			p := gruid.Point{0, 1}
+			if m.pages.Y == 0 {
+				p = gruid.Point{1, 0}
+			}
+			if p, ok := m.nextPage(p); ok {
+				m.action = MenuMove
+				m.active = p
+			}
+		case gruid.MouseWheelUp:
+			if !p.In(crg) {
+				break
+			}
+			p := gruid.Point{0, -1}
+			if m.pages.Y == 0 {
+				p = gruid.Point{-1, 0}
+			}
+			if p, ok := m.nextPage(p); ok {
+				m.action = MenuMove
+				m.active = p
 			}
 		case gruid.MouseMain:
 			if !p.In(rg) {
@@ -481,6 +520,15 @@ func (m *Menu) computeItems() {
 			m.points = append(m.points, p)
 		}
 	}
+	for _, p := range m.points {
+		pg := m.table[p].page
+		if pg.X > m.pages.X {
+			m.pages.X = pg.X
+		}
+		if pg.Y > m.pages.Y {
+			m.pages.Y = pg.Y
+		}
+	}
 }
 
 func (m *Menu) cursorAtFirstChoice() {
@@ -512,6 +560,21 @@ func (m *Menu) Draw() gruid.Grid {
 	grid := m.drawGrid()
 	if m.box != nil {
 		m.box.Draw(grid)
+		rg := grid.Range().Origin()
+		h := grid.Size().Y
+		line := grid.Slice(rg.Line(h-1).Shift(2, 0, -2, 0))
+		pg := m.table[m.active].page
+		var lnumtext string
+		if m.pages.X == 0 && m.pages.Y == 0 {
+		} else if m.pages.X == 0 {
+			lnumtext = fmt.Sprintf("%d/%d", pg.Y, m.pages.Y)
+		} else if m.pages.Y == 0 {
+			lnumtext = fmt.Sprintf("%d/%d", pg.X, m.pages.X)
+		} else {
+			lnumtext = fmt.Sprintf("%d,%d/%d,%d", pg.X, pg.Y, m.pages.X, m.pages.Y)
+		}
+		m.stt.With(lnumtext, m.style.PageNum).Draw(line)
+		grid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
 	activeItem := m.table[m.active]
 	for p, it := range m.table {
