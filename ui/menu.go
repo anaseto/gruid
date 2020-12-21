@@ -162,6 +162,12 @@ func (m *Menu) SetEntries(entries []MenuEntry) {
 	}
 }
 
+// SetBox updates the menu surrounding box.
+func (m *Menu) SetBox(b *Box) {
+	m.box = b
+	m.computeItems()
+}
+
 func (m *Menu) contains(p gruid.Point) bool {
 	_, ok := m.table[p]
 	return ok

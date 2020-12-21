@@ -46,7 +46,7 @@ func (lb *Label) drawGrid(gd gruid.Grid) gruid.Grid {
 	return gd.Slice(gruid.NewRange(0, 0, w, h))
 }
 
-// Draw draws the label into the grid. It returns the grid slice that was
+// Draw draws the label into the given grid. It returns the grid slice that was
 // drawn.
 func (lb *Label) Draw(gd gruid.Grid) gruid.Grid {
 	grid := lb.drawGrid(gd)

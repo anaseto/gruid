@@ -116,6 +116,23 @@ const (
 	PagerQuit
 )
 
+// SetBox updates the pager surrounding box.
+func (pg *Pager) SetBox(b *Box) {
+	pg.box = b
+}
+
+// SetLines updates the pager text lines.
+func (pg *Pager) SetLines(lines []string) {
+	nlines := pg.grid.Size().Y
+	if pg.box != nil {
+		nlines -= 2
+	}
+	pg.lines = lines
+	if pg.index+nlines-1 >= len(pg.lines) {
+		pg.index = len(pg.lines) - nlines
+	}
+}
+
 func (pg *Pager) down(shift int) {
 	nlines := pg.grid.Size().Y
 	if pg.box != nil {

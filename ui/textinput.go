@@ -46,7 +46,7 @@ type TextInput struct {
 // TextInputAction represents last user action with the text input.
 type TextInputAction int
 
-// These constants represent available actions araising from interaction with
+// These constants represent possible actions araising from interaction with
 // the text input.
 const (
 	TextInputPass     TextInputAction = iota // no change in state
@@ -76,6 +76,11 @@ func NewTextInput(cfg TextInputConfig) *TextInput {
 		ti.keys.Quit = []gruid.Key{gruid.KeyEscape, gruid.KeyTab}
 	}
 	return ti
+}
+
+// SetBox updates the text input surrounding box.
+func (ti *TextInput) SetBox(b *Box) {
+	ti.box = b
 }
 
 func (ti *TextInput) cursorMax() int {

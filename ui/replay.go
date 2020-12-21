@@ -1,4 +1,5 @@
-// Package ui defines common UI utilities for gruid.
+// Package ui defines common UI utilities for gruid: menu/table widget,
+// pager, text input, label, text drawing facilities and replay functionality.
 package ui
 
 import (
