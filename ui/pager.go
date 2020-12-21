@@ -144,7 +144,8 @@ func (pg *Pager) up(shift int) {
 	}
 }
 
-// Update implements gruid.Model.Update for Pager.
+// Update implements gruid.Model.Update for Pager. It considers mouse message
+// coordinates to be absolute in its grid.
 func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 	nlines := pg.grid.Size().Y
 	if pg.box != nil {

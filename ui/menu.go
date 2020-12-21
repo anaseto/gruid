@@ -248,8 +248,8 @@ func (m *Menu) nextPage(p gruid.Point) (gruid.Point, bool) {
 }
 
 // Update implements gruid.Model.Update and updates the menu state in response to
-// user input messages. It considers mouse messages to be relative to its grid
-// slice range.
+// user input messages. It considers mouse message coordinates to be absolute in
+// its grid.
 func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 	grid := m.drawGrid()
 	rg := grid.Range()

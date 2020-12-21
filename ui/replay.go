@@ -29,7 +29,7 @@ type ReplayConfig struct {
 type Replay struct {
 	decoder *gruid.FrameDecoder
 	frames  []gruid.Frame
-	gd      gruid.Grid
+	grid    gruid.Grid
 	undo    [][]gruid.FrameCell
 	fidx    int // frame index
 	auto    bool
@@ -42,7 +42,7 @@ type Replay struct {
 // NewReplay returns a new Replay with a given configuration.
 func NewReplay(cfg ReplayConfig) *Replay {
 	rep := &Replay{
-		gd:      cfg.Grid,
+		grid:    cfg.Grid,
 		decoder: cfg.FrameDecoder,
 		auto:    true,
 		speed:   1,
@@ -93,7 +93,8 @@ func (rep *Replay) decodeNext() {
 	}
 }
 
-// Update implements Model.Update for Replay.
+// Update implements Model.Update for Replay. It considers mouse message
+// coordinates to be absolute in its grid.
 func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 	rep.action = replayNone
 	switch msg := msg.(type) {
@@ -124,6 +125,9 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 			rep.auto = false
 		}
 	case gruid.MsgMouse:
+		if !msg.P.In(rep.grid.Range()) {
+			break
+		}
 		switch msg.Action {
 		case gruid.MouseMain:
 			rep.action = replayTogglePause
@@ -183,19 +187,19 @@ func (rep *Replay) draw() {
 		frame := rep.frames[rep.fidx-1]
 		rep.undo = append(rep.undo, []gruid.FrameCell{})
 		j := len(rep.undo) - 1
-		max := rep.gd.Size()
+		max := rep.grid.Size()
 		if frame.Width > max.X || frame.Height > max.Y {
-			rep.gd = rep.gd.Resize(frame.Width, frame.Height)
+			rep.grid = rep.grid.Resize(frame.Width, frame.Height)
 		}
 		for _, fc := range frame.Cells {
-			c := rep.gd.At(fc.P)
+			c := rep.grid.At(fc.P)
 			rep.undo[j] = append(rep.undo[j], gruid.FrameCell{Cell: c, P: fc.P})
-			rep.gd.Set(fc.P, fc.Cell)
+			rep.grid.Set(fc.P, fc.Cell)
 		}
 	case replayPrevious:
 		fcells := rep.undo[len(rep.undo)-1]
 		for _, fc := range fcells {
-			rep.gd.Set(fc.P, fc.Cell)
+			rep.grid.Set(fc.P, fc.Cell)
 		}
 		rep.undo = rep.undo[:len(rep.undo)-1]
 	}
@@ -203,7 +207,7 @@ func (rep *Replay) draw() {
 
 // Draw implements Model.Draw for Replay.
 func (rep *Replay) Draw() gruid.Grid {
-	return rep.gd
+	return rep.grid
 }
 
 func (rep *Replay) tick() gruid.Cmd {
