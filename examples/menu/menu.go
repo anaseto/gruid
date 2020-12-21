@@ -71,8 +71,8 @@ func NewModel(gd gruid.Grid) *model {
 	}
 	st := gruid.Style{}
 	style := ui.MenuStyle{
-		//Layout:   gruid.Point{0, 1}, // one-line layout (with two pages)
-		//Layout:   gruid.Point{2, 2}, // tabular layout (with two pages)
+		//Layout: gruid.Point{0, 1}, // one-line layout (with two pages)
+		Layout:   gruid.Point{2, 2}, // tabular layout (with two pages)
 		BgAlt:    ColorAltBg,
 		Selected: ColorSelected,
 		Disabled: st.WithFg(ColorHeader),

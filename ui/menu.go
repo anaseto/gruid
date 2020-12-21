@@ -21,12 +21,14 @@ type MenuEntry struct {
 
 // MenuKeys contains key bindings configuration for the menu.
 type MenuKeys struct {
-	Up     []gruid.Key // move up active entry (default: ArrowUp, k)
-	Down   []gruid.Key // move down active entry (default: ArrowDown, j)
-	Left   []gruid.Key // move left active entry (default: ArrowLeft, h)
-	Right  []gruid.Key // move right active entry (default: ArrowRight, l)
-	Invoke []gruid.Key // invoke selection (default: Enter)
-	Quit   []gruid.Key // requist menu quit (default: Escape, q, Q)
+	Up       []gruid.Key // move up active entry (default: ArrowUp, k)
+	Down     []gruid.Key // move down active entry (default: ArrowDown, j)
+	Left     []gruid.Key // move left active entry (default: ArrowLeft, h)
+	Right    []gruid.Key // move right active entry (default: ArrowRight, l)
+	PageDown []gruid.Key // go one page down (default: PageDown)
+	PageUp   []gruid.Key // go one page up (default: PageUp)
+	Invoke   []gruid.Key // invoke selection (default: Enter)
+	Quit     []gruid.Key // requist menu quit (default: Escape, q, Q)
 }
 
 // MenuAction represents an user action with the menu.
@@ -96,6 +98,12 @@ func NewMenu(cfg MenuConfig) *Menu {
 	if m.keys.Right == nil {
 		m.keys.Right = []gruid.Key{gruid.KeyArrowRight, "l"}
 	}
+	if m.keys.PageDown == nil {
+		m.keys.PageDown = []gruid.Key{gruid.KeyPageDown}
+	}
+	if m.keys.PageUp == nil {
+		m.keys.PageUp = []gruid.Key{gruid.KeyPageUp}
+	}
 	if m.keys.Quit == nil {
 		m.keys.Quit = []gruid.Key{gruid.KeyEscape, "q", "Q"}
 	}
@@ -118,7 +126,8 @@ type item struct {
 type Menu struct {
 	grid    gruid.Grid
 	entries []MenuEntry
-	view    map[gruid.Point]item
+	table   map[gruid.Point]item
+	points  []gruid.Point
 	size    gruid.Point // view size (w, h) in cells
 	box     *Box
 	stt     StyledText
@@ -133,7 +142,7 @@ type Menu struct {
 
 // Active return the index of the currently active entry.
 func (m *Menu) Active() int {
-	return m.view[m.active].i
+	return m.table[m.active].i
 }
 
 // Action returns the last action performed in the menu.
@@ -151,7 +160,7 @@ func (m *Menu) SetEntries(entries []MenuEntry) {
 }
 
 func (m *Menu) contains(p gruid.Point) bool {
-	_, ok := m.view[p]
+	_, ok := m.table[p]
 	return ok
 }
 
@@ -167,10 +176,8 @@ func (m *Menu) SetActive(i int) {
 }
 
 func (m *Menu) idxToPos(i int) gruid.Point {
-	for p, it := range m.view {
-		if it.i == i {
-			return p
-		}
+	if i >= 0 && i < len(m.points) {
+		return m.points[i]
 	}
 	return gruid.Point{}
 }
@@ -182,7 +189,7 @@ func (m *Menu) moveTo(p gruid.Point) {
 	q := m.active
 	for {
 		q = q.Add(p)
-		it, ok := m.view[q]
+		it, ok := m.table[q]
 		if !ok {
 			break
 		}
@@ -193,11 +200,49 @@ func (m *Menu) moveTo(p gruid.Point) {
 	if m.contains(q) {
 		m.action = MenuMove
 		m.active = q
+	} else if q, ok := m.nextPage(p); ok {
+		m.action = MenuMove
+		m.active = q
 	}
 }
 
+func (m *Menu) nextPage(p gruid.Point) (gruid.Point, bool) {
+	it, ok := m.table[m.active]
+	if !ok {
+		return gruid.Point{}, false
+	}
+	for i := it.i + 1; i < len(m.entries); i++ {
+		q := m.idxToPos(i)
+		switch p {
+		case gruid.Point{0, 1}:
+			if m.table[q].page.Y > it.page.Y {
+				return q, true
+			}
+		case gruid.Point{1, 0}:
+			if m.table[q].page.X > it.page.X {
+				return q, true
+			}
+		}
+	}
+	for i := it.i - 1; i >= 0; i-- {
+		q := m.idxToPos(i)
+		switch p {
+		case gruid.Point{0, -1}:
+			if m.table[q].page.Y < it.page.Y {
+				return q, true
+			}
+		case gruid.Point{-1, 0}:
+			if m.table[q].page.X < it.page.X {
+				return q, true
+			}
+		}
+	}
+	return gruid.Point{}, false
+}
+
 // Update implements gruid.Model.Update and updates the menu state in response to
-// user input messages.
+// user input messages. It considers mouse messages to be relative to its grid
+// slice range.
 func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 	grid := m.drawGrid()
 	rg := grid.Range()
@@ -216,12 +261,22 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 			m.moveTo(gruid.Point{0, 1})
 		case msg.Key.In(m.keys.Up):
 			m.moveTo(gruid.Point{0, -1})
-		case msg.Key.In(m.keys.Left):
-			m.moveTo(gruid.Point{-1, 0})
 		case msg.Key.In(m.keys.Right):
 			m.moveTo(gruid.Point{1, 0})
+		case msg.Key.In(m.keys.Left):
+			m.moveTo(gruid.Point{-1, 0})
+		case msg.Key.In(m.keys.PageDown):
+			if p, ok := m.nextPage(gruid.Point{0, 1}); ok {
+				m.action = MenuMove
+				m.active = p
+			}
+		case msg.Key.In(m.keys.PageUp):
+			if p, ok := m.nextPage(gruid.Point{0, -1}); ok {
+				m.action = MenuMove
+				m.active = p
+			}
 		case msg.Key.In(m.keys.Invoke) && m.contains(m.active):
-			it, ok := m.view[m.active]
+			it, ok := m.table[m.active]
 			if ok && !m.entries[it.i].Disabled {
 				m.action = MenuInvoke
 			}
@@ -243,7 +298,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 		}
 		p := msg.P
 		page := gruid.Point{}
-		if it, ok := m.view[m.active]; ok {
+		if it, ok := m.table[m.active]; ok {
 			page = it.page
 		}
 		switch msg.Action {
@@ -251,7 +306,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 			if !p.In(crg) {
 				break
 			}
-			for q, it := range m.view {
+			for q, it := range m.table {
 				if it.page == page && p.In(it.grid.Range()) {
 					if q == m.active {
 						break
@@ -271,7 +326,7 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 			if !p.In(crg) {
 				break
 			}
-			for q, it := range m.view {
+			for q, it := range m.table {
 				if it.page == page && p.In(it.grid.Range()) {
 					m.active = q
 					if m.entries[it.i].Disabled {
@@ -350,11 +405,11 @@ func (m *Menu) computeItems() {
 	} else {
 		ml = column
 	}
-	if m.view == nil {
-		m.view = make(map[gruid.Point]item)
+	if m.table == nil {
+		m.table = make(map[gruid.Point]item)
 	} else {
-		for k := range m.view {
-			delete(m.view, k)
+		for k := range m.table {
+			delete(m.table, k)
 		}
 	}
 	if w <= 0 {
@@ -363,6 +418,7 @@ func (m *Menu) computeItems() {
 	if h <= 0 {
 		h = 1
 	}
+	m.points = m.points[0:]
 	switch ml {
 	case column:
 		alt := true
@@ -371,7 +427,7 @@ func (m *Menu) computeItems() {
 				alt = false
 			}
 			p := gruid.Point{0, i}
-			m.view[p] = item{
+			m.table[p] = item{
 				grid: grid.Slice(gruid.NewRange(0, i%h, w, (i%h)+1)),
 				i:    i,
 				alt:  alt,
@@ -380,6 +436,7 @@ func (m *Menu) computeItems() {
 			if !e.Disabled {
 				alt = !alt
 			}
+			m.points = append(m.points, p)
 		}
 	case line:
 		var to, hpage int
@@ -397,7 +454,7 @@ func (m *Menu) computeItems() {
 				hpage++
 			}
 			p := gruid.Point{i, 0}
-			m.view[p] = item{
+			m.table[p] = item{
 				grid: grid.Slice(gruid.NewRange(from, 0, to, 1)),
 				i:    i,
 				page: gruid.Point{hpage, 0},
@@ -406,6 +463,7 @@ func (m *Menu) computeItems() {
 			if !e.Disabled {
 				alt = !alt
 			}
+			m.points = append(m.points, p)
 		}
 	case table:
 		for i, _ := range m.entries {
@@ -414,12 +472,13 @@ func (m *Menu) computeItems() {
 			ln := pageidx % h
 			col := pageidx / h
 			p := gruid.Point{col, ln + page*h}
-			m.view[p] = item{
+			m.table[p] = item{
 				grid: grid.Slice(gruid.NewRange(col*w, ln%h, (col+1)*w, (ln%h)+1)),
 				i:    i,
 				page: gruid.Point{0, page},
 				alt:  (col+ln)%h == 0,
 			}
+			m.points = append(m.points, p)
 		}
 	}
 }
@@ -454,8 +513,8 @@ func (m *Menu) Draw() gruid.Grid {
 	if m.box != nil {
 		m.box.Draw(grid)
 	}
-	activeItem := m.view[m.active]
-	for p, it := range m.view {
+	activeItem := m.table[m.active]
+	for p, it := range m.table {
 		if it.page != activeItem.page {
 			continue
 		}

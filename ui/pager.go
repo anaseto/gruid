@@ -13,15 +13,15 @@ type PagerStyle struct {
 
 // PagerKeys contains key bindings configuration for the pager.
 type PagerKeys struct {
-	Down         []gruid.Key // go one line down
-	Up           []gruid.Key // go one line up
-	PageDown     []gruid.Key // go one page down
-	PageUp       []gruid.Key // go one page up
-	HalfPageDown []gruid.Key // go half page down
-	HalfPageUp   []gruid.Key // go half page up
-	Top          []gruid.Key // go to the top
-	Bottom       []gruid.Key // go to the bottom
-	Quit         []gruid.Key // quit pager
+	Down         []gruid.Key // go one line down (default: ArrowDown, j)
+	Up           []gruid.Key // go one line up (default: ArrowUp, k)
+	PageDown     []gruid.Key // go one page down (default: PageDown, f)
+	PageUp       []gruid.Key // go one page up (default: PageUp, b)
+	HalfPageDown []gruid.Key // go half page down (default: Enter, d)
+	HalfPageUp   []gruid.Key // go half page up (default: Backspace, u)
+	Top          []gruid.Key // go to the top (default: Home, g)
+	Bottom       []gruid.Key // go to the bottom (default: End, G)
+	Quit         []gruid.Key // quit pager (default: Escape, q, Q)
 }
 
 // PagerConfig describes configuration options for creating a pager.
