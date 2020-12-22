@@ -165,12 +165,6 @@ type MsgScreen struct {
 // calling Start on the application.
 type MsgInit struct{}
 
-// MsgDraw reports that this Update will be followed by a call to Draw. This
-// message is only sent to Update if the MsgDrawSubscription option was set
-// true when creating the application. In such a case, it is regularly reported
-// roughly at the FPS rate.
-type MsgDraw time.Time
-
 // MsgQuit may be reported by some drivers to request termination of the
 // application, such as when the main window is closed. It reports the time at
 // which the driver's request was received.

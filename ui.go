@@ -51,7 +51,6 @@ import (
 	"io"
 	"log"
 	"runtime/debug"
-	"time"
 )
 
 // App represents a message and model-driven application with a grid-based user
@@ -67,7 +66,6 @@ type App struct {
 	driver  Driver
 	model   Model
 	enc     *frameEncoder
-	fps     time.Duration
 	logger  *log.Logger
 
 	cellbuf []Cell
@@ -85,15 +83,6 @@ type AppConfig struct {
 	// call Close on the Writer after Start returns.
 	FrameWriter io.Writer
 
-	// Subscribe to MsgDraw messages that are in sync with redrawings and
-	// sent at the FPS rate. This can be used for adjusting animations and
-	// ensuring they are smooth and in sync with redrawings.
-	MsgDrawSub bool
-
-	// FPS specifies the maximum number of frames per second. Should be a
-	// value between 60 and 240. Default is 60.
-	FPS time.Duration
-
 	// Logger is optional and is used to log non-fatal IO errors.
 	Logger *log.Logger
 }
@@ -103,21 +92,11 @@ func NewApp(cfg AppConfig) *App {
 	app := &App{
 		model:       cfg.Model,
 		driver:      cfg.Driver,
-		msgdraw:     cfg.MsgDrawSub,
-		fps:         cfg.FPS,
 		logger:      cfg.Logger,
 		CatchPanics: true,
 	}
 	if cfg.FrameWriter != nil {
 		app.enc = newFrameEncoder(cfg.FrameWriter)
-	}
-	if app.fps <= 60 {
-		// Use always at least 60 FPS.
-		app.fps = 60
-	}
-	if app.fps >= 240 {
-		// More than 240 FPS does not make any sense.
-		app.fps = 240
 	}
 	return app
 }
@@ -128,7 +107,7 @@ func NewApp(cfg AppConfig) *App {
 func (app *App) Start(ctx context.Context) (err error) {
 	var (
 		effects  = make(chan Effect)
-		msgs     = make(chan Msg, 1)
+		msgs     = make(chan Msg, 4)
 		errs     = make(chan error)
 		polldone = make(chan struct{}) // PollMsgs subscription finished
 	)
@@ -193,29 +172,24 @@ func (app *App) Start(ctx context.Context) (err error) {
 		}
 	}(ctx)
 
-	// subscribe to MsgDraw
-	go msgDrawSub(ctx, msgs, app.fps)
-
 	// effect processing
 	go func(ctx context.Context) {
 		for {
 			select {
 			case eff := <-effects:
-				if eff != nil {
-					switch eff := eff.(type) {
-					case Cmd:
-						if eff != nil {
-							go func(ctx context.Context, cmd Cmd) {
-								select {
-								case msgs <- cmd():
-								case <-ctx.Done():
-								}
-							}(ctx, eff)
-						}
-					case Sub:
-						if eff != nil {
-							go eff(ctx, msgs)
-						}
+				switch eff := eff.(type) {
+				case Cmd:
+					if eff != nil {
+						go func(ctx context.Context, cmd Cmd) {
+							select {
+							case msgs <- cmd():
+							case <-ctx.Done():
+							}
+						}(ctx, eff)
+					}
+				case Sub:
+					if eff != nil {
+						go eff(ctx, msgs)
 					}
 				}
 			case <-ctx.Done():
@@ -225,6 +199,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 	}(ctx)
 
 	// main loop
+	skip := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -260,21 +235,25 @@ func (app *App) Start(ctx context.Context) (err error) {
 				app.clearCellCache()
 			}
 
-			_, draw := msg.(MsgDraw)
-			if app.msgdraw || !draw {
-				eff := app.model.Update(msg) // run update
+			eff := app.model.Update(msg) // run update
+			if eff != nil {
 				select {
 				case effects <- eff: // process effect (if any)
 				case <-ctx.Done():
 					continue
 				}
 			}
-			if draw {
-				gd := app.model.Draw()
-				frame := app.computeFrame(gd)
-				if len(frame.Cells) > 0 {
-					app.flush(frame)
-				}
+
+			const skipmax = 4
+			if len(msgs) > 0 && skip < skipmax {
+				skip++
+				continue
+			}
+			skip = 0
+			gd := app.model.Draw()
+			frame := app.computeFrame(gd)
+			if len(frame.Cells) > 0 {
+				app.flush(frame)
 			}
 		}
 	}
@@ -297,10 +276,10 @@ type Model interface {
 	// It is always called the first time with a MsgInit message.
 	Update(Msg) Effect
 
-	// Draw is called after every Update that received a MsgDraw message.
-	// Use this function to draw the UI elements in a grid to be returned.
-	// The returned grid will then automatically be sent to the driver for
-	// immediate display.
+	// Draw is generally called after every Update, except when a lag is
+	// produced.  Use this function to draw the UI elements in a grid to be
+	// returned.  The returned grid will then automatically be sent to the
+	// driver for immediate display.
 	Draw() Grid
 }
 
@@ -366,22 +345,6 @@ func (cmd Cmd) implementsEffect() {}
 
 // implementsEffect makes Sub satisfy Effect interface.
 func (sub Sub) implementsEffect() {}
-
-// msgDrawSub sends a MsgDraw message at an fps rate.
-func msgDrawSub(ctx context.Context, msgs chan<- Msg, fps time.Duration) {
-	ticker := time.NewTicker(time.Second / fps)
-	for {
-		select {
-		case t := <-ticker.C:
-			select {
-			case msgs <- MsgDraw(t):
-			case <-ctx.Done():
-			}
-		case <-ctx.Done():
-			return
-		}
-	}
-}
 
 // End returns a special command that signals the application to end its Start
 // loop. Note that the application does not wait for pending effects to

@@ -99,8 +99,6 @@ func (rep *Replay) decodeNext() {
 func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 	rep.action = replayNone
 	switch msg := msg.(type) {
-	case gruid.MsgDraw:
-		return nil
 	case gruid.MsgInit:
 		rep.init = true
 		rep.decodeNext()

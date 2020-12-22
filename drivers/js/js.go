@@ -33,8 +33,6 @@ type Driver struct {
 	tw        int
 	th        int
 	mousepos  gruid.Point
-	frame     gruid.Frame
-	flushdone chan bool
 	mousedrag int
 	listeners listeners
 	init      bool
@@ -89,7 +87,6 @@ type listeners struct {
 
 // Init implements gruid.Driver.Init.
 func (dr *Driver) Init() error {
-	dr.flushdone = make(chan bool)
 	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
 	canvas.Call("setAttribute", "tabindex", "1")
 	dr.ctx = canvas.Call("getContext", "2d")
@@ -179,6 +176,8 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 		e := args[0]
 		if !e.Get("ctrlKey").Bool() && !e.Get("metaKey").Bool() {
 			e.Call("preventDefault")
+		} else {
+			return nil
 		}
 		s := e.Get("key").String()
 		if s == "F11" {
@@ -265,23 +264,37 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 	})
 	canvas.Call("addEventListener", "onwheel", dr.listeners.wheel)
 	<-ctx.Done()
+	canvas.Call("removeEventListener", "contextmenu", dr.listeners.menu, false)
+	js.Global().Get("document").Call("removeEventListener", "keydown", dr.listeners.keydown)
+	canvas.Call("removeEventListener", "mousedown", dr.listeners.mousedown)
+	canvas.Call("removeEventListener", "mouseup", dr.listeners.mouseup)
+	canvas.Call("removeEventListener", "mousemove", dr.listeners.mousemove)
+	canvas.Call("removeEventListener", "onwheel", dr.listeners.wheel)
+	dr.listeners.menu.Release()
+	dr.listeners.keydown.Release()
+	dr.listeners.mousedown.Release()
+	dr.listeners.mouseup.Release()
+	dr.listeners.mousemove.Release()
+	dr.listeners.wheel.Release()
 	return nil
 }
 
 // Flush implements gruid.Driver.Flush.
 func (dr *Driver) Flush(frame gruid.Frame) {
-	dr.frame = frame
+	nframe := frame
+	nframe.Cells = make([]gruid.FrameCell, len(frame.Cells))
+	for i, c := range frame.Cells {
+		nframe.Cells[i] = c
+	}
 	js.Global().Get("window").Call("requestAnimationFrame",
-		js.FuncOf(func(this js.Value, args []js.Value) interface{} { dr.flushCallback(); return nil }))
-	<-dr.flushdone
+		js.FuncOf(func(this js.Value, args []js.Value) interface{} { dr.flushCallback(nframe); return nil }))
 }
 
-func (dr *Driver) flushCallback() {
-	for _, cdraw := range dr.frame.Cells {
+func (dr *Driver) flushCallback(frame gruid.Frame) {
+	for _, cdraw := range frame.Cells {
 		cell := cdraw.Cell
 		dr.draw(cell, cdraw.P.X, cdraw.P.Y)
 	}
-	dr.flushdone <- true
 }
 
 func (dr *Driver) draw(cell gruid.Cell, x, y int) {
@@ -311,21 +324,7 @@ func (dr *Driver) Close() {
 	if !dr.init {
 		return
 	}
-	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
-	canvas.Call("removeEventListener", "contextmenu", dr.listeners.menu, false)
-	js.Global().Get("document").Call("removeEventListener", "keydown", dr.listeners.keydown)
-	canvas.Call("removeEventListener", "mousedown", dr.listeners.mousedown)
-	canvas.Call("removeEventListener", "mouseup", dr.listeners.mouseup)
-	canvas.Call("removeEventListener", "mousemove", dr.listeners.mousemove)
-	canvas.Call("removeEventListener", "onwheel", dr.listeners.wheel)
-	dr.listeners.menu.Release()
-	dr.listeners.keydown.Release()
-	dr.listeners.mousedown.Release()
-	dr.listeners.mouseup.Release()
-	dr.listeners.mousemove.Release()
-	dr.listeners.wheel.Release()
 	dr.cache = nil
-	dr.frame = gruid.Frame{}
 	dr.init = false
 }
 

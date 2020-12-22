@@ -37,16 +37,17 @@ type Driver struct {
 	tw         int32
 	th         int32
 
-	window    *sdl.Window
-	renderer  *sdl.Renderer
-	textures  map[gruid.Cell]*sdl.Texture
-	surfaces  map[gruid.Cell]*sdl.Surface
-	mousepos  gruid.Point
-	mousedrag gruid.MouseAction
-	init      bool
-	reqredraw chan bool // request redraw
-	noQuit    bool      // do not quit on close
-	actions   chan func()
+	window      *sdl.Window
+	renderer    *sdl.Renderer
+	textures    map[gruid.Cell]*sdl.Texture
+	surfaces    map[gruid.Cell]*sdl.Surface
+	mousepos    gruid.Point
+	mousedrag   gruid.MouseAction
+	init        bool
+	reqredraw   chan bool // request redraw
+	noQuit      bool      // do not quit on close
+	actions     chan func()
+	accelerated bool
 }
 
 // Config contains configurations options for the driver.
@@ -55,6 +56,7 @@ type Config struct {
 	Width       int32       // initial screen width in cells (default: 80)
 	Height      int32       // initial screen height in cells (default: 24)
 	Fullscreen  bool        // use “real” fullscreen with a videomode change
+	Accelerated bool        // use accelerated renderer (rarely necessary)
 }
 
 // NewDriver returns a new driver with given configuration options.
@@ -70,6 +72,7 @@ func NewDriver(cfg Config) *Driver {
 	}
 	dr.fullscreen = cfg.Fullscreen
 	dr.SetTileManager(cfg.TileManager)
+	dr.accelerated = cfg.Accelerated
 	return dr
 }
 
@@ -134,7 +137,11 @@ func (dr *Driver) Init() error {
 		if err != nil {
 			return fmt.Errorf("failed to create sdl window: %v", err)
 		}
-		dr.renderer, err = sdl.CreateRenderer(dr.window, -1, sdl.RENDERER_ACCELERATED)
+		if dr.accelerated {
+			dr.renderer, err = sdl.CreateRenderer(dr.window, -1, sdl.RENDERER_ACCELERATED)
+		} else {
+			dr.renderer, err = sdl.CreateRenderer(dr.window, -1, sdl.RENDERER_SOFTWARE)
+		}
 		if err != nil {
 			return fmt.Errorf("failed to create sdl renderer: %v", err)
 		}
@@ -390,6 +397,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			case sdl.WINDOWEVENT_EXPOSED:
 				w, h := dr.window.GetSize()
 				send(gruid.MsgScreen{Width: int(w / dr.tw), Height: int(h / dr.th), Time: time.Now()})
+				//log.Print("exposed")
 				//case sdl.WINDOWEVENT_SHOWN:
 				//log.Print("shown")
 				//case sdl.WINDOWEVENT_HIDDEN:
