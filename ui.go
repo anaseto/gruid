@@ -276,10 +276,11 @@ type Model interface {
 	// It is always called the first time with a MsgInit message.
 	Update(Msg) Effect
 
-	// Draw is generally called after every Update, except when a lag is
-	// produced.  Use this function to draw the UI elements in a grid to be
-	// returned.  The returned grid will then automatically be sent to the
-	// driver for immediate display.
+	// Draw is generally called after every Update, though it may be
+	// skipped when there are already new queued messages.  Use this
+	// function to draw the UI elements in a grid to be returned.  The
+	// returned grid will then automatically be sent to the driver for
+	// immediate display.
 	Draw() Grid
 }
 
