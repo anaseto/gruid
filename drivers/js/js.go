@@ -263,7 +263,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			return nil
 		}
 		dr.mousedrag = -1
-		send(gruid.MsgMouse{P: p, Action: gruid.MouseAction(n), Time: time.Now()})
+		send(gruid.MsgMouse{P: p, Action: gruid.MouseRelease, Time: time.Now()})
 		return nil
 	})
 	canvas.Call("addEventListener", "mouseup", dr.listeners.mouseup)
