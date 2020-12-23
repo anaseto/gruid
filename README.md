@@ -38,4 +38,5 @@ Dijkstra, breadth first, and connected components maps computations.
 
 The **drivers/tcell**, **drivers/js**, and **drivers/sdl** packages provide
 specific rendering and input implementations satisfying gruid's package Driver
-interface.
+interface. See the README.md files in their respective folders for specific
+build and deployment instructions.
