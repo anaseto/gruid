@@ -38,6 +38,7 @@ type Driver struct {
 	listeners listeners
 	init      bool
 	flushing  bool
+	fcs       []gruid.FrameCell
 }
 
 // Config contains configurations options for the driver.
@@ -287,11 +288,17 @@ func (dr *Driver) Flush(frame gruid.Frame) {
 	var cached bool
 	if dr.flushing {
 		cells := make([]gruid.FrameCell, len(frame.Cells))
-		for i, c := range frame.Cells {
-			cells[i] = c
+		for i, fc := range frame.Cells {
+			cells[i] = fc
 		}
 		frame.Cells = cells
 	} else {
+		// avoid allocation in the common case
+		dr.fcs = dr.fcs[:0]
+		for _, fc := range frame.Cells {
+			dr.fcs = append(dr.fcs, fc)
+		}
+		frame.Cells = dr.fcs
 		cached = true
 		dr.flushing = true
 	}
