@@ -19,6 +19,7 @@ func init() {
 	dri := sdl.NewDriver(sdl.Config{
 		TileManager: t,
 	})
+	//dri.SetScale(2.0, 2.0)
 	dri.PreventQuit()
 	driver = dri
 }

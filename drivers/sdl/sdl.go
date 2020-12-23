@@ -49,6 +49,8 @@ type Driver struct {
 	noQuit      bool      // do not quit on close
 	actions     chan func()
 	accelerated bool
+	scaleX      float32
+	scaleY      float32
 }
 
 // Config contains configurations options for the driver.
@@ -93,7 +95,12 @@ func (dr *Driver) SetTileManager(tm TileManager) {
 		}
 		if dr.init {
 			dr.ClearCache()
-			dr.window.SetSize(dr.width*dr.tw, dr.height*dr.th)
+			if dr.scaleX > 0.1 && dr.scaleY > 0.1 {
+				dr.renderer.SetScale(dr.scaleX, dr.scaleY)
+				dr.window.SetSize(int32(float32(dr.width*dr.tw)*dr.scaleX), int32(float32(dr.height*dr.th)*dr.scaleY))
+			} else {
+				dr.window.SetSize(dr.width*dr.tw, dr.height*dr.th)
+			}
 			select {
 			case dr.reqredraw <- true:
 			default:
@@ -107,6 +114,23 @@ func (dr *Driver) SetTileManager(tm TileManager) {
 		}
 	} else {
 		fn()
+	}
+}
+
+// SetScale modifies the rendering scale for rendering, and updates the window
+// sizes accordingly. Integer values give more accurate results.
+func (dr *Driver) SetScale(scaleX, scaleY float32) {
+	fn := func() {
+		dr.renderer.SetScale(scaleX, scaleY)
+		dr.window.SetSize(int32(float32(dr.width*dr.tw)*dr.scaleX), int32(float32(dr.height*dr.th)*dr.scaleY))
+	}
+	dr.scaleX = scaleX
+	dr.scaleY = scaleY
+	if dr.init {
+		select {
+		case dr.actions <- fn:
+		default:
+		}
 	}
 }
 
@@ -153,6 +177,10 @@ func (dr *Driver) Init() error {
 				log.Printf("set fullscreen: %v", err)
 			}
 		}
+		if dr.scaleX > 0.1 || dr.scaleY > 0.1 {
+			dr.renderer.SetScale(dr.scaleX, dr.scaleY)
+			dr.window.SetSize(int32(float32(dr.width*dr.tw)*dr.scaleX), int32(float32(dr.height*dr.th)*dr.scaleY))
+		}
 		err := dr.renderer.Clear()
 		if err != nil {
 			log.Printf("renderer clear: %v", err)
@@ -166,6 +194,14 @@ func (dr *Driver) Init() error {
 	dr.mousedrag = -1
 	dr.init = true
 	return nil
+}
+
+func (dr *Driver) coords(x, y int32) gruid.Point {
+	if dr.scaleX > 0.1 && dr.scaleY > 0.1 {
+		x = int32(float32(x) / dr.scaleX)
+		y = int32(float32(y) / dr.scaleY)
+	}
+	return gruid.Point{X: int((x - 1) / dr.tw), Y: int((y - 1) / dr.th)}
 }
 
 // PollMsgs implements gruid.Driver.PollMsgs.
@@ -314,7 +350,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 				continue
 			}
 			msg := gruid.MsgMouse{}
-			msg.P = gruid.Point{X: int((ev.X - 1) / dr.tw), Y: int((ev.Y - 1) / dr.th)}
+			msg.P = dr.coords(ev.X, ev.Y)
 			switch ev.Type {
 			case sdl.MOUSEBUTTONDOWN:
 				if dr.mousedrag != -1 {
@@ -356,7 +392,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			send(msg)
 		case *sdl.MouseMotionEvent:
 			msg := gruid.MsgMouse{}
-			msg.P = gruid.Point{X: int((ev.X - 1) / dr.tw), Y: int((ev.Y - 1) / dr.th)}
+			msg.P = dr.coords(ev.X, ev.Y)
 			if msg.P == dr.mousepos {
 				continue
 			}
