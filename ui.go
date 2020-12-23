@@ -104,7 +104,7 @@ func NewApp(cfg AppConfig) *App {
 
 // Start initializes the application and runs its main loop. The context
 // argument can be used as a means to prematurely cancel the loop. You can
-// usually use nil here for client applications.
+// usually use an empty context here for client applications.
 func (app *App) Start(ctx context.Context) (err error) {
 	var (
 		effects  = make(chan Effect, 4)
