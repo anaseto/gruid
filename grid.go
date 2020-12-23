@@ -74,7 +74,8 @@ type Point struct {
 	Y int
 }
 
-// Shift returns a new point with coordinates shifted by (x,y).
+// Shift returns a new point with coordinates shifted by (x,y). It's a
+// shorthand for p.Add(Point{x,y}).
 func (p Point) Shift(x, y int) Point {
 	return Point{X: p.X + x, Y: p.Y + y}
 }
@@ -188,6 +189,15 @@ func (rg Range) Columns(x0, x1 int) Range {
 // Empty reports whether the range contains no positions.
 func (rg Range) Empty() bool {
 	return rg.Min.X >= rg.Max.X || rg.Min.Y >= rg.Max.Y
+}
+
+// Eq reports whether the two ranges containt the same set of points. All empty
+// ranges are considered equal.
+func (rg Range) Eq(r Range) bool {
+	if rg.Empty() && r.Empty() {
+		return true
+	}
+	return rg == r
 }
 
 // Sub returns a range of same size translated by -p.
