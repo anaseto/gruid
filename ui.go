@@ -107,7 +107,7 @@ func NewApp(cfg AppConfig) *App {
 // usually use nil here for client applications.
 func (app *App) Start(ctx context.Context) (err error) {
 	var (
-		effects  = make(chan Effect)
+		effects  = make(chan Effect, 4)
 		msgs     = make(chan Msg, 4)
 		errs     = make(chan error)
 		polldone = make(chan struct{}) // PollMsgs subscription finished
