@@ -1,3 +1,5 @@
+# gruid: a cross-platform library for grid-based applications
+
 The **gruid** *module* contains packages for building grid-based applications in
 Go.  The library abstracts rendering and input for different platforms. The
 module provides drivers for terminal apps (driver/tcell), native graphical apps
