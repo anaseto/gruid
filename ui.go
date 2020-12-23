@@ -1,5 +1,5 @@
 // Package gruid provides a model for building grid-based applications. The
-// interface abstracts rendering and input for different platforms. The package
+// interface abstracts rendering and input for different platforms. The module
 // provides drivers for terminal apps (driver/tcell), native graphical apps
 // (driver/sdl) and browser apps (driver/js).
 //
