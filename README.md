@@ -23,7 +23,7 @@ start the “update on message then draw” main loop of an application. It also
 defines a convenient slice grid structure to represent the logical contents of
 the screen and manipulate them.
 
-The **ui** package defines common UI widget and utilities: menu/table widget,
+The **ui** package defines common UI widgets and utilities: menu/table widget,
 pager, text input, label, styled text drawing facilities and replay
 functionality.
 
@@ -34,4 +34,8 @@ drivers/js.
 The **paths** package provides efficient implementations of some common
 pathfinding algorithms that are often used in grid-based games, such as
 roguelikes. You will find implementations of the A\* algorithm, as well as
-Dijkstra, breadth first, and connected components maps computation.
+Dijkstra, breadth first, and connected components maps computations.
+
+The **drivers/tcell**, **drivers/js**, and **drivers/sdl** packages provide
+specific rendering and input implementations satisfying gruid's package Driver
+interface.
