@@ -17,8 +17,6 @@ type StyleManager interface {
 
 // Driver implements gruid.Driver using the tcell terminal library.
 type Driver struct {
-	// AttributeGetter has to be provided to make use of tcell text
-	// attributes.
 	sm        StyleManager
 	screen    tcell.Screen
 	mouse     bool
@@ -30,8 +28,8 @@ type Driver struct {
 
 // Config contains configurations options for the driver.
 type Config struct {
-	StyleManager StyleManager // for cell styling
-	DisableMouse bool
+	StyleManager StyleManager // for cell styling (required)
+	DisableMouse bool         // disable mouse-related messages
 }
 
 // NewDriver returns a new driver with given configuration options.
@@ -241,10 +239,10 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 
 // Flush implements gruid.Driver.Flush.
 func (dr *Driver) Flush(frame gruid.Frame) {
-	for _, cdraw := range frame.Cells {
-		c := cdraw.Cell
+	for _, fc := range frame.Cells {
+		c := fc.Cell
 		st := dr.sm.GetStyle(c.Style)
-		dr.screen.SetContent(cdraw.P.X, cdraw.P.Y, c.Rune, nil, st)
+		dr.screen.SetContent(fc.P.X, fc.P.Y, c.Rune, nil, st)
 	}
 	dr.screen.Show()
 }

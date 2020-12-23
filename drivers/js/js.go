@@ -3,6 +3,7 @@ package js
 import (
 	"context"
 	"image"
+	"log"
 	"time"
 	"unicode/utf8"
 
@@ -24,9 +25,9 @@ type TileManager interface {
 // Driver implements gruid.Driver using the syscall/js interface for
 // the browser using javascript and wasm.
 type Driver struct {
-	tm     TileManager // for retrieving tiles
-	width  int         // initial screen width in cells
-	height int         // initial screen height in celles
+	tm     TileManager
+	width  int
+	height int
 
 	ctx       js.Value
 	cache     map[gruid.Cell]js.Value
@@ -36,11 +37,12 @@ type Driver struct {
 	mousedrag int
 	listeners listeners
 	init      bool
+	flushing  bool
 }
 
 // Config contains configurations options for the driver.
 type Config struct {
-	TileManager TileManager // for retrieving tiles
+	TileManager TileManager // for retrieving tiles (required)
 	Width       int         // initial screen width in cells (default: 80)
 	Height      int         // initial screen height in cells (default: 24)
 }
@@ -98,6 +100,7 @@ func (dr *Driver) Init() error {
 	dr.cache = make(map[gruid.Cell]js.Value)
 	dr.init = true
 	dr.mousedrag = -1
+	dr.flushing = false
 	return nil
 }
 
@@ -281,19 +284,28 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 
 // Flush implements gruid.Driver.Flush.
 func (dr *Driver) Flush(frame gruid.Frame) {
-	nframe := frame
-	nframe.Cells = make([]gruid.FrameCell, len(frame.Cells))
-	for i, c := range frame.Cells {
-		nframe.Cells[i] = c
+	var cached bool
+	if dr.flushing {
+		cells := make([]gruid.FrameCell, len(frame.Cells))
+		for i, c := range frame.Cells {
+			cells[i] = c
+		}
+		frame.Cells = cells
+	} else {
+		cached = true
+		dr.flushing = true
 	}
 	js.Global().Get("window").Call("requestAnimationFrame",
-		js.FuncOf(func(this js.Value, args []js.Value) interface{} { dr.flushCallback(nframe); return nil }))
+		js.FuncOf(func(this js.Value, args []js.Value) interface{} { dr.flushCallback(frame, cached); return nil }))
 }
 
-func (dr *Driver) flushCallback(frame gruid.Frame) {
-	for _, cdraw := range frame.Cells {
-		cell := cdraw.Cell
-		dr.draw(cell, cdraw.P.X, cdraw.P.Y)
+func (dr *Driver) flushCallback(frame gruid.Frame, cached bool) {
+	for _, fc := range frame.Cells {
+		cell := fc.Cell
+		dr.draw(cell, fc.P.X, fc.P.Y)
+	}
+	if cached {
+		dr.flushing = false
 	}
 }
 
@@ -307,7 +319,12 @@ func (dr *Driver) draw(cell gruid.Cell, x, y int) {
 		canvas.Set("height", dr.th)
 		ctx := canvas.Call("getContext", "2d")
 		ctx.Set("imageSmoothingEnabled", false)
-		buf := dr.tm.GetImage(cell).Pix // TODO: do something if image is nil?
+		img := dr.tm.GetImage(cell)
+		if img == nil {
+			log.Printf("no tile for %+v", cell)
+			return
+		}
+		buf := img.Pix
 		ua := js.Global().Get("Uint8Array").New(js.ValueOf(len(buf)))
 		js.CopyBytesToJS(ua, buf)
 		ca := js.Global().Get("Uint8ClampedArray").New(ua)

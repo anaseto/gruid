@@ -52,7 +52,7 @@ type Driver struct {
 
 // Config contains configurations options for the driver.
 type Config struct {
-	TileManager TileManager // for retrieving tiles
+	TileManager TileManager // for retrieving tiles (required)
 	Width       int32       // initial screen width in cells (default: 80)
 	Height      int32       // initial screen height in cells (default: 24)
 	Fullscreen  bool        // use “real” fullscreen with a videomode change
@@ -447,22 +447,22 @@ func (dr *Driver) Flush(frame gruid.Frame) {
 		dr.height = int32(frame.Height)
 		dr.window.SetSize(dr.width*dr.tw, dr.height*dr.th)
 	}
-	for _, cdraw := range frame.Cells {
-		cs := cdraw.Cell
-		x, y := cdraw.P.X, cdraw.P.Y
+	for _, fc := range frame.Cells {
+		cs := fc.Cell
+		x, y := fc.P.X, fc.P.Y
 		dr.draw(cs, x, y)
 	}
 	dr.renderer.Present()
 }
 
-func (dr *Driver) draw(cs gruid.Cell, x, y int) {
+func (dr *Driver) draw(cell gruid.Cell, x, y int) {
 	var tx *sdl.Texture
-	if t, ok := dr.textures[cs]; ok {
+	if t, ok := dr.textures[cell]; ok {
 		tx = t
 	} else {
-		img := dr.tm.GetImage(cs)
+		img := dr.tm.GetImage(cell)
 		if img == nil {
-			log.Printf("no tile for %+v", cs)
+			log.Printf("no tile for %+v", cell)
 			return
 		}
 		buf := bytes.Buffer{}
@@ -481,13 +481,13 @@ func (dr *Driver) draw(cs gruid.Cell, x, y int) {
 			log.Println(err)
 			return
 		}
-		dr.surfaces[cs] = sf
+		dr.surfaces[cell] = sf
 		tx, err = dr.renderer.CreateTextureFromSurface(sf)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		dr.textures[cs] = tx
+		dr.textures[cell] = tx
 	}
 	rect := sdl.Rect{X: int32(x) * dr.tw, Y: int32(y) * dr.th, W: dr.tw, H: dr.th}
 	err := dr.renderer.Copy(tx, nil, &rect)
