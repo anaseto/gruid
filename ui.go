@@ -62,15 +62,13 @@ type App struct {
 	// true.
 	CatchPanics bool
 
-	msgdraw bool
-	driver  Driver
-	model   Model
-	enc     *frameEncoder
-	logger  *log.Logger
+	driver Driver
+	model  Model
+	enc    *frameEncoder
+	logger *log.Logger
 
-	grid    Grid
-	frame   Frame
-	exposed bool
+	grid  Grid
+	frame Frame
 }
 
 // AppConfig contains the configuration for creating a new App.
@@ -104,7 +102,7 @@ func NewApp(cfg AppConfig) *App {
 
 // Start initializes the application and runs its main loop. The context
 // argument can be used as a means to prematurely cancel the loop. You can
-// usually use an empty context here for client applications.
+// usually use an empty context here.
 func (app *App) Start(ctx context.Context) (err error) {
 	var (
 		effects  = make(chan Effect, 4)
@@ -231,9 +229,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 			}
 
 			// force redraw on screen message
-			if _, ok := msg.(MsgScreen); ok {
-				app.exposed = true
-			}
+			_, exposed := msg.(MsgScreen)
 
 			eff := app.model.Update(msg)
 			if eff != nil {
@@ -245,7 +241,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 			}
 
 			gd := app.model.Draw()
-			frame := app.computeFrame(gd)
+			frame := app.computeFrame(gd, exposed)
 			if len(frame.Cells) > 0 {
 				app.flush(frame)
 			}

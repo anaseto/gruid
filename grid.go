@@ -531,7 +531,7 @@ func (gd Grid) cprev(src Grid) Point {
 }
 
 // computeFrame computes next frame minimal changes and returns them.
-func (app *App) computeFrame(gd Grid) Frame {
+func (app *App) computeFrame(gd Grid, exposed bool) Frame {
 	if gd.ug == nil || gd.rg.Empty() {
 		return Frame{}
 	}
@@ -546,7 +546,7 @@ func (app *App) computeFrame(gd Grid) Frame {
 	}
 	app.frame.Time = time.Now()
 	app.frame.Cells = app.frame.Cells[:0]
-	if app.exposed {
+	if exposed {
 		return app.refresh(gd)
 	}
 	max := gd.Size()
@@ -578,6 +578,5 @@ func (app *App) refresh(gd Grid) Frame {
 		cdraw := FrameCell{Cell: c, P: p}
 		app.frame.Cells = append(app.frame.Cells, cdraw)
 	}
-	app.exposed = false
 	return app.frame
 }
