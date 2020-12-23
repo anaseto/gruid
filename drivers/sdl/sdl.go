@@ -1,3 +1,4 @@
+// Package sdl provides a Driver for making native graphical apps.
 package sdl
 
 import (

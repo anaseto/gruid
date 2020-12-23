@@ -1,3 +1,4 @@
+// Package js provides a Driver for making browser apps using wasm.
 package js
 
 import (

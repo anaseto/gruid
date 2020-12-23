@@ -1,3 +1,4 @@
+// Package tcell provides a gruid Driver for making terminal apps.
 package tcell
 
 import (
