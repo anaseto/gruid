@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="initial-scale=1">
+<title>gruid Application Title</title>
+<!--<link rel="stylesheet" type="text/css" href="style.css" />-->
+</head>
+<body>
+<script src="wasm_exec.js"></script>
+<!--<script src="screenfull.min.js"></script>-->
+<div id="appdiv">
+<canvas id="appcanvas">
+Application Screen
+</canvas>
+</div>
+<div style="display:none">
+<img id="loading" src="loading-screen.png" alt="Application Loading Screen">
+</div>
+<script>
+var wasmfile = "app.wasm";
+var canvas = document.getElementById("appcanvas");
+var ctx = canvas.getContext("2d");
+var loadingImg = document.getElementById("loading");
+canvas.width = loadingImg.naturalWidth;
+canvas.height = loadingImg.naturalHeight;
+ctx.drawImage(loadingImg, 0, 0);
+// var appdiv = document.getElementById("appdiv");
+// document.getElementById('goFS').addEventListener('click', () => {
+// 	if (screenfull.enabled) {
+// 		screenfull.request(appdiv);
+// 	}
+// });
+if (!WebAssembly.instantiateStreaming) { // polyfill
+	WebAssembly.instantiateStreaming = async (resp, importObject) => {
+		const source = await (await resp).arrayBuffer();
+		return await WebAssembly.instantiate(source, importObject);
+	};
+}
+const go = new Go();
+WebAssembly.instantiateStreaming(fetch(wasmfile), go.importObject).then((result) => {
+	go.run(result.instance);
+}).catch((err) => {
+	console.error(err);
+});
+</script>
+</body>
+</html>

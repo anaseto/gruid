@@ -39,6 +39,8 @@ type Driver struct {
 	init      bool
 	flushing  bool
 	fcs       []gruid.FrameCell
+	appcanvas string
+	appdiv    string
 }
 
 // Config contains configurations options for the driver.
@@ -46,6 +48,8 @@ type Config struct {
 	TileManager TileManager // for retrieving tiles (required)
 	Width       int         // initial screen width in cells (default: 80)
 	Height      int         // initial screen height in cells (default: 24)
+	AppCanvasId string      // application's canvas id (default: appcanvas)
+	AppDivId    string      // application's div containing the canvas id (default: appdiv)
 }
 
 // NewDriver returns a new driver with given configuration options.
@@ -58,6 +62,14 @@ func NewDriver(cfg Config) *Driver {
 	dr.height = cfg.Height
 	if dr.height <= 0 {
 		dr.height = 24
+	}
+	dr.appcanvas = cfg.AppCanvasId
+	if dr.appcanvas == "" {
+		dr.appcanvas = "appcanvas"
+	}
+	dr.appdiv = cfg.AppDivId
+	if dr.appdiv == "" {
+		dr.appdiv = "appdiv"
 	}
 	dr.SetTileManager(cfg.TileManager)
 	return dr
@@ -90,7 +102,7 @@ type listeners struct {
 
 // Init implements gruid.Driver.Init.
 func (dr *Driver) Init() error {
-	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
+	canvas := js.Global().Get("document").Call("getElementById", dr.appcanvas)
 	canvas.Call("setAttribute", "tabindex", "1")
 	dr.ctx = canvas.Call("getContext", "2d")
 	dr.ctx.Set("imageSmoothingEnabled", false)
@@ -106,7 +118,7 @@ func (dr *Driver) Init() error {
 }
 
 func (dr *Driver) getMousePos(evt js.Value) gruid.Point {
-	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
+	canvas := js.Global().Get("document").Call("getElementById", dr.appcanvas)
 	rect := canvas.Call("getBoundingClientRect")
 	scaleX := canvas.Get("width").Float() / rect.Get("width").Float()
 	scaleY := canvas.Get("height").Float() / rect.Get("height").Float()
@@ -160,7 +172,10 @@ func getMsgKeyDown(s, code string) (gruid.MsgKeyDown, bool) {
 	return gruid.MsgKeyDown{Key: key, Time: time.Now()}, true
 }
 
-// PollMsgs implements gruid.Driver.PollMsgs.
+// PollMsgs implements gruid.Driver.PollMsgs. To avoid conflicts with browser
+// or OS shortcuts, keydown events with modifier keys may not be reported. If
+// the script screenfull is available, it binds F11 for a portable canvas
+// fullscreen.
 func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 	send := func(msg gruid.Msg) {
 		select {
@@ -168,23 +183,26 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 		case <-ctx.Done():
 		}
 	}
-	canvas := js.Global().Get("document").Call("getElementById", "appcanvas")
+	canvas := js.Global().Get("document").Call("getElementById", dr.appcanvas)
 	dr.listeners.menu = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
 		e.Call("preventDefault")
 		return nil
 	})
 	canvas.Call("addEventListener", "contextmenu", dr.listeners.menu, false)
-	appdiv := js.Global().Get("document").Call("getElementById", "appdiv")
+	appdiv := js.Global().Get("document").Call("getElementById", dr.appdiv)
 	dr.listeners.keydown = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
-		if !e.Get("ctrlKey").Bool() && !e.Get("metaKey").Bool() {
+		if !e.Get("ctrlKey").Bool() && !e.Get("metaKey").Bool() && !e.Get("altKey").Bool() {
 			e.Call("preventDefault")
-		} else {
+		} else if e.Get("ctrlKey").Bool() && e.Get("metaKey").Bool() {
+			// There are too many conflicts with browser or OS
+			// shortcuts for it to be worth the the trouble.
 			return nil
 		}
 		s := e.Get("key").String()
 		if s == "F11" {
+			// use portable fullscreen provided by screenfull if available.
 			screenfull := js.Global().Get("screenfull")
 			if screenfull.Truthy() && screenfull.Get("enabled").Bool() {
 				screenfull.Call("toggle", appdiv)
@@ -215,6 +233,10 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 	js.Global().Get("document").Call("addEventListener", "keydown", dr.listeners.keydown)
 	dr.listeners.mousedown = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
+		if e.Get("ctrlKey").Bool() || e.Get("metaKey").Bool() || e.Get("shiftKey").Bool() {
+			// do not report mouse combined with special keys
+			return nil
+		}
 		p := dr.getMousePos(e)
 		if dr.mousedrag >= 0 {
 			return nil
@@ -230,6 +252,10 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 	canvas.Call("addEventListener", "mousedown", dr.listeners.mousedown)
 	dr.listeners.mouseup = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
+		if e.Get("ctrlKey").Bool() || e.Get("metaKey").Bool() || e.Get("shiftKey").Bool() {
+			// do not report mouse combined with special keys
+			return nil
+		}
 		p := dr.getMousePos(e)
 		n := e.Get("button").Int()
 		if dr.mousedrag != n {
