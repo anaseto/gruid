@@ -560,9 +560,6 @@ func (m *Menu) cursorAtLastChoice() {
 
 // Draw implements gruid.Model.Draw. It returns the grid slice that was drawn.
 func (m *Menu) Draw() gruid.Grid {
-	if m.init {
-		m.grid.Fill(gruid.Cell{Rune: ' '})
-	}
 	grid := m.drawGrid()
 	if m.box != nil {
 		m.box.Draw(grid)

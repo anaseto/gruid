@@ -275,9 +275,6 @@ func (pg *Pager) Action() PagerAction {
 // Draw implements gruid.Model.Draw for Pager. It returns the grid slice that
 // was drawn.
 func (pg *Pager) Draw() gruid.Grid {
-	if pg.init {
-		pg.grid.Fill(gruid.Cell{Rune: ' '})
-	}
 	grid := pg.grid
 	max := grid.Size()
 	w, h := max.X, max.Y

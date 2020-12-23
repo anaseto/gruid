@@ -68,8 +68,9 @@ type App struct {
 	enc     *frameEncoder
 	logger  *log.Logger
 
-	cellbuf []Cell
+	grid    Grid
 	frame   Frame
+	exposed bool
 }
 
 // AppConfig contains the configuration for creating a new App.
@@ -199,7 +200,6 @@ func (app *App) Start(ctx context.Context) (err error) {
 	}(ctx)
 
 	// main loop
-	skip := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -232,7 +232,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 
 			// force redraw on screen message
 			if _, ok := msg.(MsgScreen); ok {
-				app.clearCellCache()
+				app.exposed = true
 			}
 
 			eff := app.model.Update(msg) // run update
@@ -244,12 +244,6 @@ func (app *App) Start(ctx context.Context) (err error) {
 				}
 			}
 
-			const skipmax = 4
-			if len(msgs) > 0 && skip < skipmax {
-				skip++
-				continue
-			}
-			skip = 0
 			gd := app.model.Draw()
 			frame := app.computeFrame(gd)
 			if len(frame.Cells) > 0 {
@@ -276,11 +270,12 @@ type Model interface {
 	// It is always called the first time with a MsgInit message.
 	Update(Msg) Effect
 
-	// Draw is generally called after every Update, though it may be
-	// skipped when there are already new queued messages.  Use this
-	// function to draw the UI elements in a grid to be returned.  The
-	// returned grid will then automatically be sent to the driver for
-	// immediate display.
+	// Draw is called after every Update. Use this function to draw the UI
+	// elements in a grid to be returned. If only parts of the grid are to
+	// be updated, you can return a smaller grid slice, or an empty grid
+	// slice to skip any drawing work. Note that the contents of the grid
+	// slice are then compared to the previous state at the same bounds,
+	// and only the changes are sent to the driver anyways.
 	Draw() Grid
 }
 

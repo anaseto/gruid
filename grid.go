@@ -435,9 +435,7 @@ func (gd Grid) Set(p Point, c Cell) {
 }
 
 // At returns the cell content and styling at a given position. If the position
-// is out of range, it returns de zero value. The returned cell is the content
-// as it is in the logical grid, which may be different from what is currently
-// displayed on the screen.
+// is out of range, it returns de zero value.
 func (gd Grid) At(p Point) Cell {
 	if !gd.Contains(p) {
 		return Cell{}
@@ -460,12 +458,11 @@ func idxToPos(i, w int) Point {
 // Fill sets the given cell as content for all the grid positions.
 func (gd Grid) Fill(c Cell) {
 	max := gd.Size()
-	upos := gd.rg.Min
+	min := gd.rg.Min
 	for y := 0; y < max.Y; y++ {
-		yidx := (upos.Y + y) * gd.ug.width
+		idx := (min.Y+y)*gd.ug.width + min.X
 		for x := 0; x < max.X; x++ {
-			xidx := x + upos.X
-			gd.ug.cells[xidx+yidx] = c
+			gd.ug.cells[idx+x] = c
 		}
 	}
 }
@@ -525,34 +522,52 @@ func (gd Grid) cprev(src Grid) Point {
 
 // computeFrame computes next frame minimal changes and returns them.
 func (app *App) computeFrame(gd Grid) Frame {
-	if gd.ug == nil {
-		app.frame.Cells = app.frame.Cells[:0]
+	if gd.ug == nil || gd.rg.Empty() {
 		return Frame{}
 	}
-	ug := gd.ug
-	if len(app.cellbuf) < len(ug.cells) {
-		app.cellbuf = make([]Cell, len(ug.cells))
+	if app.grid.ug == nil {
+		app.grid = NewGrid(gd.ug.width, gd.ug.height)
+		app.frame.Width = gd.ug.width
+		app.frame.Height = gd.ug.height
+	} else if app.grid.ug.width != gd.ug.width || app.grid.ug.height != gd.ug.height {
+		app.grid = app.grid.Resize(gd.ug.width, gd.ug.height)
+		app.frame.Width = gd.ug.width
+		app.frame.Height = gd.ug.height
 	}
 	app.frame.Time = time.Now()
-	app.frame.Width = ug.width
-	app.frame.Height = ug.height
 	app.frame.Cells = app.frame.Cells[:0]
-	for i, c := range ug.cells {
-		if c == app.cellbuf[i] {
-			continue
+	if app.exposed {
+		return app.refresh(gd)
+	}
+	max := gd.Size()
+	min := gd.rg.Min
+	for y := 0; y < max.Y; y++ {
+		idx := (min.Y+y)*gd.ug.width + min.X
+		for x := 0; x < max.X; x++ {
+			idx := idx + x
+			c := gd.ug.cells[idx]
+			if c == app.grid.ug.cells[idx] {
+				continue
+			}
+			app.grid.ug.cells[idx] = c
+			p := idxToPos(idx, gd.ug.width)
+			cdraw := FrameCell{Cell: c, P: p}
+			app.frame.Cells = append(app.frame.Cells, cdraw)
 		}
-		p := idxToPos(i, ug.width)
-		cdraw := FrameCell{Cell: c, P: p}
-		app.frame.Cells = append(app.frame.Cells, cdraw)
-		app.cellbuf[i] = c
 	}
 	return app.frame
 }
 
-// clearCache clears internal cache buffers, forcing a complete redraw of the
-// screen with the next Draw call, even for cells that did not change.
-func (app *App) clearCellCache() {
-	for i := range app.cellbuf {
-		app.cellbuf[i] = Cell{}
+// refresh forces a complete redraw of the screen, even for cells that did not
+// change.
+func (app *App) refresh(gd Grid) Frame {
+	for i := range gd.ug.cells {
+		c := gd.ug.cells[i]
+		app.grid.ug.cells[i] = c
+		p := idxToPos(i, gd.ug.width)
+		cdraw := FrameCell{Cell: c, P: p}
+		app.frame.Cells = append(app.frame.Cells, cdraw)
 	}
+	app.exposed = false
+	return app.frame
 }
