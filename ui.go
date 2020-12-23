@@ -109,7 +109,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 	var (
 		effects  = make(chan Effect, 4)
 		msgs     = make(chan Msg, 4)
-		errs     = make(chan error)
+		errs     = make(chan error)    // for driver input errors
 		polldone = make(chan struct{}) // PollMsgs subscription finished
 	)
 
@@ -199,7 +199,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 		}
 	}(ctx)
 
-	// main loop
+	// main Update then Draw loop
 	for {
 		select {
 		case <-ctx.Done():
@@ -235,7 +235,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 				app.exposed = true
 			}
 
-			eff := app.model.Update(msg) // run update
+			eff := app.model.Update(msg)
 			if eff != nil {
 				select {
 				case effects <- eff: // process effect (if any)
