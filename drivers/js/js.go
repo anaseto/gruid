@@ -369,8 +369,7 @@ func (dr *Driver) draw(cell gruid.Cell, x, y int) {
 	dr.ctx.Call("drawImage", canvas, x*dr.tw, dr.th*y)
 }
 
-// Close implements gruid.Driver.Close. It releases some resources, such as
-// event listeners.
+// Close implements gruid.Driver.Close.
 func (dr *Driver) Close() {
 	if !dr.init {
 		return
