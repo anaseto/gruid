@@ -51,6 +51,7 @@ type Driver struct {
 	accelerated bool
 	scaleX      float32
 	scaleY      float32
+	title       string
 }
 
 // Config contains configurations options for the driver.
@@ -73,6 +74,7 @@ func NewDriver(cfg Config) *Driver {
 	if dr.height <= 0 {
 		dr.height = 24
 	}
+	dr.title = "gruid go-sdl2"
 	dr.fullscreen = cfg.Fullscreen
 	dr.SetTileManager(cfg.TileManager)
 	dr.accelerated = cfg.Accelerated
@@ -134,6 +136,20 @@ func (dr *Driver) SetScale(scaleX, scaleY float32) {
 	}
 }
 
+// SetWindowTitle sets the window title.
+func (dr *Driver) SetWindowTitle(title string) {
+	fn := func() {
+		dr.window.SetTitle(title)
+	}
+	dr.title = title
+	if dr.init {
+		select {
+		case dr.actions <- fn:
+		default:
+		}
+	}
+}
+
 // PreventQuit will make next call to Close keep sdl and the main window
 // running. It can be used to chain two applications with the same sdl session
 // and window. It is then your reponsibility to either run another application
@@ -146,7 +162,7 @@ func (dr *Driver) PreventQuit() {
 // sdl.Init().
 func (dr *Driver) Init() error {
 	dr.reqredraw = make(chan bool, 1)
-	dr.actions = make(chan func(), 1)
+	dr.actions = make(chan func(), 4)
 	if dr.tm == nil {
 		return errors.New("no tile manager provided")
 	}
@@ -157,7 +173,7 @@ func (dr *Driver) Init() error {
 		if err = sdl.Init(sdl.INIT_VIDEO); err != nil {
 			return err
 		}
-		dr.window, err = sdl.CreateWindow("gruid go-sdl2", sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
+		dr.window, err = sdl.CreateWindow(dr.title, sdl.WINDOWPOS_UNDEFINED, sdl.WINDOWPOS_UNDEFINED,
 			dr.width*dr.tw, dr.height*dr.th, sdl.WINDOW_SHOWN)
 		if err != nil {
 			return fmt.Errorf("failed to create sdl window: %v", err)
@@ -216,9 +232,6 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 		select {
 		case <-ctx.Done():
 			return nil
-		default:
-		}
-		select {
 		case <-dr.reqredraw:
 			w, h := dr.window.GetSize()
 			send(gruid.MsgScreen{Width: int(w / dr.tw), Height: int(h / dr.th), Time: time.Now()})
@@ -474,10 +487,14 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 
 // Flush implements gruid.Driver.Flush.
 func (dr *Driver) Flush(frame gruid.Frame) {
-	select {
-	case fn := <-dr.actions:
-		fn()
-	default:
+actions:
+	for {
+		select {
+		case fn := <-dr.actions:
+			fn()
+		default:
+			break actions
+		}
 	}
 	if frame.Width != int(dr.width) || frame.Height != int(dr.height) {
 		dr.width = int32(frame.Width)
