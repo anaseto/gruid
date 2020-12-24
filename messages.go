@@ -64,26 +64,23 @@ const (
 
 func (m ModMask) String() string {
 	var s string
+	addmod := func(mod string) {
+		if s != "" {
+			s += "+"
+		}
+		s += mod
+	}
 	if m&ModCtrl != 0 {
-		s += "Ctrl"
+		addmod("Ctrl")
 	}
 	if m&ModAlt != 0 {
-		if s != "" {
-			s += "+"
-		}
-		s += "Alt"
+		addmod("Alt")
 	}
 	if m&ModMeta != 0 {
-		if s != "" {
-			s += "+"
-		}
-		s += "Meta"
+		addmod("Meta")
 	}
 	if m&ModShift != 0 {
-		if s != "" {
-			s += "+"
-		}
-		s += "Shift"
+		addmod("Shift")
 	}
 	if s == "" {
 		s = "None"
