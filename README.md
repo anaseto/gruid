@@ -1,3 +1,5 @@
+[![Go Reference](https://pkg.go.dev/badge/github.com/anaseto/gruid.svg)](https://pkg.go.dev/github.com/anaseto/gruid)
+
 # gruid: a cross-platform library for grid-based user interfaces
 
 The **gruid** *module* contains packages for building grid-based applications in
@@ -11,8 +13,8 @@ response to messages strongly inspired from the
 apps, which in turn is based on the [Elm
 Architecture](https://guide.elm-lang.org/architecture/).
 
-You can find examples in the [examples](https://github.com/anaseto/gruid/examples/)
-subdirectory.
+You can find there [examples](https://github.com/anaseto/gruid/examples/)
+and the [documentation](https://pkg.go.dev/github.com/anaseto/gruid).
 
 The module is not yet considered stable as a whole, though it's usable and the
 core functionality and APIs should be stable or close to it. It is expected
