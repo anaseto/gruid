@@ -42,7 +42,7 @@
 //
 // The values of type gruid.Effect returned by Update are optional and
 // represent concurrently executed functions that produce messages.  See the
-// API documentation for details and usage.
+// relevant types documentation for details and usage.
 package gruid
 
 import (
@@ -71,7 +71,7 @@ type App struct {
 	frame Frame
 }
 
-// AppConfig contains the configuration for creating a new App.
+// AppConfig contains the configuration options for creating a new App.
 type AppConfig struct {
 	Model  Model  // application state
 	Driver Driver // input and rendering driver
@@ -197,7 +197,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 		}
 	}(ctx)
 
-	// main Update then Draw loop
+	// Update on message then Draw main loop
 	for {
 		select {
 		case <-ctx.Done():
@@ -290,7 +290,7 @@ type Driver interface {
 	// appropriate.
 	PollMsgs(context.Context, chan<- Msg) error
 
-	// Flush sends last frame grid changes to the driver.
+	// Flush sends grid's last frame changes to the driver.
 	Flush(Frame)
 
 	// Close may execute needed code to finalize the screen and release
@@ -320,7 +320,7 @@ type Effect interface {
 // event timers and short-lived IO operations with a single result. A nil
 // command is discarded and does nothing.
 //
-// It implements the Effect interface.
+// Cmd implements the Effect interface.
 type Cmd func() Msg
 
 // Sub is similar to Cmd, but instead of returning a message, it sends messages
@@ -329,7 +329,7 @@ type Cmd func() Msg
 // delivered by a time.Ticker, or to report messages from listening on a
 // socket. The function should handle the context and terminate as appropriate.
 //
-// It implements the Effect interface.
+// Sub implements the Effect interface.
 type Sub func(context.Context, chan<- Msg)
 
 // implementsEffect makes Cmd satisfy Effect interface.
@@ -340,8 +340,8 @@ func (sub Sub) implementsEffect() {}
 
 // End returns a special command that signals the application to end its Start
 // loop. Note that the application does not wait for pending effects to
-// complete before exiting the Start loop, so you have to wait for those
-// commands messages before using End.
+// complete before exiting the Start loop, so you may have to wait for any of
+// those commands messages before using End.
 func End() Cmd {
 	return func() Msg {
 		return msgEnd{}

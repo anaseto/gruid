@@ -13,13 +13,12 @@ import (
 // value for constants.
 type AttrMask uint
 
-// Color is a generic value for representing colors. Except for the zero value,
-// which gets special treatment, those have to be mapped to concrete foreground
-// and background colors for each driver, as appropriate.
+// Color is a generic value for representing colors. Those have to be mapped to
+// concrete foreground and background colors for each driver, as appropriate.
 type Color uint
 
-// ColorDefault gets special treatment by drivers and is mapped, when it makes
-// sense, to a default color, both for foreground and background.
+// ColorDefault should get special treatment by drivers and be mapped, when it
+// makes sense, to a default color, both for foreground and background.
 const ColorDefault Color = 0
 
 // Cell contains all the content and styling information to represent a cell in
@@ -105,11 +104,10 @@ func (p Point) Div(k int) Point {
 	return Point{X: p.X / k, Y: p.Y / k}
 }
 
-// Range represents a rectangle in a grid with upper left position Min and
-// bottom right position Max (excluded). In other terms, it contains all the
-// positions P such that Min <= P < Max. A range is well-formed if Min <= Max.
-// Min represents the upper-left position in the range, and Max-(1,1) the
-// lower-right one.
+// Range represents a rectangle in a grid that contains all the positions P
+// such that Min <= P < Max coordinate-wise. A range is well-formed if Min <=
+// Max. When non-empty, Min represents the upper-left position in the range,
+// and Max-(1,1) the lower-right one.
 type Range struct {
 	Min, Max Point
 }
@@ -297,7 +295,8 @@ func (rg Range) Iter(fn func(Point)) {
 //		}
 //	}
 //
-// You may also look into the Iter and Fill methods.
+// Most iterations can be performed using the Slice, Fill, Copy and Iter
+// methods.
 type Grid struct {
 	ug *grid // underlying whole grid
 	rg Range // range within the whole grid
@@ -339,13 +338,13 @@ func NewGrid(w, h int) Grid {
 }
 
 // Bounds returns the range that is covered by this grid slice within the
-// underlying grid.
+// underlying original grid.
 func (gd Grid) Bounds() Range {
 	return gd.rg
 }
 
 // Range returns the range with Min set to (0,0) and Max set to gd.Size(). It
-// may be convenient to use it with Slice and a range Shift.
+// may be convenient when using Slice with a range Shift.
 func (gd Grid) Range() Range {
 	return gd.rg.Sub(gd.rg.Min)
 }
@@ -384,11 +383,8 @@ func (gd Grid) Size() Point {
 }
 
 // Resize is similar to Slice, but it only specifies new dimensions, and if the
-// range goes beyond the underlying grid range, it will grow the underlying
-// grid.
-//
-// Note that this only modifies the size of the grid, which may be different
-// than the window screen size.
+// range goes beyond the underlying original grid range, it will grow the
+// underlying grid.
 func (gd Grid) Resize(w, h int) Grid {
 	max := gd.Size()
 	ow, oh := max.X, max.Y
@@ -429,7 +425,7 @@ func (gd Grid) Resize(w, h int) Grid {
 	return gd
 }
 
-// Contains returns true if the relative position is within the grid.
+// Contains returns true if the given relative position is within the grid.
 func (gd Grid) Contains(p Point) bool {
 	return p.Add(gd.rg.Min).In(gd.rg)
 }
