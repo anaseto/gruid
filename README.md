@@ -1,32 +1,34 @@
+# Gruid
+
 [![Go Reference](https://pkg.go.dev/badge/github.com/anaseto/gruid.svg)](https://pkg.go.dev/github.com/anaseto/gruid)
 
-# gruid: a cross-platform library for grid-based user interfaces
+The **gruid** *module* provides packages for easily building grid-based
+applications in Go.  The library abstracts rendering and input for different
+platforms. The module provides drivers for terminal apps (driver/tcell), native
+graphical apps (driver/sdl) and browser apps (driver/js). The original
+application for the library was creating grid-based games, but it's also
+well-suited for any full-window grid-based application.
 
-The **gruid** *module* contains packages for building grid-based applications in
-Go.  The library abstracts rendering and input for different platforms. The
-module provides drivers for terminal apps (driver/tcell), native graphical apps
-(driver/sdl) and browser apps (driver/js). 
-
-The core **gruid** *package* uses an architecture of updating a model in
-response to messages strongly inspired from the
-[bubbletea](https://github.com/charmbracelet/bubbletea) module for building terminal
-apps, which in turn is based on the [Elm
-Architecture](https://guide.elm-lang.org/architecture/).
+The core **gruid** *package* uses a convenient and flexible architecture of
+updating a model in response to messages strongly inspired from the
+[bubbletea](https://github.com/charmbracelet/bubbletea) module for building
+terminal apps, which in turn is based on the functional [Elm
+Architecture](https://guide.elm-lang.org/architecture/). The architecture has
+been adapted to be more idiomatic in Go, as well as more efficient.
 
 You can find there [examples](https://github.com/anaseto/gruid/examples/)
 and the [documentation](https://pkg.go.dev/github.com/anaseto/gruid).
 
-The module is not yet considered stable as a whole, though it's usable and the
-core functionality and APIs should be stable or close to it. It is expected
-that after a testing period to collect user feedback, a stable version will be
-released.
+*Note: the module is already usable and the core functionality and APIs should
+be stable or close to it. It is expected that after a testing period to collect
+user feedback, a stable version will be released.*
 
 # Overview of packages
 
 The **gruid** package defines the Model and Driver interfaces and allows to
 start the “update on message then draw” main loop of an application. It also
-defines a convenient slice grid structure to represent the logical contents of
-the screen and manipulate them.
+defines a convenient and efficient slice grid structure to represent the
+logical contents of the screen and manipulate them.
 
 The **ui** package defines common UI widgets and utilities: menu/table widget,
 pager, text input, label, styled text drawing facilities and replay

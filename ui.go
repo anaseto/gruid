@@ -128,7 +128,7 @@ type AppConfig struct {
 	Logger *log.Logger
 }
 
-// NewApp creates a new App.
+// NewApp creates a new App with the given configuration options.
 func NewApp(cfg AppConfig) *App {
 	app := &App{
 		model:       cfg.Model,
