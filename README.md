@@ -14,7 +14,8 @@ updating a model in response to messages strongly inspired from the
 [bubbletea](https://github.com/charmbracelet/bubbletea) module for building
 terminal apps, which in turn is based on the functional [Elm
 Architecture](https://guide.elm-lang.org/architecture/). The architecture has
-been adapted to be more idiomatic in Go, as well as more efficient.
+been adapted to be more idiomatic in Go in the context of grid-based
+applications, and more efficient.
 
 You can find there [examples](https://github.com/anaseto/gruid/examples/)
 and the [documentation](https://pkg.go.dev/github.com/anaseto/gruid).
