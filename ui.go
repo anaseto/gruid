@@ -46,9 +46,9 @@
 // (driver/sdl) and browser apps (driver/js).
 //
 // The package uses an architecture of updating a model in response to messages
-// strongly inspired from the bubbletea module for building terminal apps (see
-// github.com/charmbracelet/bubbletea), which in turn is based on the Elm
-// Architecture (https://guide.elm-lang.org/architecture/).
+// strongly inspired from the bubbletea module for building terminal apps
+// (https://github.com/charmbracelet/bubbletea), which in turn is based on the
+// Elm Architecture (https://guide.elm-lang.org/architecture/).
 //
 // The typical usage looks like this:
 //
