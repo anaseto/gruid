@@ -7,11 +7,11 @@ module provides drivers for terminal apps (driver/tcell), native graphical apps
 
 The core **gruid** *package* uses an architecture of updating a model in
 response to messages strongly inspired from the
-[bubbletea](github.com/charmbracelet/bubbletea) module for building terminal
+[bubbletea](https://github.com/charmbracelet/bubbletea) module for building terminal
 apps, which in turn is based on the [Elm
 Architecture](https://guide.elm-lang.org/architecture/).
 
-You can find examples in the [examples](github.com/anaseto/gruid/examples/)
+You can find examples in the [examples](https://github.com/anaseto/gruid/examples/)
 subdirectory.
 
 The module is not yet considered stable as a whole, though it's usable and the
@@ -39,10 +39,10 @@ pathfinding algorithms that are often used in grid-based games, such as
 roguelikes. You will find implementations of the A\* algorithm, as well as
 Dijkstra, breadth first, and connected components maps computations.
 
-The **tcell**, **js**, and **sdl** packages in the `drivers/` sub-directory
-provide specific rendering and input implementations satisfying gruid's package
-Driver interface. See the README.md files in their respective folders for
-specific build and deployment instructions. *Note that until lazy module
-loading comes (hopefully with Go 1.16), unless you manually remove the sdl
-dependency, you will probably need to install SDL2 even if you only want to use
-tcell for the terminal.*
+The **tcell**, **js**, and **sdl** packages in the [drivers
+sub-directory](drivers/) provide specific rendering and input implementations
+satisfying gruid's package Driver interface. See the README.md files in their
+respective folders for specific build and deployment instructions. *Note that
+until lazy module loading comes (hopefully with Go 1.16), unless you manually
+remove the sdl dependency, you will probably need to install SDL2 even if you
+only want to use tcell for the terminal.*
