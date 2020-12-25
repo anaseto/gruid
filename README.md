@@ -17,8 +17,8 @@ Architecture](https://guide.elm-lang.org/architecture/). The architecture has
 been adapted to be more idiomatic in Go in the context of grid-based
 applications, and more efficient.
 
-You can find there [examples](https://github.com/anaseto/gruid/examples/)
-and the [documentation](https://pkg.go.dev/github.com/anaseto/gruid).
+You can find there [annotated examples](examples/) and the
+[documentation](https://pkg.go.dev/github.com/anaseto/gruid).
 
 *Note: the module is already usable and the core functionality and APIs should
 be stable or close to it. It is expected that after a testing period to collect
@@ -42,7 +42,9 @@ drivers/js.
 The **paths** package provides efficient implementations of some common
 pathfinding algorithms that are often used in grid-based games, such as
 roguelikes. You will find implementations of the A\* algorithm, as well as
-Dijkstra, breadth first, and connected components maps computations.
+Dijkstra, breadth first, and connected components maps computations. See the
+[movement example](examples/movement/move.go) for an annotated example using
+A\* and the mouse.
 
 The **tcell**, **js**, and **sdl** packages in the [drivers
 sub-directory](drivers/) provide specific rendering and input implementations

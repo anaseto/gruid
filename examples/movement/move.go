@@ -69,15 +69,23 @@ type model struct {
 	path      []gruid.Point    // current path (reverse highlighting)
 }
 
+// autoMove represents the information for an automatic-movement step.
 type autoMove struct {
-	// diff represents a position variation such as (0,1), that
+	// delta represents a position variation such as (0,1), that
 	// will be used in position arithmetic to move from one position to an
 	// adjacent one in a certain direction.
-	diff gruid.Point
+	delta gruid.Point
 
 	path bool // whether following a path (instead of a simple direction)
 }
 
+// msgAutoMove is used to ask Update to move the player's position by delta.
+type msgAutoMove struct {
+	delta gruid.Point
+}
+
+// Update implements gruid.Model.Update. It handles keyboard and mouse input
+// messages and updates the model in response to them.
 func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	switch msg := msg.(type) {
 	case gruid.MsgKeyDown:
@@ -90,27 +98,27 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 		// remove mouse path highlighting
 		m.path = nil
 
-		pdiff := gruid.Point{}
+		pdelta := gruid.Point{}
 		switch msg.Key {
 		case gruid.KeyArrowDown, "j", "J":
-			pdiff = pdiff.Shift(0, 1)
+			pdelta = pdelta.Shift(0, 1)
 		case gruid.KeyArrowLeft, "h", "H":
-			pdiff = pdiff.Shift(-1, 0)
+			pdelta = pdelta.Shift(-1, 0)
 		case gruid.KeyArrowRight, "l", "L":
-			pdiff = pdiff.Shift(1, 0)
+			pdelta = pdelta.Shift(1, 0)
 		case gruid.KeyArrowUp, "k", "K":
-			pdiff = pdiff.Shift(0, -1)
+			pdelta = pdelta.Shift(0, -1)
 		case "Q", "q", gruid.KeyEscape:
 			return gruid.End()
 		}
-		if pdiff.X != 0 || pdiff.Y != 0 {
-			np := m.playerPos.Add(pdiff) //
+		if pdelta.X != 0 || pdelta.Y != 0 {
+			np := m.playerPos.Add(pdelta) //
 			if m.grid.Contains(np) {
 				m.playerPos = np
 				if msg.Mod&gruid.ModShift != 0 || strings.ToUpper(string(msg.Key)) == string(msg.Key) {
 					// activate automatic movement in that direction
-					m.move.diff = pdiff
-					return automoveCmd(m.move.diff)
+					m.move.delta = pdelta
+					return automoveCmd(m.move.delta)
 				}
 			}
 		}
@@ -132,7 +140,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 			m.pathAt(msg.P)
 		}
 	case msgAutoMove:
-		if m.move.diff != msg.diff {
+		if m.move.delta != msg.delta {
 			break
 		}
 		if m.move.path {
@@ -140,11 +148,12 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 				return m.pathNext()
 			}
 		} else {
-			np := m.playerPos.Add(msg.diff)
+			np := m.playerPos.Add(msg.delta)
 			if m.grid.Contains(np) {
 				m.path = nil // remove path highlighting if any
 				m.playerPos = np
-				return automoveCmd(msg.diff)
+				// continue automatic movement in the same direction
+				return automoveCmd(msg.delta)
 			}
 		}
 		m.stopAuto()
@@ -152,10 +161,21 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	return nil
 }
 
+// automoveCmd returns a command that signals automatic movement in a given
+// direction.
+func automoveCmd(pdelta gruid.Point) gruid.Cmd {
+	d := time.Millisecond * 30 // automatic movement time interval
+	return func() gruid.Msg {
+		t := time.NewTimer(d)
+		<-t.C
+		return msgAutoMove{pdelta}
+	}
+}
+
 // autoMove checks whether automatic movement is activated.
 func (m *model) autoMove() bool {
 	p := gruid.Point{}
-	return m.move.diff != p
+	return m.move.delta != p
 }
 
 // stopAuto resets automatic movement information.
@@ -171,30 +191,16 @@ func (m *model) pathAt(p gruid.Point) {
 	m.path = m.pr.AstarPath(pp, m.playerPos, p)
 }
 
-// pathNext moves the player to next position in the path, and updates the path
-// accordingly.
+// pathNext moves the player to next position in the path, updates the path
+// accordingly, and returns a command that will deliver the message for the
+// next automatic movement step along the path.
 func (m *model) pathNext() gruid.Cmd {
 	p := m.path[len(m.path)-2]
 	m.path = m.path[:len(m.path)-1]
 	m.move.path = true
-	m.move.diff = p.Sub(m.playerPos)
+	m.move.delta = p.Sub(m.playerPos)
 	m.playerPos = p
-	return automoveCmd(m.move.diff)
-}
-
-type msgAutoMove struct {
-	diff gruid.Point
-}
-
-// automoveCmd returns a command that signals automatic movement in a given
-// direction.
-func automoveCmd(posdiff gruid.Point) gruid.Cmd {
-	d := time.Millisecond * 30 // automatic movement time interval
-	return func() gruid.Msg {
-		t := time.NewTimer(d)
-		<-t.C
-		return msgAutoMove{posdiff}
-	}
+	return automoveCmd(m.move.delta)
 }
 
 // playerPath implements paths.Astar interface.
@@ -232,14 +238,8 @@ func abs(x int) int {
 // Draw implements gruid.Model.Draw. It draws a simple map that spans the whole
 // grid.
 func (m *model) Draw() gruid.Grid {
-	c := gruid.Cell{Rune: '.'} // default cell
-	m.grid.Range().Iter(func(p gruid.Point) {
-		if p == m.playerPos {
-			m.grid.Set(p, gruid.Cell{Rune: '@', Style: c.Style.WithFg(ColorPlayer)})
-		} else {
-			m.grid.Set(p, c)
-		}
-	})
+	m.grid.Fill(gruid.Cell{Rune: '.'})
+	m.grid.Set(m.playerPos, gruid.Cell{Rune: '@', Style: gruid.Style{}.WithFg(ColorPlayer)})
 	for _, p := range m.path {
 		c := m.grid.At(p)
 		m.grid.Set(p, c.WithStyle(c.Style.WithBg(ColorPath)))
