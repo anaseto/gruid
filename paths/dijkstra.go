@@ -48,30 +48,30 @@ func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost in
 		if nq.Len() == 0 {
 			return
 		}
-		current := heap.Pop(nq).(*node)
-		current.Open = false
-		current.Closed = true
-		pr.iterNodeCache = append(pr.iterNodeCache, Node{P: current.P, Cost: current.Cost})
+		n := heap.Pop(nq).(*node)
+		n.Open = false
+		n.Closed = true
+		pr.iterNodeCache = append(pr.iterNodeCache, Node{P: n.P, Cost: n.Cost})
 
-		for _, neighbor := range dij.Neighbors(current.P) {
-			if !neighbor.In(pr.rg) {
+		for _, nb := range dij.Neighbors(n.P) {
+			if !nb.In(pr.rg) {
 				continue
 			}
-			cost := current.Cost + dij.Cost(current.P, neighbor)
-			neighborNode := nm.get(pr, neighbor)
-			if cost < neighborNode.Cost {
-				if neighborNode.Open {
-					heap.Remove(nq, neighborNode.Index)
+			cost := n.Cost + dij.Cost(n.P, nb)
+			nbNode := nm.get(pr, nb)
+			if cost < nbNode.Cost {
+				if nbNode.Open {
+					heap.Remove(nq, nbNode.Index)
 				}
-				neighborNode.Open = false
-				neighborNode.Closed = false
+				nbNode.Open = false
+				nbNode.Closed = false
 			}
-			if !neighborNode.Open && !neighborNode.Closed {
-				neighborNode.Cost = cost
+			if !nbNode.Open && !nbNode.Closed {
+				nbNode.Cost = cost
 				if cost <= maxCost {
-					neighborNode.Open = true
-					neighborNode.Rank = cost
-					heap.Push(nq, neighborNode)
+					nbNode.Open = true
+					nbNode.Rank = cost
+					heap.Push(nq, nbNode)
 				}
 			}
 		}

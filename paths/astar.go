@@ -47,7 +47,7 @@ type Astar interface {
 }
 
 // AstarPath return a path from a position to another, including thoses
-// positions. It returns nil if no path was found.
+// positions, in the path order. It returns nil if no path was found.
 func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 	if !from.In(pr.rg) || !to.In(pr.rg) {
 		return nil
@@ -70,48 +70,51 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 	heap.Push(nq, fromNode)
 	for {
 		if nq.Len() == 0 {
-			// There's no path, return found false.
+			// There's no path.
 			return nil
 		}
-		current := heap.Pop(nq).(*node)
-		current.Open = false
-		current.Closed = true
+		n := heap.Pop(nq).(*node)
+		n.Open = false
+		n.Closed = true
 
-		if current.P == to {
+		if n.P == to {
 			// Found a path to the goal.
-			p := []gruid.Point{}
-			curr := current
+			path := []gruid.Point{}
+			pn := n
 			for {
-				p = append(p, curr.P)
-				if curr.Parent == nil {
+				path = append(path, pn.P)
+				if pn.Parent == nil {
 					break
 				}
-				curr, _ = nm.at(pr, *curr.Parent)
+				pn, _ = nm.at(pr, *pn.Parent)
 			}
-			return p
+			for i := range path[:len(path)/2] {
+				path[i], path[len(path)-i-1] = path[len(path)-i-1], path[i]
+			}
+			return path
 		}
 
-		for _, neighbor := range ast.Neighbors(current.P) {
-			if !neighbor.In(pr.rg) {
+		for _, nb := range ast.Neighbors(n.P) {
+			if !nb.In(pr.rg) {
 				continue
 			}
-			cost := current.Cost + ast.Cost(current.P, neighbor)
-			neighborNode := nm.get(pr, neighbor)
-			if cost < neighborNode.Cost {
-				if neighborNode.Open {
-					heap.Remove(nq, neighborNode.Index)
+			cost := n.Cost + ast.Cost(n.P, nb)
+			nbNode := nm.get(pr, nb)
+			if cost < nbNode.Cost {
+				if nbNode.Open {
+					heap.Remove(nq, nbNode.Index)
 				}
-				neighborNode.Open = false
-				neighborNode.Closed = false
+				nbNode.Open = false
+				nbNode.Closed = false
 			}
-			if !neighborNode.Open && !neighborNode.Closed {
-				neighborNode.Cost = cost
-				neighborNode.Open = true
-				neighborNode.Rank = cost + ast.Estimation(neighbor, to)
-				neighborNode.Parent = &current.P
+			if !nbNode.Open && !nbNode.Closed {
+				nbNode.Cost = cost
+				nbNode.Open = true
+				nbNode.Rank = cost + ast.Estimation(nb, to)
+				nbNode.Parent = &n.P
 				num++
-				neighborNode.Num = num
-				heap.Push(nq, neighborNode)
+				nbNode.Num = num
+				heap.Push(nq, nbNode)
 			}
 		}
 	}

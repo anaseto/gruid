@@ -195,8 +195,8 @@ func (m *model) pathAt(p gruid.Point) {
 // accordingly, and returns a command that will deliver the message for the
 // next automatic movement step along the path.
 func (m *model) pathNext() gruid.Cmd {
-	p := m.path[len(m.path)-2]
-	m.path = m.path[:len(m.path)-1]
+	p := m.path[1]
+	m.path = m.path[1:]
 	m.move.path = true
 	m.move.delta = p.Sub(m.playerPos)
 	m.playerPos = p
