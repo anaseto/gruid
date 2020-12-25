@@ -240,8 +240,15 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 
 // Flush implements gruid.Driver.Flush.
 func (dr *Driver) Flush(frame gruid.Frame) {
+	// TODO: find a way to handle wide-characters that does not complicate
+	// gruid nor graphical drivers. Maybe just allow columns to be at
+	// different widths? (that would work only if wide characters are
+	// placed only at places where columnar layout does not matter)
 	for _, fc := range frame.Cells {
 		c := fc.Cell
+		if c.Rune == 0 {
+			continue
+		}
 		st := dr.sm.GetStyle(c.Style)
 		dr.screen.SetContent(fc.P.X, fc.P.Y, c.Rune, nil, st)
 	}
