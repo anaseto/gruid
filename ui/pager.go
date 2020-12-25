@@ -284,6 +284,9 @@ func (pg *Pager) Action() PagerAction {
 // was drawn, or the whole grid if it is used as main model.
 func (pg *Pager) Draw() gruid.Grid {
 	if pg.Action() == PagerPass && !pg.drawn.Range().Empty() {
+		if pg.init {
+			return pg.drawn.Slice(gruid.Range{})
+		}
 		return pg.drawn
 	}
 	grid := pg.grid

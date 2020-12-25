@@ -98,7 +98,9 @@ func (rep *Replay) decodeNext() {
 }
 
 // Update implements Model.Update for Replay. It considers mouse message
-// coordinates to be absolute in its grid.
+// coordinates to be absolute in its grid. If a gruid.MsgInit is passed to
+// Update, the replay will behave as if it is the main model of an application,
+// and send a gruid.Quit() command on a quit request.
 func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 	rep.action = replayNone
 	switch msg := msg.(type) {
@@ -209,6 +211,9 @@ func (rep *Replay) draw() {
 
 // Draw implements Model.Draw for Replay.
 func (rep *Replay) Draw() gruid.Grid {
+	if rep.init && rep.action == replayNone {
+		return rep.grid.Slice(gruid.Range{})
+	}
 	return rep.grid
 }
 
