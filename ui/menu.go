@@ -6,6 +6,16 @@ import (
 	"github.com/anaseto/gruid"
 )
 
+// MenuConfig contains configuration options for creating a menu.
+type MenuConfig struct {
+	Grid       gruid.Grid  // grid slice where the menu is drawn
+	Entries    []MenuEntry // menu entries
+	StyledText StyledText  // default styled text formatter for content
+	Keys       MenuKeys    // optional custom key bindings
+	Box        *Box        // draw optional box around the menu
+	Style      MenuStyle
+}
+
 // MenuEntry represents an entry in the menu. By default they behave much like
 // a button and can be activated and invoked.
 type MenuEntry struct {
@@ -34,6 +44,45 @@ type MenuKeys struct {
 	Quit     []gruid.Key // requist menu quit (default: Escape, q, Q)
 }
 
+// MenuStyle describes styling options for a menu.
+type MenuStyle struct {
+	Layout   gruid.Point // menu layout in (columns, lines); 0 means any
+	BgAlt    gruid.Color // alternate background on even choice lines
+	Selected gruid.Color // foreground for selected entry
+	Disabled gruid.Style // disabled entry style
+	PageNum  gruid.Style // page num display style (for boxed menu)
+}
+
+// Menu is a widget that displays a list of entries to the user. It allows to
+// move the active entry, as well as invoke a particular entry.
+//
+// Menu implements gruid.Model, but is not suitable for use as main model of an
+// application.
+type Menu struct {
+	grid    gruid.Grid
+	entries []MenuEntry
+	table   map[gruid.Point]item
+	points  []gruid.Point
+	pages   gruid.Point
+	size    gruid.Point // view size (w, h) in cells
+	box     *Box
+	stt     StyledText
+	style   MenuStyle
+	active  gruid.Point
+	action  MenuAction
+	keys    MenuKeys
+	layout  gruid.Point // current menu layout
+}
+
+// item represents a visible entry in the menu at a given position and with a
+// given slice.
+type item struct {
+	grid gruid.Grid  // its grid slice (may be empty)
+	i    int         // index of corresponding entry in menu entries
+	alt  bool        // even position (alternate background)
+	page gruid.Point // page number (x,y)
+}
+
 // MenuAction represents an user action with the menu.
 type MenuAction int
 
@@ -56,25 +105,6 @@ const (
 	// clicking outside the menu, or by using a key shortcut.
 	MenuQuit
 )
-
-// MenuStyle describes styling options for a menu.
-type MenuStyle struct {
-	Layout   gruid.Point // menu layout in (columns, lines); 0 means any
-	BgAlt    gruid.Color // alternate background on even choice lines
-	Selected gruid.Color // foreground for selected entry
-	Disabled gruid.Style // disabled entry style
-	PageNum  gruid.Style // page num display style (for boxed menu)
-}
-
-// MenuConfig contains configuration options for creating a menu.
-type MenuConfig struct {
-	Grid       gruid.Grid  // grid slice where the menu is drawn
-	Entries    []MenuEntry // menu entries
-	StyledText StyledText  // default styled text formatter for content
-	Keys       MenuKeys    // optional custom key bindings
-	Box        *Box        // draw optional box around the menu
-	Style      MenuStyle
-}
 
 // NewMenu returns a menu with a given configuration.
 func NewMenu(cfg MenuConfig) *Menu {
@@ -113,34 +143,6 @@ func NewMenu(cfg MenuConfig) *Menu {
 	m.computeItems()
 	m.cursorAtFirstChoice()
 	return m
-}
-
-// item represents a visible entry in the menu at a given position and with a
-// given slice.
-type item struct {
-	grid gruid.Grid  // its grid slice (may be empty)
-	i    int         // index of corresponding entry in menu entries
-	alt  bool        // even position (alternate background)
-	page gruid.Point // page number (x,y)
-}
-
-// Menu is a widget that displays a list of entries to the user. It allows to
-// move the active entry, as well as invoke a particular entry.
-type Menu struct {
-	grid    gruid.Grid
-	entries []MenuEntry
-	table   map[gruid.Point]item
-	points  []gruid.Point
-	pages   gruid.Point
-	size    gruid.Point // view size (w, h) in cells
-	box     *Box
-	stt     StyledText
-	style   MenuStyle
-	active  gruid.Point
-	action  MenuAction
-	init    bool // Update received MsgInit
-	keys    MenuKeys
-	layout  gruid.Point // current menu layout
 }
 
 // Active return the index of the currently active entry.
@@ -261,15 +263,10 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 	rg := grid.Bounds()
 
 	switch msg := msg.(type) {
-	case gruid.MsgInit:
-		m.init = true
 	case gruid.MsgKeyDown:
 		switch {
 		case msg.Key.In(m.keys.Quit):
 			m.action = MenuQuit
-			if m.init {
-				return gruid.End()
-			}
 		case msg.Key.In(m.keys.Down):
 			m.moveTo(gruid.Point{0, 1})
 		case msg.Key.In(m.keys.Up):
@@ -363,9 +360,6 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 		case gruid.MouseMain:
 			if !p.In(rg) {
 				m.action = MenuQuit
-				if m.init {
-					return gruid.End()
-				}
 				break
 			}
 			if !p.In(crg) {

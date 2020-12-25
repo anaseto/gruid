@@ -6,12 +6,6 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-// TextInputStyle describes styling options for a TextInput.
-type TextInputStyle struct {
-	Cursor gruid.Style // cursor style
-	Prompt gruid.Style // prompt style, if any
-}
-
 // TextInputConfig describes configuration options for creating a text input.
 type TextInputConfig struct {
 	Grid       gruid.Grid    // grid slice where the text input is drawn
@@ -22,6 +16,12 @@ type TextInputConfig struct {
 	Style      TextInputStyle
 }
 
+// TextInputStyle describes styling options for a TextInput.
+type TextInputStyle struct {
+	Cursor gruid.Style // cursor style
+	Prompt gruid.Style // prompt style, if any
+}
+
 // TextInputKeys contains key bindings configuration for the text input.
 type TextInputKeys struct {
 	Quit []gruid.Key // quit text input (default: Escape, Tab)
@@ -29,6 +29,9 @@ type TextInputKeys struct {
 
 // TextInput represents a line entry with text supplied from the user that can
 // be validated. It offers only basic editing shortcuts.
+//
+// TextInput implements gruid.Model, but is not suitable for use as main model
+// of an application.
 type TextInput struct {
 	grid      gruid.Grid
 	stt       StyledText
@@ -40,7 +43,6 @@ type TextInput struct {
 	cursor    int
 	action    TextInputAction
 	keys      TextInputKeys
-	init      bool // received gruid.MsgInit
 }
 
 // TextInputAction represents last user action with the text input.
@@ -92,14 +94,9 @@ func (ti *TextInput) cursorMax() int {
 func (ti *TextInput) Update(msg gruid.Msg) gruid.Effect {
 	ti.action = TextInputPass
 	switch msg := msg.(type) {
-	case gruid.MsgInit:
-		ti.init = true
 	case gruid.MsgKeyDown:
 		if msg.Key.In(ti.keys.Quit) {
 			ti.action = TextInputQuit
-			if ti.init {
-				return gruid.End()
-			}
 			return nil
 		}
 		switch msg.Key {
@@ -156,9 +153,6 @@ func (ti *TextInput) Update(msg gruid.Msg) gruid.Effect {
 		case gruid.MouseMain:
 			if !msg.P.In(ti.grid.Bounds()) {
 				ti.action = TextInputQuit
-				if ti.init {
-					return gruid.End()
-				}
 				return nil
 			}
 			if !cgrid.Contains(p) {

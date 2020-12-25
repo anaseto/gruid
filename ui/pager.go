@@ -6,6 +6,16 @@ import (
 	"github.com/anaseto/gruid"
 )
 
+// PagerConfig describes configuration options for creating a pager.
+type PagerConfig struct {
+	Grid       gruid.Grid // grid slice where the viewable content is drawn
+	StyledText StyledText // styled text for markup rendering
+	Lines      []string   // content lines to be read
+	Box        *Box       // draw optional box around the  label
+	Keys       PagerKeys  // optional custom key bindings for the pager
+	Style      PagerStyle
+}
+
 // PagerStyle describes styling options for a Pager.
 type PagerStyle struct {
 	LineNum gruid.Style // line num display style (for boxed pager)
@@ -27,17 +37,10 @@ type PagerKeys struct {
 	Quit         []gruid.Key // quit pager (default: Escape, q, Q)
 }
 
-// PagerConfig describes configuration options for creating a pager.
-type PagerConfig struct {
-	Grid       gruid.Grid // grid slice where the viewable content is drawn
-	StyledText StyledText // styled text for markup rendering
-	Lines      []string   // content lines to be read
-	Box        *Box       // draw optional box around the  label
-	Keys       PagerKeys  // optional custom key bindings for the pager
-	Style      PagerStyle
-}
-
 // Pager represents a pager widget for viewing a long list of lines.
+//
+// Pager implements gruid.Model and can be used as main model of an
+// application.
 type Pager struct {
 	grid   gruid.Grid
 	stt    StyledText
@@ -50,6 +53,22 @@ type Pager struct {
 	init   bool // Update received MsgInit
 	keys   PagerKeys
 }
+
+// PagerAction represents an user action with the pager.
+type PagerAction int
+
+const (
+	// PagerPass reports that the pager state did not change (for example a
+	// mouse motion outside the menu, or within a same entry line).
+	PagerPass PagerAction = iota
+
+	// PagerMove reports a scrolling movement.
+	PagerMove
+
+	// PagerQuit reports that the user clicked outside the menu, or pressed
+	// Esc, Space or X.
+	PagerQuit
+)
 
 // NewPager returns a new pager with given configuration options.
 func NewPager(cfg PagerConfig) *Pager {
@@ -99,22 +118,6 @@ func NewPager(cfg PagerConfig) *Pager {
 	}
 	return pg
 }
-
-// PagerAction represents an user action with the pager.
-type PagerAction int
-
-const (
-	// PagerPass reports that the pager state did not change (for example a
-	// mouse motion outside the menu, or within a same entry line).
-	PagerPass PagerAction = iota
-
-	// PagerMove reports a scrolling movement.
-	PagerMove
-
-	// PagerQuit reports that the user clicked outside the menu, or pressed
-	// Esc, Space or X.
-	PagerQuit
-)
 
 // SetBox updates the pager surrounding box.
 func (pg *Pager) SetBox(b *Box) {
@@ -181,7 +184,9 @@ func (pg *Pager) up(shift int) {
 }
 
 // Update implements gruid.Model.Update for Pager. It considers mouse message
-// coordinates to be absolute in its grid.
+// coordinates to be absolute in its grid. If a gruid.MsgInit is passed to
+// Update, the pager will behave as if it is the main model of an application,
+// and send a gruid.Quit() command on PagerQuit action.
 func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 	nlines := pg.grid.Size().Y
 	if pg.box != nil {
@@ -286,7 +291,11 @@ func (pg *Pager) Draw() gruid.Grid {
 		h = bh + len(pg.lines)
 		grid = grid.Slice(gruid.NewRange(0, 0, w, h))
 	}
-	grid.Fill(gruid.Cell{Rune: ' ', Style: pg.stt.Style()})
+	if pg.init {
+		pg.grid.Fill(gruid.Cell{Rune: ' ', Style: pg.stt.Style()})
+	} else {
+		grid.Fill(gruid.Cell{Rune: ' ', Style: pg.stt.Style()})
+	}
 	if pg.box != nil {
 		pg.box.Draw(grid)
 		rg := grid.Range()

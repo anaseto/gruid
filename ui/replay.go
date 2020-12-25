@@ -27,6 +27,9 @@ type ReplayConfig struct {
 
 // Replay represents an application's session with the given recorded frames.
 // It implements the gruid.Model interface.
+//
+// Replay implements gruid.Model and can be used as main model of an
+// application.
 type Replay struct {
 	decoder *gruid.FrameDecoder
 	frames  []gruid.Frame

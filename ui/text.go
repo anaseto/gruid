@@ -30,44 +30,6 @@ func (stt StyledText) WithText(text string) StyledText {
 	return stt
 }
 
-// Size returns the minimum (w, h) size in cells which can fit the text.
-func (stt StyledText) Size() gruid.Point {
-	x := 0
-	xmax := 0
-	y := 0
-	markup := stt.markups != nil // whether markup is activated
-	procm := false               // processing markup
-	for _, r := range stt.text {
-		if markup {
-			if procm {
-				procm = false
-				if r != '@' {
-					continue
-				}
-			} else if r == '@' {
-				procm = true
-				continue
-			}
-		}
-		if r == '\n' {
-			if x > xmax {
-				xmax = x
-			}
-			x = 0
-			y++
-			continue
-		}
-		x++
-	}
-	if x > xmax {
-		xmax = x
-	}
-	if xmax > 0 || y > 0 {
-		y++ // at least one line
-	}
-	return gruid.Point{X: xmax, Y: y}
-}
-
 // Style returns the text default style.
 func (stt StyledText) Style() gruid.Style {
 	return stt.style
@@ -122,6 +84,44 @@ func (stt StyledText) WithMarkup(r rune, style gruid.Style) StyledText {
 func (stt StyledText) WithMarkups(markups map[rune]gruid.Style) StyledText {
 	stt.markups = markups
 	return stt
+}
+
+// Size returns the minimum (w, h) size in cells which can fit the text.
+func (stt StyledText) Size() gruid.Point {
+	x := 0
+	xmax := 0
+	y := 0
+	markup := stt.markups != nil // whether markup is activated
+	procm := false               // processing markup
+	for _, r := range stt.text {
+		if markup {
+			if procm {
+				procm = false
+				if r != '@' {
+					continue
+				}
+			} else if r == '@' {
+				procm = true
+				continue
+			}
+		}
+		if r == '\n' {
+			if x > xmax {
+				xmax = x
+			}
+			x = 0
+			y++
+			continue
+		}
+		x++
+	}
+	if x > xmax {
+		xmax = x
+	}
+	if xmax > 0 || y > 0 {
+		y++ // at least one line
+	}
+	return gruid.Point{X: xmax, Y: y}
 }
 
 // Format formats the text so that lines longer than a certain width get
