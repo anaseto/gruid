@@ -71,9 +71,11 @@ func (dr *Driver) Init() error {
 		dr.screen.HideCursor()
 	}
 
-	// try to send initial size
-	w, h := dr.screen.Size()
-	dr.screen.PostEvent(tcell.NewEventResize(w, h))
+	if dr.init {
+		// try to send initial size again
+		w, h := dr.screen.Size()
+		dr.screen.PostEvent(tcell.NewEventResize(w, h))
+	}
 
 	dr.init = true
 	return nil
