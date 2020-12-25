@@ -313,7 +313,7 @@ type Model interface {
 	// be updated, you can return a smaller grid slice, or an empty grid
 	// slice to skip any drawing work. Note that the contents of the grid
 	// slice are then compared to the previous state at the same bounds,
-	// and only the changes are sent to the driver anyways.
+	// and only the changes are sent to the driver anyway.
 	Draw() Grid
 }
 

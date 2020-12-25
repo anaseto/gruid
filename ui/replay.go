@@ -26,7 +26,6 @@ type ReplayConfig struct {
 }
 
 // Replay represents an application's session with the given recorded frames.
-// It implements the gruid.Model interface.
 //
 // Replay implements gruid.Model and can be used as main model of an
 // application.
@@ -97,7 +96,7 @@ func (rep *Replay) decodeNext() {
 	}
 }
 
-// Update implements Model.Update for Replay. It considers mouse message
+// Update implements gruid.Model.Update for Replay. It considers mouse message
 // coordinates to be absolute in its grid. If a gruid.MsgInit is passed to
 // Update, the replay will behave as if it is the main model of an application,
 // and send a gruid.Quit() command on a quit request.
@@ -209,7 +208,7 @@ func (rep *Replay) draw() {
 	}
 }
 
-// Draw implements Model.Draw for Replay.
+// Draw implements gruid.Model.Draw for Replay.
 func (rep *Replay) Draw() gruid.Grid {
 	if rep.init && rep.action == replayNone {
 		return rep.grid.Slice(gruid.Range{})

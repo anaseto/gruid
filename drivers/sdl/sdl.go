@@ -120,7 +120,7 @@ func (dr *Driver) SetTileManager(tm TileManager) {
 }
 
 // SetScale modifies the rendering scale for rendering, and updates the window
-// sizes accordingly. Integer values give more accurate results.
+// size accordingly. Integer values give more accurate results.
 func (dr *Driver) SetScale(scaleX, scaleY float32) {
 	fn := func() {
 		dr.renderer.SetScale(scaleX, scaleY)
