@@ -16,8 +16,7 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dri := js.NewDriver(js.Config{
+	driver = js.NewDriver(js.Config{
 		TileManager: t,
 	})
-	driver = dri
 }

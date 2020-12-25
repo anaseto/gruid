@@ -16,10 +16,10 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	dri := sdl.NewDriver(sdl.Config{
+	dr := sdl.NewDriver(sdl.Config{
 		TileManager: t,
 	})
-	//dri.SetScale(2.0, 2.0)
-	dri.PreventQuit()
-	driver = dri
+	//dr.SetScale(2.0, 2.0)
+	dr.PreventQuit()
+	driver = dr
 }

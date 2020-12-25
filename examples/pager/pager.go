@@ -39,7 +39,7 @@ func main() {
 	gd := gruid.NewGrid(80, 24)
 	st := styler{}
 	dr := tcell.NewDriver(tcell.Config{StyleManager: st})
-	pager := NewPager(gd, lines, args[0])
+	pager := newPager(gd, lines, args[0])
 	app := gruid.NewApp(gruid.AppConfig{
 		Driver: dr,
 		Model:  pager,
@@ -55,6 +55,7 @@ const (
 	ColorLnum
 )
 
+// styler implements the tcell.StyleManager interface.
 type styler struct{}
 
 func (sty styler) GetStyle(st gruid.Style) tc.Style {
@@ -68,7 +69,9 @@ func (sty styler) GetStyle(st gruid.Style) tc.Style {
 	return ts
 }
 
-func NewPager(grid gruid.Grid, lines []string, fname string) *ui.Pager {
+// newPager returns an ui.Pager with the given lines as content and filename as
+// title. The result can be used as the main model of the application.
+func newPager(grid gruid.Grid, lines []string, fname string) *ui.Pager {
 	st := gruid.Style{}
 	style := ui.PagerStyle{
 		LineNum: st.WithFg(ColorLnum),

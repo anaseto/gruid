@@ -72,6 +72,7 @@ type Menu struct {
 	action  MenuAction
 	keys    MenuKeys
 	layout  gruid.Point // current menu layout
+	drawn   gruid.Grid  // last grid slice that was drawn
 }
 
 // item represents a visible entry in the menu at a given position and with a
@@ -162,12 +163,14 @@ func (m *Menu) SetEntries(entries []MenuEntry) {
 	if !m.contains(m.active) {
 		m.cursorAtLastChoice()
 	}
+	m.drawn = gruid.Grid{}
 }
 
 // SetBox updates the menu surrounding box.
 func (m *Menu) SetBox(b *Box) {
 	m.box = b
 	m.computeItems()
+	m.drawn = gruid.Grid{}
 }
 
 func (m *Menu) contains(p gruid.Point) bool {
@@ -184,6 +187,7 @@ func (m *Menu) SetActive(i int) {
 	if !m.entries[i].Disabled {
 		m.active = m.idxToPos(i)
 	}
+	m.drawn = gruid.Grid{}
 }
 
 func (m *Menu) idxToPos(i int) gruid.Point {
@@ -554,6 +558,9 @@ func (m *Menu) cursorAtLastChoice() {
 
 // Draw implements gruid.Model.Draw. It returns the grid slice that was drawn.
 func (m *Menu) Draw() gruid.Grid {
+	if m.Action() == MenuPass && !m.drawn.Range().Empty() {
+		return m.drawn
+	}
 	grid := m.drawGrid()
 	if m.box != nil {
 		m.box.Draw(grid)
@@ -571,7 +578,6 @@ func (m *Menu) Draw() gruid.Grid {
 			lnumtext = fmt.Sprintf("%d,%d/%d,%d", pg.X, pg.Y, m.pages.X, m.pages.Y)
 		}
 		m.stt.With(lnumtext, m.style.PageNum).Draw(line)
-		grid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
 	activeItem := m.table[m.active]
 	for p, it := range m.table {
@@ -598,5 +604,6 @@ func (m *Menu) Draw() gruid.Grid {
 			m.stt.With(c.Text, st).Draw(it.grid)
 		}
 	}
-	return grid
+	m.drawn = grid
+	return m.drawn
 }

@@ -1,3 +1,6 @@
+// This example program shows how to implement movement on a grid either on
+// keyboard or mouse input. It implements both single-step movement and
+// automatic movement in a direction or path.
 package main
 
 import (
@@ -14,7 +17,6 @@ import (
 )
 
 func main() {
-
 	// our application's state and grid with default config
 	gd := gruid.NewGrid(80, 24)
 	pr := paths.NewPathRange(gd.Bounds())

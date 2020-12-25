@@ -12,12 +12,11 @@ import (
 )
 
 func main() {
-	var gd = gruid.NewGrid(80, 24)
-	st := styler{}
-	var dri = tcell.NewDriver(tcell.Config{StyleManager: st})
-	m := NewModel(gd)
+	gd := gruid.NewGrid(80, 24)
+	dr := tcell.NewDriver(tcell.Config{StyleManager: styler{}})
+	m := newModel(gd)
 	app := gruid.NewApp(gruid.AppConfig{
-		Driver: dri,
+		Driver: dr,
 		Model:  m,
 	})
 	if err := app.Start(context.Background()); err != nil {
@@ -33,6 +32,7 @@ const (
 	ColorPrompt
 )
 
+// styler implements the tcell.StyleManager interface.
 type styler struct{}
 
 func (sty styler) GetStyle(st gruid.Style) tc.Style {
@@ -49,12 +49,18 @@ func (sty styler) GetStyle(st gruid.Style) tc.Style {
 }
 
 type model struct {
-	grid  gruid.Grid
-	input *ui.TextInput
-	label *ui.Label
+	grid  gruid.Grid    // the grid where the ui elements are drawn
+	input *ui.TextInput // the text input widget
+	label *ui.Label     // the label where we put activated text
+
+	// Whether there where any changes in the input or not, so that we know
+	// if it's necessary to redraw. It a completely unnecessary
+	// optimization in this example, and just to show how such a thing can
+	// be done.
+	pass bool
 }
 
-func NewModel(gd gruid.Grid) *model {
+func newModel(gd gruid.Grid) *model {
 	m := &model{grid: gd}
 	st := gruid.Style{}
 	style := ui.TextInputStyle{
@@ -77,25 +83,33 @@ func NewModel(gd gruid.Grid) *model {
 	return m
 }
 
+// Update implements gruid.Model.Update.
 func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	switch msg := msg.(type) {
 	case gruid.MsgInit:
+		return nil
 	default:
 		m.input.Update(msg)
 	}
+	m.pass = false
 	switch m.input.Action() {
+	case ui.TextInputPass:
+		m.pass = true
 	case ui.TextInputQuit:
 		return gruid.End()
-	case ui.TextInputActivate:
+	case ui.TextInputInvoke:
 		stt := ui.NewStyledText(m.input.Content()).Format(28)
 		m.label.StyledText = stt
 	}
 	return nil
 }
 
+// Draw implements gruid.Model.Draw.
 func (m *model) Draw() gruid.Grid {
-	m.grid.Fill(gruid.Cell{Rune: ' '})
-	m.grid.Copy(m.input.Draw())
-	m.label.Draw(m.grid.Slice(gruid.NewRange(0, 5, 30, 15)))
+	if !m.pass {
+		m.grid.Fill(gruid.Cell{Rune: ' '})
+		m.grid.Copy(m.input.Draw())
+		m.label.Draw(m.grid.Slice(gruid.NewRange(0, 5, 30, 15)))
+	}
 	return m.grid
 }

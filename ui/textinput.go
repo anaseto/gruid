@@ -43,6 +43,7 @@ type TextInput struct {
 	cursor    int
 	action    TextInputAction
 	keys      TextInputKeys
+	drawn     gruid.Grid // the last grid slice that was drawn
 }
 
 // TextInputAction represents last user action with the text input.
@@ -51,10 +52,10 @@ type TextInputAction int
 // These constants represent possible actions raising from interaction with the
 // text input.
 const (
-	TextInputPass     TextInputAction = iota // no change in state
-	TextInputChange                          // changed content or moved cursor
-	TextInputActivate                        // activate/accept content
-	TextInputQuit                            // quit/cancel text input
+	TextInputPass   TextInputAction = iota // no change in state
+	TextInputChange                        // changed content or moved cursor
+	TextInputInvoke                        // invoke/accept content
+	TextInputQuit                          // quit/cancel text input
 )
 
 // NewTextInput returns a new text input with given configuration options.
@@ -83,6 +84,7 @@ func NewTextInput(cfg TextInputConfig) *TextInput {
 // SetBox updates the text input surrounding box.
 func (ti *TextInput) SetBox(b *Box) {
 	ti.box = b
+	ti.drawn = gruid.Grid{}
 }
 
 func (ti *TextInput) cursorMax() int {
@@ -127,7 +129,7 @@ func (ti *TextInput) Update(msg gruid.Msg) gruid.Effect {
 				ti.action = TextInputChange
 			}
 		case gruid.KeyEnter:
-			ti.action = TextInputActivate
+			ti.action = TextInputInvoke
 		default:
 			if !msg.Key.IsRune() {
 				break
@@ -210,6 +212,9 @@ func (ti *TextInput) start() int {
 
 // Draw implements gruid.Model.Draw for TextInput.
 func (ti *TextInput) Draw() gruid.Grid {
+	if ti.Action() == TextInputPass && !ti.drawn.Range().Empty() {
+		return ti.drawn
+	}
 	cgrid := ti.grid
 	if ti.box != nil {
 		ti.box.Draw(ti.grid)
@@ -222,5 +227,6 @@ func (ti *TextInput) Draw() gruid.Grid {
 	start := ti.start()
 	ti.stt.WithText(string(ti.content[start:])).Draw(cgrid.Slice(crg.Shift(ti.cursorMin, 0, 0, 0)))
 	ti.stt.With(string(ti.cursorRune()), ti.style.Cursor).Draw(cgrid.Slice(crg.Shift(ti.cursorMin+ti.cursor-start, 0, 0, 0)))
-	return ti.grid
+	ti.drawn = ti.grid
+	return ti.drawn
 }

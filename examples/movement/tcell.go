@@ -12,11 +12,12 @@ var driver gruid.Driver
 
 func init() {
 	st := styler{}
-	dri := tcell.NewDriver(tcell.Config{StyleManager: st})
-	dri.PreventQuit()
-	driver = dri
+	dr := tcell.NewDriver(tcell.Config{StyleManager: st})
+	dr.PreventQuit()
+	driver = dr
 }
 
+// styler implements the tcell.StyleManager interface.
 type styler struct{}
 
 func (sty styler) GetStyle(st gruid.Style) tc.Style {

@@ -12,12 +12,12 @@ import (
 )
 
 func main() {
-	var gd = gruid.NewGrid(80, 24)
+	gd := gruid.NewGrid(80, 24)
 	st := styler{}
-	var dri = tcell.NewDriver(tcell.Config{StyleManager: st})
-	m := NewModel(gd)
+	dr := tcell.NewDriver(tcell.Config{StyleManager: st})
+	m := newModel(gd)
 	app := gruid.NewApp(gruid.AppConfig{
-		Driver: dri,
+		Driver: dr,
 		Model:  m,
 	})
 	if err := app.Start(context.Background()); err != nil {
@@ -35,6 +35,7 @@ const (
 	ColorKey
 )
 
+// styler implements the tcell.StyleManager interface.
 type styler struct{}
 
 func (sty styler) GetStyle(st gruid.Style) tc.Style {
@@ -54,13 +55,14 @@ func (sty styler) GetStyle(st gruid.Style) tc.Style {
 	return ts
 }
 
+// model implements gruid.Model.
 type model struct {
 	grid  gruid.Grid
 	menu  *ui.Menu
 	label *ui.Label
 }
 
-func NewModel(gd gruid.Grid) *model {
+func newModel(gd gruid.Grid) *model {
 	m := &model{grid: gd}
 	entries := []ui.MenuEntry{
 		{Disabled: true, Text: "Header"},
@@ -78,7 +80,7 @@ func NewModel(gd gruid.Grid) *model {
 		Disabled: st.WithFg(ColorHeader),
 	}
 	menu := ui.NewMenu(ui.MenuConfig{
-		Grid:       m.grid.Slice(gruid.NewRange(0, 0, 30, len(entries)+2)),
+		Grid:       gruid.NewGrid(30, len(entries)+2),
 		Entries:    entries,
 		StyledText: ui.NewStyledText("").WithMarkup('k', st.WithFg(ColorKey)),
 		Box:        &ui.Box{Title: ui.NewStyledText("Menu").WithStyle(st.WithFg(ColorTitle))},
@@ -94,6 +96,7 @@ func NewModel(gd gruid.Grid) *model {
 	return m
 }
 
+// Update implements gruid.Model.Update.
 func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	switch msg := msg.(type) {
 	case gruid.MsgInit:
@@ -102,6 +105,8 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	}
 	switch m.menu.Action() {
 	case ui.MenuQuit:
+		// The user requested to quit the menu, either with a key or by
+		// clicking outside the menu.
 		return gruid.End()
 	case ui.MenuMove:
 		m.label.SetText(fmt.Sprintf("activated entry number %d", m.menu.Active()))
@@ -111,9 +116,10 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	return nil
 }
 
+// Draw implements gruid.Model.Draw.
 func (m *model) Draw() gruid.Grid {
 	m.grid.Fill(gruid.Cell{Rune: ' '})
-	m.menu.Draw()
+	m.grid.Copy(m.menu.Draw())
 	m.label.Draw(m.grid.Slice(gruid.NewRange(32, 0, 70, 5)))
 	return m.grid
 }

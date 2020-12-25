@@ -15,6 +15,7 @@ func init() {
 	driver = tcell.NewDriver(tcell.Config{StyleManager: st})
 }
 
+// styler implements the tcell.StyleManager interface.
 type styler struct{}
 
 func (sty styler) GetStyle(st gruid.Style) tc.Style {

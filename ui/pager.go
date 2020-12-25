@@ -52,6 +52,7 @@ type Pager struct {
 	action PagerAction
 	init   bool // Update received MsgInit
 	keys   PagerKeys
+	drawn  gruid.Grid // last drawn grid slice
 }
 
 // PagerAction represents an user action with the pager.
@@ -122,6 +123,7 @@ func NewPager(cfg PagerConfig) *Pager {
 // SetBox updates the pager surrounding box.
 func (pg *Pager) SetBox(b *Box) {
 	pg.box = b
+	pg.drawn = gruid.Grid{}
 }
 
 // SetLines updates the pager text lines.
@@ -134,6 +136,7 @@ func (pg *Pager) SetLines(lines []string) {
 	if pg.index+nlines-1 >= len(pg.lines) {
 		pg.index = len(pg.lines) - nlines
 	}
+	pg.drawn = gruid.Grid{}
 }
 
 // View returns a range (Min, Max) such that the currently displayed lines are
@@ -278,8 +281,11 @@ func (pg *Pager) Action() PagerAction {
 }
 
 // Draw implements gruid.Model.Draw for Pager. It returns the grid slice that
-// was drawn.
+// was drawn, or the whole grid if it is used as main model.
 func (pg *Pager) Draw() gruid.Grid {
+	if pg.Action() == PagerPass && !pg.drawn.Range().Empty() {
+		return pg.drawn
+	}
 	grid := pg.grid
 	max := grid.Size()
 	w, h := max.X, max.Y
@@ -296,6 +302,7 @@ func (pg *Pager) Draw() gruid.Grid {
 	} else {
 		grid.Fill(gruid.Cell{Rune: ' ', Style: pg.stt.Style()})
 	}
+	cgrid := grid
 	if pg.box != nil {
 		pg.box.Draw(grid)
 		rg := grid.Range()
@@ -307,11 +314,11 @@ func (pg *Pager) Draw() gruid.Grid {
 			lnumtext = fmt.Sprintf("%d-%d/%d", pg.index, pg.index+h-bh-1, len(pg.lines)-1)
 		}
 		pg.stt.With(lnumtext, pg.style.LineNum).Draw(line)
-		grid = grid.Slice(rg.Shift(1, 1, -1, -1))
+		cgrid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
-	rg := grid.Range()
+	rg := cgrid.Range()
 	for i := 0; i < h-bh; i++ {
-		line := grid.Slice(rg.Line(i))
+		line := cgrid.Slice(rg.Line(i))
 		s := pg.lines[i+pg.index]
 		count := 0
 		vs := s
@@ -327,5 +334,9 @@ func (pg *Pager) Draw() gruid.Grid {
 			pg.stt.WithText(vs).Draw(line)
 		}
 	}
-	return grid
+	pg.drawn = grid
+	if pg.init {
+		pg.drawn = pg.grid
+	}
+	return pg.drawn
 }

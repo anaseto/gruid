@@ -1,3 +1,5 @@
+// This example program just prints on a label the last message received. It
+// may be used to easily see how input message are reported.
 package main
 
 import (
@@ -10,8 +12,8 @@ import (
 )
 
 func main() {
-	var gd = gruid.NewGrid(80, 24)
-	m := NewModel(gd)
+	gd := gruid.NewGrid(80, 24)
+	m := newModel(gd)
 	app := gruid.NewApp(gruid.AppConfig{
 		Driver: driver,
 		Model:  m,
@@ -33,10 +35,10 @@ type model struct {
 	init  bool
 }
 
-func NewModel(gd gruid.Grid) *model {
+func newModel(gd gruid.Grid) *model {
 	m := &model{grid: gd}
 	st := gruid.Style{}
-	m.grid = m.grid.Slice(gruid.NewRange(0, 0, 80, 5))
+	m.grid = m.grid.Slice(gruid.NewRange(0, 0, 80, 5)) // we only draw in a small part of the grid
 	label := &ui.Label{
 		Box:        &ui.Box{Title: ui.NewStyledText("Last Message").WithStyle(st.WithFg(ColorHeader))},
 		StyledText: ui.NewStyledText("No input messages yet!"),
@@ -46,6 +48,7 @@ func NewModel(gd gruid.Grid) *model {
 	return m
 }
 
+// Update implements gruid.Model.Update.
 func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	if _, ok := msg.(gruid.MsgQuit); ok {
 		// The user requested the end of the application (for example
@@ -62,6 +65,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	return nil
 }
 
+// Draw implements gruid.Model.Draw.
 func (m *model) Draw() gruid.Grid {
 	m.grid.Fill(gruid.Cell{Rune: ' '})
 	m.label.Draw(m.grid)
