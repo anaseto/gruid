@@ -48,7 +48,7 @@ type MenuKeys struct {
 type MenuStyle struct {
 	Layout   gruid.Point // menu layout in (columns, lines); 0 means any
 	BgAlt    gruid.Color // alternate background on even choice lines
-	Selected gruid.Color // foreground for selected entry
+	Active   gruid.Color // foreground for active entry
 	Disabled gruid.Style // disabled entry style
 	PageNum  gruid.Style // page num display style (for boxed menu)
 }
@@ -592,7 +592,7 @@ func (m *Menu) Draw() gruid.Grid {
 				st.Bg = m.style.BgAlt
 			}
 			if p == m.active {
-				st.Fg = m.style.Selected
+				st.Fg = m.style.Active
 			}
 			cell := gruid.Cell{Rune: ' ', Style: st}
 			it.grid.Fill(cell)

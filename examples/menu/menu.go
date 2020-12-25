@@ -29,7 +29,7 @@ func main() {
 
 const (
 	ColorHeader gruid.Color = 1 + iota // skip zero value ColorDefault
-	ColorSelected
+	ColorActive
 	ColorAltBg
 	ColorTitle
 	ColorKey
@@ -45,7 +45,7 @@ func (sty styler) GetStyle(st gruid.Style) tc.Style {
 		ts = ts.Foreground(tc.ColorNavy)
 	case ColorKey:
 		ts = ts.Foreground(tc.ColorGreen)
-	case ColorSelected, ColorTitle:
+	case ColorActive, ColorTitle:
 		ts = ts.Foreground(tc.ColorOlive)
 	}
 	switch st.Bg {
@@ -76,7 +76,7 @@ func newModel(gd gruid.Grid) *model {
 		//Layout: gruid.Point{0, 1}, // one-line layout (with two pages)
 		//Layout:   gruid.Point{2, 2}, // tabular layout (with two pages)
 		BgAlt:    ColorAltBg,
-		Selected: ColorSelected,
+		Active:   ColorActive,
 		Disabled: st.WithFg(ColorHeader),
 	}
 	menu := ui.NewMenu(ui.MenuConfig{
