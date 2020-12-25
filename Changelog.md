@@ -4,7 +4,7 @@
 
 ## v0.2.0 - 2020-12-25
 
-+ Improvements in iu widgets and examples.
++ Improvements in ui widgets and examples.
 + Astar now returns the path in normal order instead of reversed (incompatible
   change), which made sense from an algorithm point of view but was
   unintuitive.
