@@ -286,6 +286,7 @@ func (pg *Pager) Draw() gruid.Grid {
 		h = bh + len(pg.lines)
 		grid = grid.Slice(gruid.NewRange(0, 0, w, h))
 	}
+	grid.Fill(gruid.Cell{Rune: ' ', Style: pg.stt.Style()})
 	if pg.box != nil {
 		pg.box.Draw(grid)
 		rg := grid.Range()

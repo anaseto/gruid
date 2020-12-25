@@ -1,3 +1,7 @@
+// This file implements a simple pager using the ui.Pager Model. It reads a
+// file given on the command line and split the results into lines to be viewed
+// with the pager.
+
 package main
 
 import (
@@ -32,12 +36,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	var gd = gruid.NewGrid(80, 24)
+	gd := gruid.NewGrid(80, 24)
 	st := styler{}
-	var dri = tcell.NewDriver(tcell.Config{StyleManager: st})
+	dr := tcell.NewDriver(tcell.Config{StyleManager: st})
 	pager := NewPager(gd, lines, args[0])
 	app := gruid.NewApp(gruid.AppConfig{
-		Driver: dri,
+		Driver: dr,
 		Model:  pager,
 	})
 	if err := app.Start(context.Background()); err != nil {
