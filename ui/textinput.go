@@ -97,79 +97,91 @@ func (ti *TextInput) Update(msg gruid.Msg) gruid.Effect {
 	ti.action = TextInputPass
 	switch msg := msg.(type) {
 	case gruid.MsgKeyDown:
-		if msg.Key.In(ti.keys.Quit) {
-			ti.action = TextInputQuit
-			return nil
-		}
-		switch msg.Key {
-		case gruid.KeyHome:
-			if ti.cursor > 0 {
-				ti.action = TextInputChange
-				ti.cursor = 0
-			}
-		case gruid.KeyEnd:
-			if ti.cursor < ti.cursorMax() {
-				ti.action = TextInputChange
-				ti.cursor = ti.cursorMax()
-			}
-		case gruid.KeyArrowLeft:
-			if ti.cursor > 0 {
-				ti.action = TextInputChange
-				ti.cursor--
-			}
-		case gruid.KeyArrowRight:
-			if ti.cursor < ti.cursorMax() {
-				ti.action = TextInputChange
-				ti.cursor++
-			}
-		case gruid.KeyBackspace:
-			if ti.cursor > 0 {
-				ti.content = append(ti.content[:ti.cursor-1], ti.content[ti.cursor:]...)
-				ti.cursor--
-				ti.action = TextInputChange
-			}
-		case gruid.KeyEnter:
-			ti.action = TextInputInvoke
-		default:
-			if !msg.Key.IsRune() {
-				break
-			}
-			r, _ := utf8.DecodeRuneInString(string(msg.Key))
-			var c []rune
-			c = append(c, ti.content[:ti.cursor]...)
-			c = append(c, r)
-			c = append(c, ti.content[ti.cursor:]...)
-			ti.content = c
-			ti.cursor++
-			ti.action = TextInputChange
-		}
+		ti.updateMsgKeyDown(msg)
 	case gruid.MsgMouse:
-		cgrid := ti.grid
-		if ti.box != nil {
-			rg := ti.grid.Range()
-			cgrid = ti.grid.Slice(rg.Shift(1, 1, -1, -1))
-		}
-		start := ti.start()
-		p := msg.P.Sub(cgrid.Bounds().Min)
-		switch msg.Action {
-		case gruid.MouseMain:
-			if !msg.P.In(ti.grid.Bounds()) {
-				ti.action = TextInputQuit
-				return nil
-			}
-			if !cgrid.Contains(p) {
-				break
-			}
-			ti.cursor = msg.P.X + start - ti.cursorMin - 1
-			if ti.cursor > ti.cursorMax() {
-				ti.cursor = ti.cursorMax()
-			}
-			if ti.cursor < 0 {
-				ti.cursor = 0
-			}
-		}
+		ti.updateMsgMouse(msg)
 	}
 	return nil
+}
+
+func (ti *TextInput) updateMsgKeyDown(msg gruid.MsgKeyDown) {
+	if msg.Key.In(ti.keys.Quit) {
+		ti.action = TextInputQuit
+		return
+	}
+	switch msg.Key {
+	case gruid.KeyHome:
+		if ti.cursor > 0 {
+			ti.action = TextInputChange
+			ti.cursor = 0
+		}
+	case gruid.KeyEnd:
+		if ti.cursor < ti.cursorMax() {
+			ti.action = TextInputChange
+			ti.cursor = ti.cursorMax()
+		}
+	case gruid.KeyArrowLeft:
+		if ti.cursor > 0 {
+			ti.action = TextInputChange
+			ti.cursor--
+		}
+	case gruid.KeyArrowRight:
+		if ti.cursor < ti.cursorMax() {
+			ti.action = TextInputChange
+			ti.cursor++
+		}
+	case gruid.KeyBackspace:
+		if ti.cursor > 0 {
+			ti.content = append(ti.content[:ti.cursor-1], ti.content[ti.cursor:]...)
+			ti.cursor--
+			ti.action = TextInputChange
+		}
+	case gruid.KeyEnter:
+		ti.action = TextInputInvoke
+	default:
+		if !msg.Key.IsRune() {
+			return
+		}
+		r, _ := utf8.DecodeRuneInString(string(msg.Key))
+		var c []rune
+		c = append(c, ti.content[:ti.cursor]...)
+		c = append(c, r)
+		c = append(c, ti.content[ti.cursor:]...)
+		ti.content = c
+		ti.cursor++
+		ti.action = TextInputChange
+	}
+}
+
+func (ti *TextInput) updateMsgMouse(msg gruid.MsgMouse) {
+	cgrid := ti.grid
+	if ti.box != nil {
+		rg := ti.grid.Range()
+		cgrid = ti.grid.Slice(rg.Shift(1, 1, -1, -1))
+	}
+	start := ti.start()
+	p := msg.P.Sub(cgrid.Bounds().Min)
+	switch msg.Action {
+	case gruid.MouseMain:
+		if !msg.P.In(ti.grid.Bounds()) {
+			ti.action = TextInputQuit
+			return
+		}
+		if !cgrid.Contains(p) {
+			return
+		}
+		ocursor := ti.cursor
+		ti.cursor = msg.P.X + start - ti.cursorMin - 1
+		if ti.cursor > ti.cursorMax() {
+			ti.cursor = ti.cursorMax()
+		}
+		if ti.cursor < 0 {
+			ti.cursor = 0
+		}
+		if ti.cursor != ocursor {
+			ti.action = TextInputChange
+		}
+	}
 }
 
 // Content returns the current content of the text input.

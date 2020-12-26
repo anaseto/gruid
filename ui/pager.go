@@ -187,86 +187,100 @@ func (pg *Pager) up(shift int) {
 // Update, the pager will behave as if it is the main model of an application,
 // and send a gruid.Quit() command on PagerQuit action.
 func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
-	nlines := pg.grid.Size().Y
-	if pg.box != nil {
-		nlines -= 2
-	}
 	pg.action = PagerPass
 	switch msg := msg.(type) {
 	case gruid.MsgInit:
 		pg.init = true
 		return nil
 	case gruid.MsgKeyDown:
-		key := msg.Key
-		switch {
-		case key.In(pg.keys.Down):
-			pg.down(1)
-		case key.In(pg.keys.Up):
-			pg.up(1)
-		case key.In(pg.keys.Left):
-			if pg.x > 0 {
-				pg.action = PagerMove
-				pg.x -= 8
-				if pg.x <= 0 {
-					pg.x = 0
-				}
-			}
-		case key.In(pg.keys.Right):
+		return pg.updateMsgKeyDown(msg)
+	case gruid.MsgMouse:
+		return pg.updateMsgMouse(msg)
+	}
+	return nil
+}
+
+func (pg *Pager) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
+	nlines := pg.grid.Size().Y
+	if pg.box != nil {
+		nlines -= 2
+	}
+	key := msg.Key
+	switch {
+	case key.In(pg.keys.Down):
+		pg.down(1)
+	case key.In(pg.keys.Up):
+		pg.up(1)
+	case key.In(pg.keys.Left):
+		if pg.x > 0 {
 			pg.action = PagerMove
-			pg.x += 8
-		case key.In(pg.keys.Start):
-			if pg.x > 0 {
-				pg.action = PagerMove
+			pg.x -= 8
+			if pg.x <= 0 {
 				pg.x = 0
 			}
-		case key.In(pg.keys.PageDown), key.In(pg.keys.HalfPageDown):
-			shift := nlines - 1
-			if key.In(pg.keys.HalfPageDown) {
-				shift /= 2
-			}
-			pg.down(shift)
-		case key.In(pg.keys.PageUp), key.In(pg.keys.HalfPageUp):
-			shift := nlines - 1
-			if key.In(pg.keys.HalfPageUp) {
-				shift /= 2
-			}
-			pg.up(shift)
-		case key.In(pg.keys.Top):
-			if pg.index != 0 {
-				pg.index = 0
-				pg.action = PagerMove
-			}
-		case key.In(pg.keys.Bottom):
-			if pg.index != len(pg.lines)-nlines {
-				pg.index = len(pg.lines) - nlines
-				pg.action = PagerMove
-			}
-		case key.In(pg.keys.Quit):
-			pg.action = PagerQuit
-			if pg.init {
-				return gruid.End()
-			}
 		}
-	case gruid.MsgMouse:
-		if !msg.P.In(pg.grid.Bounds()) {
-			switch msg.Action {
-			case gruid.MouseMain:
-				pg.action = PagerQuit
-			}
-			return nil
+	case key.In(pg.keys.Right):
+		pg.action = PagerMove
+		pg.x += 8
+	case key.In(pg.keys.Start):
+		if pg.x > 0 {
+			pg.action = PagerMove
+			pg.x = 0
 		}
+	case key.In(pg.keys.PageDown), key.In(pg.keys.HalfPageDown):
+		shift := nlines - 1
+		if key.In(pg.keys.HalfPageDown) {
+			shift /= 2
+		}
+		pg.down(shift)
+	case key.In(pg.keys.PageUp), key.In(pg.keys.HalfPageUp):
+		shift := nlines - 1
+		if key.In(pg.keys.HalfPageUp) {
+			shift /= 2
+		}
+		pg.up(shift)
+	case key.In(pg.keys.Top):
+		if pg.index != 0 {
+			pg.index = 0
+			pg.action = PagerMove
+		}
+	case key.In(pg.keys.Bottom):
+		if pg.index != len(pg.lines)-nlines {
+			pg.index = len(pg.lines) - nlines
+			pg.action = PagerMove
+		}
+	case key.In(pg.keys.Quit):
+		pg.action = PagerQuit
+		if pg.init {
+			return gruid.End()
+		}
+	}
+	return nil
+}
+
+func (pg *Pager) updateMsgMouse(msg gruid.MsgMouse) gruid.Effect {
+	nlines := pg.grid.Size().Y
+	if pg.box != nil {
+		nlines -= 2
+	}
+	if !msg.P.In(pg.grid.Bounds()) {
 		switch msg.Action {
 		case gruid.MouseMain:
-			if msg.P.Sub(pg.grid.Bounds().Min).Y > nlines/2 {
-				pg.down(nlines - 1)
-			} else {
-				pg.up(nlines - 1)
-			}
-		case gruid.MouseWheelUp:
-			pg.up(1)
-		case gruid.MouseWheelDown:
-			pg.down(1)
+			pg.action = PagerQuit
 		}
+		return nil
+	}
+	switch msg.Action {
+	case gruid.MouseMain:
+		if msg.P.Sub(pg.grid.Bounds().Min).Y > nlines/2 {
+			pg.down(nlines - 1)
+		} else {
+			pg.up(nlines - 1)
+		}
+	case gruid.MouseWheelUp:
+		pg.up(1)
+	case gruid.MouseWheelDown:
+		pg.down(1)
 	}
 	return nil
 }

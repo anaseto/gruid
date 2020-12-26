@@ -92,75 +92,90 @@ type msgAutoMove struct {
 func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	switch msg := msg.(type) {
 	case gruid.MsgKeyDown:
-		// cancel automatic movement on any key
+		return m.updateMsgKeyDown(msg)
+	case gruid.MsgMouse:
+		return m.updateMsgMouse(msg)
+	case msgAutoMove:
+		return m.updateMsgAutomove(msg)
+	}
+	return nil
+}
+
+func (m *model) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
+	// cancel automatic movement on any key
+	if m.autoMove() {
+		m.stopAuto()
+		return nil
+	}
+
+	// remove mouse path highlighting
+	m.path = nil
+
+	pdelta := gruid.Point{}
+	switch msg.Key {
+	case gruid.KeyArrowDown, "j", "J":
+		pdelta = pdelta.Shift(0, 1)
+	case gruid.KeyArrowLeft, "h", "H":
+		pdelta = pdelta.Shift(-1, 0)
+	case gruid.KeyArrowRight, "l", "L":
+		pdelta = pdelta.Shift(1, 0)
+	case gruid.KeyArrowUp, "k", "K":
+		pdelta = pdelta.Shift(0, -1)
+	case "Q", "q", gruid.KeyEscape:
+		return gruid.End()
+	}
+	if pdelta.X != 0 || pdelta.Y != 0 {
+		np := m.playerPos.Add(pdelta) //
+		if m.grid.Contains(np) {
+			m.playerPos = np
+			if msg.Mod&gruid.ModShift != 0 || strings.ToUpper(string(msg.Key)) == string(msg.Key) {
+				// activate automatic movement in that direction
+				m.move.delta = pdelta
+				return automoveCmd(m.move.delta)
+			}
+		}
+	}
+	return nil
+}
+
+func (m *model) updateMsgMouse(msg gruid.MsgMouse) gruid.Effect {
+	switch msg.Action {
+	case gruid.MouseMain:
 		if m.autoMove() {
 			m.stopAuto()
-			break
-		}
-
-		// remove mouse path highlighting
-		m.path = nil
-
-		pdelta := gruid.Point{}
-		switch msg.Key {
-		case gruid.KeyArrowDown, "j", "J":
-			pdelta = pdelta.Shift(0, 1)
-		case gruid.KeyArrowLeft, "h", "H":
-			pdelta = pdelta.Shift(-1, 0)
-		case gruid.KeyArrowRight, "l", "L":
-			pdelta = pdelta.Shift(1, 0)
-		case gruid.KeyArrowUp, "k", "K":
-			pdelta = pdelta.Shift(0, -1)
-		case "Q", "q", gruid.KeyEscape:
-			return gruid.End()
-		}
-		if pdelta.X != 0 || pdelta.Y != 0 {
-			np := m.playerPos.Add(pdelta) //
-			if m.grid.Contains(np) {
-				m.playerPos = np
-				if msg.Mod&gruid.ModShift != 0 || strings.ToUpper(string(msg.Key)) == string(msg.Key) {
-					// activate automatic movement in that direction
-					m.move.delta = pdelta
-					return automoveCmd(m.move.delta)
-				}
-			}
-		}
-	case gruid.MsgMouse:
-		switch msg.Action {
-		case gruid.MouseMain:
-			if m.autoMove() {
-				m.stopAuto()
-				m.pathAt(msg.P)
-				break
-			}
-			if len(m.path) > 1 {
-				return m.pathNext()
-			}
-		case gruid.MouseMove:
-			if m.autoMove() {
-				break
-			}
 			m.pathAt(msg.P)
-		}
-	case msgAutoMove:
-		if m.move.delta != msg.delta {
 			break
 		}
-		if m.move.path {
-			if len(m.path) > 1 {
-				return m.pathNext()
-			}
-		} else {
-			np := m.playerPos.Add(msg.delta)
-			if m.grid.Contains(np) {
-				m.path = nil // remove path highlighting if any
-				m.playerPos = np
-				// continue automatic movement in the same direction
-				return automoveCmd(msg.delta)
-			}
+		if len(m.path) > 1 {
+			return m.pathNext()
 		}
-		m.stopAuto()
+	case gruid.MouseMove:
+		if m.autoMove() {
+			break
+		}
+		m.pathAt(msg.P)
 	}
+	return nil
+}
+
+func (m *model) updateMsgAutomove(msg msgAutoMove) gruid.Effect {
+	if m.move.delta != msg.delta {
+		return nil
+	}
+	if m.move.path {
+		if len(m.path) > 1 {
+			return m.pathNext()
+		}
+	} else {
+		np := m.playerPos.Add(msg.delta)
+		if m.grid.Contains(np) {
+			m.path = nil // remove path highlighting if any
+			m.playerPos = np
+			// continue automatic movement in the same direction
+			return automoveCmd(msg.delta)
+		}
+	}
+	m.stopAuto()
 	return nil
 }
 

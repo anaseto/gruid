@@ -214,30 +214,7 @@ func (app *App) Start(ctx context.Context) (err error) {
 	}(ctx)
 
 	// effect processing
-	go func(ctx context.Context) {
-		for {
-			select {
-			case eff := <-effects:
-				switch eff := eff.(type) {
-				case Cmd:
-					if eff != nil {
-						go func(ctx context.Context, cmd Cmd) {
-							select {
-							case msgs <- cmd():
-							case <-ctx.Done():
-							}
-						}(ctx, eff)
-					}
-				case Sub:
-					if eff != nil {
-						go eff(ctx, msgs)
-					}
-				}
-			case <-ctx.Done():
-				return
-			}
-		}
-	}(ctx)
+	go processEffects(ctx, msgs, effects)
 
 	// Update on message then Draw main loop
 	for {
@@ -297,6 +274,31 @@ func (app *App) flush(frame Frame) {
 		err := app.enc.encode(frame)
 		if err != nil && app.logger != nil {
 			app.logger.Printf("frame encoding: %v", err)
+		}
+	}
+}
+
+func processEffects(ctx context.Context, msgs chan Msg, effects chan Effect) {
+	for {
+		select {
+		case eff := <-effects:
+			switch eff := eff.(type) {
+			case Cmd:
+				if eff != nil {
+					go func(ctx context.Context, cmd Cmd) {
+						select {
+						case msgs <- cmd():
+						case <-ctx.Done():
+						}
+					}(ctx, eff)
+				}
+			case Sub:
+				if eff != nil {
+					go eff(ctx, msgs)
+				}
+			}
+		case <-ctx.Done():
+			return
 		}
 	}
 }

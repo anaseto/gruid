@@ -220,26 +220,32 @@ func (dr *Driver) coords(x, y int32) gruid.Point {
 	return gruid.Point{X: int((x - 1) / dr.tw), Y: int((y - 1) / dr.th)}
 }
 
+func send(ctx context.Context, msgs chan<- gruid.Msg, msg gruid.Msg) {
+	select {
+	case msgs <- msg:
+	case <-ctx.Done():
+	}
+}
+
 // PollMsgs implements gruid.Driver.PollMsgs.
 func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
-	send := func(msg gruid.Msg) {
-		select {
-		case msgs <- msg:
-		case <-ctx.Done():
-		}
-	}
+	var t *time.Timer
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-dr.reqredraw:
 			w, h := dr.window.GetSize()
-			send(gruid.MsgScreen{Width: int(w / dr.tw), Height: int(h / dr.th), Time: time.Now()})
+			send(ctx, msgs, gruid.MsgScreen{Width: int(w / dr.tw), Height: int(h / dr.th), Time: time.Now()})
 		default:
 		}
 		event := sdl.PollEvent()
 		if event == nil {
-			t := time.NewTimer(5 * time.Millisecond)
+			if t == nil {
+				t = time.NewTimer(5 * time.Millisecond)
+			} else {
+				t.Reset(5 * time.Millisecond)
+			}
 			select {
 			case <-ctx.Done():
 				return nil
@@ -249,239 +255,263 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 		}
 		switch ev := event.(type) {
 		case *sdl.QuitEvent:
-			send(gruid.MsgQuit(time.Now()))
+			send(ctx, msgs, gruid.MsgQuit(time.Now()))
 		case *sdl.TextInputEvent:
-			s := ev.GetText()
-			if utf8.RuneCountInString(s) != 1 {
-				// TODO: handle the case where an input
-				// event would produce several
-				// characters? We would have to keep
-				// track of those characters, and send
-				// several messages in a row.
-				continue
-			}
-			msg := gruid.MsgKeyDown{}
-			msg.Key = gruid.Key(s)
-			msg.Time = time.Now()
-			send(msg)
+			dr.pollTextInputEvent(ctx, msgs, ev)
 		//case *sdl.TextEditingEvent:
 		// TODO: Handling this would allow to use an input
 		// method for making compositions and chosing text.
 		// I'm not sure what the API for this should be in
 		// gruid or the driver.
 		case *sdl.KeyboardEvent:
-			c := ev.Keysym.Sym
-			if ev.Type == sdl.KEYUP {
-				continue
-			}
-			msg := gruid.MsgKeyDown{}
-			if sdl.KMOD_LALT&ev.Keysym.Mod != 0 {
-				msg.Mod |= gruid.ModAlt
-			}
-			if sdl.KMOD_LSHIFT&ev.Keysym.Mod != 0 || sdl.KMOD_RSHIFT&ev.Keysym.Mod != 0 {
-				msg.Mod |= gruid.ModShift
-			}
-			if sdl.KMOD_LCTRL&ev.Keysym.Mod != 0 || sdl.KMOD_RCTRL&ev.Keysym.Mod != 0 {
-				msg.Mod |= gruid.ModCtrl
-			}
-			if sdl.KMOD_RGUI&ev.Keysym.Mod != 0 {
-				msg.Mod |= gruid.ModMeta
-			}
-			switch c {
-			case sdl.K_DOWN:
-				msg.Key = gruid.KeyArrowDown
-			case sdl.K_LEFT:
-				msg.Key = gruid.KeyArrowLeft
-			case sdl.K_RIGHT:
-				msg.Key = gruid.KeyArrowRight
-			case sdl.K_UP:
-				msg.Key = gruid.KeyArrowUp
-			case sdl.K_BACKSPACE:
-				msg.Key = gruid.KeyBackspace
-			case sdl.K_DELETE:
-				msg.Key = gruid.KeyDelete
-			case sdl.K_END:
-				msg.Key = gruid.KeyEnd
-			case sdl.K_ESCAPE:
-				msg.Key = gruid.KeyEscape
-			case sdl.K_RETURN:
-				msg.Key = gruid.KeyEnter
-			case sdl.K_HOME:
-				msg.Key = gruid.KeyHome
-			case sdl.K_INSERT:
-				msg.Key = gruid.KeyInsert
-			case sdl.K_PAGEUP:
-				msg.Key = gruid.KeyPageUp
-			case sdl.K_PAGEDOWN:
-				msg.Key = gruid.KeyPageDown
-			case sdl.K_TAB:
-				msg.Key = gruid.KeyTab
-			}
-			if ev.Keysym.Mod&sdl.KMOD_NUM == 0 {
-				switch c {
-				case sdl.K_KP_2:
-					msg.Key = gruid.KeyArrowDown
-				case sdl.K_KP_4:
-					msg.Key = gruid.KeyArrowLeft
-				case sdl.K_KP_6:
-					msg.Key = gruid.KeyArrowRight
-				case sdl.K_KP_8:
-					msg.Key = gruid.KeyArrowUp
-				case sdl.K_KP_BACKSPACE:
-					msg.Key = gruid.KeyBackspace
-				case sdl.K_KP_PERIOD:
-					msg.Key = gruid.KeyDelete
-				case sdl.K_KP_1:
-					msg.Key = gruid.KeyEnd
-				case sdl.K_KP_5, sdl.K_KP_ENTER:
-					msg.Key = gruid.KeyEnter
-				case sdl.K_KP_7:
-					msg.Key = gruid.KeyHome
-				case sdl.K_KP_0:
-					msg.Key = gruid.KeyInsert
-				case sdl.K_KP_9:
-					msg.Key = gruid.KeyPageUp
-				case sdl.K_KP_3:
-					msg.Key = gruid.KeyPageDown
-				}
-			}
-			if msg.Key == "" {
-				continue
-			}
-			msg.Time = time.Now()
-			send(msg)
+			dr.pollKeyboardEvent(ctx, msgs, ev)
 		case *sdl.MouseButtonEvent:
-			var action gruid.MouseAction
-			switch ev.Button {
-			case sdl.BUTTON_LEFT:
-				action = gruid.MouseMain
-			case sdl.BUTTON_MIDDLE:
-				action = gruid.MouseAuxiliary
-			case sdl.BUTTON_RIGHT:
-				action = gruid.MouseSecondary
-			default:
-				continue
-			}
-			msg := gruid.MsgMouse{}
-			msg.P = dr.coords(ev.X, ev.Y)
-			switch ev.Type {
-			case sdl.MOUSEBUTTONDOWN:
-				if dr.mousedrag != -1 {
-					continue
-				}
-				if msg.P.X < 0 || msg.P.X >= int(dr.width) ||
-					msg.P.Y < 0 || msg.P.Y >= int(dr.height) {
-					continue
-				}
-				msg.Time = time.Now()
-				msg.Action = action
-				dr.mousedrag = action
-			case sdl.MOUSEBUTTONUP:
-				if dr.mousedrag != action {
-					continue
-				}
-				if msg.P.X < 0 || msg.P.X >= int(dr.width) ||
-					msg.P.Y < 0 || msg.P.Y >= int(dr.height) {
-					msg.P = gruid.Point{}
-				}
-				msg.Time = time.Now()
-				msg.Action = gruid.MouseRelease
-				dr.mousedrag = -1
-			}
-			mod := sdl.GetModState()
-			if sdl.KMOD_LALT&mod != 0 {
-				msg.Mod |= gruid.ModAlt
-			}
-			if sdl.KMOD_LSHIFT&mod != 0 || sdl.KMOD_RSHIFT&mod != 0 {
-				msg.Mod |= gruid.ModShift
-			}
-			if sdl.KMOD_LCTRL&mod != 0 || sdl.KMOD_RCTRL&mod != 0 {
-				msg.Mod |= gruid.ModCtrl
-			}
-			if sdl.KMOD_RGUI&mod != 0 {
-				msg.Mod |= gruid.ModMeta
-			}
-			dr.mousepos = msg.P
-			send(msg)
+			dr.pollMouseButtonEvent(ctx, msgs, ev)
 		case *sdl.MouseMotionEvent:
-			msg := gruid.MsgMouse{}
-			msg.P = dr.coords(ev.X, ev.Y)
-			if msg.P == dr.mousepos {
-				continue
-			}
-			if msg.P.X < 0 || msg.P.X >= int(dr.width) ||
-				msg.P.Y < 0 || msg.P.Y >= int(dr.height) {
-				continue
-			}
-			msg.Time = time.Now()
-			msg.Action = gruid.MouseMove
-			dr.mousepos = msg.P
-			mod := sdl.GetModState()
-			if sdl.KMOD_LALT&mod != 0 {
-				msg.Mod |= gruid.ModAlt
-			}
-			if sdl.KMOD_LSHIFT&mod != 0 || sdl.KMOD_RSHIFT&mod != 0 {
-				msg.Mod |= gruid.ModShift
-			}
-			if sdl.KMOD_LCTRL&mod != 0 || sdl.KMOD_RCTRL&mod != 0 {
-				msg.Mod |= gruid.ModCtrl
-			}
-			if sdl.KMOD_RGUI&mod != 0 {
-				msg.Mod |= gruid.ModMeta
-			}
-			send(msg)
+			dr.pollMouseMotionEvent(ctx, msgs, ev)
 		case *sdl.MouseWheelEvent:
-			msg := gruid.MsgMouse{}
-			if ev.Y > 0 {
-				msg.Action = gruid.MouseWheelUp
-			} else if ev.Y < 0 {
-				msg.Action = gruid.MouseWheelDown
-			} else {
-				continue
-			}
-			msg.P = dr.mousepos
-			msg.Time = time.Now()
-			send(msg)
+			dr.pollMouseWheelEvent(ctx, msgs, ev)
 		case *sdl.WindowEvent:
-			switch ev.Event {
-			case sdl.WINDOWEVENT_EXPOSED:
-				w, h := dr.window.GetSize()
-				send(gruid.MsgScreen{Width: int(w / dr.tw), Height: int(h / dr.th), Time: time.Now()})
-				//log.Print("exposed")
-				//case sdl.WINDOWEVENT_SHOWN:
-				//log.Print("shown")
-				//case sdl.WINDOWEVENT_HIDDEN:
-				//log.Print("hidden")
-				//case sdl.WINDOWEVENT_MOVED:
-				//log.Print("moved")
-				//case sdl.WINDOWEVENT_RESIZED:
-				//log.Print("resized")
-				//case sdl.WINDOWEVENT_SIZE_CHANGED:
-				//log.Print("size changed")
-				//case sdl.WINDOWEVENT_MINIMIZED:
-				//log.Print("minimized")
-				//case sdl.WINDOWEVENT_MAXIMIZED:
-				//log.Print("maximized")
-				//case sdl.WINDOWEVENT_RESTORED:
-				//log.Print("restored")
-				//case sdl.WINDOWEVENT_ENTER:
-				//log.Print("enter")
-				//case sdl.WINDOWEVENT_LEAVE:
-				//log.Print("leave")
-				//case sdl.WINDOWEVENT_FOCUS_GAINED:
-				//log.Print("focus gained")
-				//case sdl.WINDOWEVENT_FOCUS_LOST:
-				//log.Print("focus lost")
-				//case sdl.WINDOWEVENT_CLOSE:
-				//log.Print("close")
-				//case sdl.WINDOWEVENT_TAKE_FOCUS:
-				//log.Print("take focus")
-				//case sdl.WINDOWEVENT_HIT_TEST:
-				//log.Print("hit test")
-				//case sdl.WINDOWEVENT_NONE:
-				//log.Print("none")
-			}
+			dr.pollWindowEvent(ctx, msgs, ev)
 		}
+	}
+}
+
+func (dr *Driver) pollTextInputEvent(ctx context.Context, msgs chan<- gruid.Msg, ev *sdl.TextInputEvent) {
+	s := ev.GetText()
+	if utf8.RuneCountInString(s) != 1 {
+		// TODO: handle the case where an input
+		// event would produce several
+		// characters? We would have to keep
+		// track of those characters, and send
+		// several messages in a row.
+		return
+	}
+	msg := gruid.MsgKeyDown{}
+	msg.Key = gruid.Key(s)
+	msg.Time = time.Now()
+	send(ctx, msgs, msg)
+}
+
+func (dr *Driver) pollKeyboardEvent(ctx context.Context, msgs chan<- gruid.Msg, ev *sdl.KeyboardEvent) {
+	c := ev.Keysym.Sym
+	if ev.Type == sdl.KEYUP {
+		return
+	}
+	msg := gruid.MsgKeyDown{}
+	if sdl.KMOD_LALT&ev.Keysym.Mod != 0 {
+		msg.Mod |= gruid.ModAlt
+	}
+	if sdl.KMOD_LSHIFT&ev.Keysym.Mod != 0 || sdl.KMOD_RSHIFT&ev.Keysym.Mod != 0 {
+		msg.Mod |= gruid.ModShift
+	}
+	if sdl.KMOD_LCTRL&ev.Keysym.Mod != 0 || sdl.KMOD_RCTRL&ev.Keysym.Mod != 0 {
+		msg.Mod |= gruid.ModCtrl
+	}
+	if sdl.KMOD_RGUI&ev.Keysym.Mod != 0 {
+		msg.Mod |= gruid.ModMeta
+	}
+	switch c {
+	case sdl.K_DOWN:
+		msg.Key = gruid.KeyArrowDown
+	case sdl.K_LEFT:
+		msg.Key = gruid.KeyArrowLeft
+	case sdl.K_RIGHT:
+		msg.Key = gruid.KeyArrowRight
+	case sdl.K_UP:
+		msg.Key = gruid.KeyArrowUp
+	case sdl.K_BACKSPACE:
+		msg.Key = gruid.KeyBackspace
+	case sdl.K_DELETE:
+		msg.Key = gruid.KeyDelete
+	case sdl.K_END:
+		msg.Key = gruid.KeyEnd
+	case sdl.K_ESCAPE:
+		msg.Key = gruid.KeyEscape
+	case sdl.K_RETURN:
+		msg.Key = gruid.KeyEnter
+	case sdl.K_HOME:
+		msg.Key = gruid.KeyHome
+	case sdl.K_INSERT:
+		msg.Key = gruid.KeyInsert
+	case sdl.K_PAGEUP:
+		msg.Key = gruid.KeyPageUp
+	case sdl.K_PAGEDOWN:
+		msg.Key = gruid.KeyPageDown
+	case sdl.K_TAB:
+		msg.Key = gruid.KeyTab
+	}
+	if ev.Keysym.Mod&sdl.KMOD_NUM == 0 {
+		switch c {
+		case sdl.K_KP_2:
+			msg.Key = gruid.KeyArrowDown
+		case sdl.K_KP_4:
+			msg.Key = gruid.KeyArrowLeft
+		case sdl.K_KP_6:
+			msg.Key = gruid.KeyArrowRight
+		case sdl.K_KP_8:
+			msg.Key = gruid.KeyArrowUp
+		case sdl.K_KP_BACKSPACE:
+			msg.Key = gruid.KeyBackspace
+		case sdl.K_KP_PERIOD:
+			msg.Key = gruid.KeyDelete
+		case sdl.K_KP_1:
+			msg.Key = gruid.KeyEnd
+		case sdl.K_KP_5, sdl.K_KP_ENTER:
+			msg.Key = gruid.KeyEnter
+		case sdl.K_KP_7:
+			msg.Key = gruid.KeyHome
+		case sdl.K_KP_0:
+			msg.Key = gruid.KeyInsert
+		case sdl.K_KP_9:
+			msg.Key = gruid.KeyPageUp
+		case sdl.K_KP_3:
+			msg.Key = gruid.KeyPageDown
+		}
+	}
+	if msg.Key == "" {
+		return
+	}
+	msg.Time = time.Now()
+	send(ctx, msgs, msg)
+}
+
+func (dr *Driver) pollMouseButtonEvent(ctx context.Context, msgs chan<- gruid.Msg, ev *sdl.MouseButtonEvent) {
+	var action gruid.MouseAction
+	switch ev.Button {
+	case sdl.BUTTON_LEFT:
+		action = gruid.MouseMain
+	case sdl.BUTTON_MIDDLE:
+		action = gruid.MouseAuxiliary
+	case sdl.BUTTON_RIGHT:
+		action = gruid.MouseSecondary
+	default:
+		return
+	}
+	msg := gruid.MsgMouse{}
+	msg.P = dr.coords(ev.X, ev.Y)
+	switch ev.Type {
+	case sdl.MOUSEBUTTONDOWN:
+		if dr.mousedrag != -1 {
+			return
+		}
+		if msg.P.X < 0 || msg.P.X >= int(dr.width) ||
+			msg.P.Y < 0 || msg.P.Y >= int(dr.height) {
+			return
+		}
+		msg.Time = time.Now()
+		msg.Action = action
+		dr.mousedrag = action
+	case sdl.MOUSEBUTTONUP:
+		if dr.mousedrag != action {
+			return
+		}
+		if msg.P.X < 0 || msg.P.X >= int(dr.width) ||
+			msg.P.Y < 0 || msg.P.Y >= int(dr.height) {
+			msg.P = gruid.Point{}
+		}
+		msg.Time = time.Now()
+		msg.Action = gruid.MouseRelease
+		dr.mousedrag = -1
+	}
+	mod := sdl.GetModState()
+	if sdl.KMOD_LALT&mod != 0 {
+		msg.Mod |= gruid.ModAlt
+	}
+	if sdl.KMOD_LSHIFT&mod != 0 || sdl.KMOD_RSHIFT&mod != 0 {
+		msg.Mod |= gruid.ModShift
+	}
+	if sdl.KMOD_LCTRL&mod != 0 || sdl.KMOD_RCTRL&mod != 0 {
+		msg.Mod |= gruid.ModCtrl
+	}
+	if sdl.KMOD_RGUI&mod != 0 {
+		msg.Mod |= gruid.ModMeta
+	}
+	dr.mousepos = msg.P
+	send(ctx, msgs, msg)
+}
+
+func (dr *Driver) pollMouseMotionEvent(ctx context.Context, msgs chan<- gruid.Msg, ev *sdl.MouseMotionEvent) {
+	msg := gruid.MsgMouse{}
+	msg.P = dr.coords(ev.X, ev.Y)
+	if msg.P == dr.mousepos {
+		return
+	}
+	if msg.P.X < 0 || msg.P.X >= int(dr.width) ||
+		msg.P.Y < 0 || msg.P.Y >= int(dr.height) {
+		return
+	}
+	msg.Time = time.Now()
+	msg.Action = gruid.MouseMove
+	dr.mousepos = msg.P
+	mod := sdl.GetModState()
+	if sdl.KMOD_LALT&mod != 0 {
+		msg.Mod |= gruid.ModAlt
+	}
+	if sdl.KMOD_LSHIFT&mod != 0 || sdl.KMOD_RSHIFT&mod != 0 {
+		msg.Mod |= gruid.ModShift
+	}
+	if sdl.KMOD_LCTRL&mod != 0 || sdl.KMOD_RCTRL&mod != 0 {
+		msg.Mod |= gruid.ModCtrl
+	}
+	if sdl.KMOD_RGUI&mod != 0 {
+		msg.Mod |= gruid.ModMeta
+	}
+	send(ctx, msgs, msg)
+}
+
+func (dr *Driver) pollMouseWheelEvent(ctx context.Context, msgs chan<- gruid.Msg, ev *sdl.MouseWheelEvent) {
+	msg := gruid.MsgMouse{}
+	if ev.Y > 0 {
+		msg.Action = gruid.MouseWheelUp
+	} else if ev.Y < 0 {
+		msg.Action = gruid.MouseWheelDown
+	} else {
+		return
+	}
+	msg.P = dr.mousepos
+	msg.Time = time.Now()
+	send(ctx, msgs, msg)
+}
+
+func (dr *Driver) pollWindowEvent(ctx context.Context, msgs chan<- gruid.Msg, ev *sdl.WindowEvent) {
+	switch ev.Event {
+	case sdl.WINDOWEVENT_EXPOSED:
+		w, h := dr.window.GetSize()
+		send(ctx, msgs, gruid.MsgScreen{Width: int(w / dr.tw), Height: int(h / dr.th), Time: time.Now()})
+		//log.Print("exposed")
+		//case sdl.WINDOWEVENT_SHOWN:
+		//log.Print("shown")
+		//case sdl.WINDOWEVENT_HIDDEN:
+		//log.Print("hidden")
+		//case sdl.WINDOWEVENT_MOVED:
+		//log.Print("moved")
+		//case sdl.WINDOWEVENT_RESIZED:
+		//log.Print("resized")
+		//case sdl.WINDOWEVENT_SIZE_CHANGED:
+		//log.Print("size changed")
+		//case sdl.WINDOWEVENT_MINIMIZED:
+		//log.Print("minimized")
+		//case sdl.WINDOWEVENT_MAXIMIZED:
+		//log.Print("maximized")
+		//case sdl.WINDOWEVENT_RESTORED:
+		//log.Print("restored")
+		//case sdl.WINDOWEVENT_ENTER:
+		//log.Print("enter")
+		//case sdl.WINDOWEVENT_LEAVE:
+		//log.Print("leave")
+		//case sdl.WINDOWEVENT_FOCUS_GAINED:
+		//log.Print("focus gained")
+		//case sdl.WINDOWEVENT_FOCUS_LOST:
+		//log.Print("focus lost")
+		//case sdl.WINDOWEVENT_CLOSE:
+		//log.Print("close")
+		//case sdl.WINDOWEVENT_TAKE_FOCUS:
+		//log.Print("take focus")
+		//case sdl.WINDOWEVENT_HIT_TEST:
+		//log.Print("hit test")
+		//case sdl.WINDOWEVENT_NONE:
+		//log.Print("none")
 	}
 }
 

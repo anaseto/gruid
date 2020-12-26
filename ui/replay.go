@@ -80,7 +80,6 @@ const (
 	replayNext
 	replayPrevious
 	replayTogglePause
-	replayQuit
 	replaySpeedMore
 	replaySpeedLess
 )
@@ -112,7 +111,7 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 		switch {
 		case key.In(rep.keys.Quit):
 			if rep.init {
-				rep.action = replayQuit
+				return gruid.End()
 			}
 		case key.In(rep.keys.Pause):
 			rep.action = replayTogglePause
@@ -146,6 +145,15 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 			rep.action = replayNext
 		}
 	}
+	rep.handleAction()
+	rep.draw()
+	if !rep.auto || rep.fidx > len(rep.frames)-1 || rep.action == replayNone {
+		return nil
+	}
+	return rep.tick()
+}
+
+func (rep *Replay) handleAction() {
 	switch rep.action {
 	case replayNext:
 		rep.decodeNext()
@@ -160,8 +168,6 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 			break
 		}
 		rep.fidx--
-	case replayQuit:
-		return gruid.End()
 	case replayTogglePause:
 		rep.auto = !rep.auto
 	case replaySpeedMore:
@@ -175,11 +181,6 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 			rep.speed = 1
 		}
 	}
-	rep.draw()
-	if !rep.auto || rep.fidx > len(rep.frames)-1 || rep.action == replayNone {
-		return nil
-	}
-	return rep.tick()
 }
 
 // The grid state is actually the replay state so we draw the grid on Update
