@@ -20,21 +20,21 @@ type FrameDecoder struct {
 //
 // It is your responsibility to call Close on the reader when done.
 func NewFrameDecoder(r io.Reader) (*FrameDecoder, error) {
-	vd := &FrameDecoder{}
+	fd := &FrameDecoder{}
 	var err error
-	vd.gzr, err = gzip.NewReader(r)
+	fd.gzr, err = gzip.NewReader(r)
 	if err != nil {
 		return nil, fmt.Errorf("video decoding: gzip: %v", err)
 	}
-	vd.gbd = gob.NewDecoder(vd.gzr)
-	return vd, nil
+	fd.gbd = gob.NewDecoder(fd.gzr)
+	return fd, nil
 }
 
 // Decode retrieves the next frame from the input stream. If the input is at
 // EOF, it returns the error io.EOF.
-func (vd *FrameDecoder) Decode() (Frame, error) {
+func (fd *FrameDecoder) Decode() (Frame, error) {
 	var frame Frame
-	err := vd.gbd.Decode(&frame)
+	err := fd.gbd.Decode(&frame)
 	return frame, err
 }
 
@@ -44,14 +44,14 @@ type frameEncoder struct {
 }
 
 func newFrameEncoder(w io.Writer) *frameEncoder {
-	ve := &frameEncoder{}
-	ve.gzw = gzip.NewWriter(w)
-	ve.gbe = gob.NewEncoder(ve.gzw)
-	return ve
+	fe := &frameEncoder{}
+	fe.gzw = gzip.NewWriter(w)
+	fe.gbe = gob.NewEncoder(fe.gzw)
+	return fe
 }
 
-func (ve *frameEncoder) encode(fr Frame) error {
-	err := ve.gbe.Encode(fr)
+func (fe *frameEncoder) encode(fr Frame) error {
+	err := fe.gbe.Encode(fr)
 	if err != nil {
 		return err
 	}
