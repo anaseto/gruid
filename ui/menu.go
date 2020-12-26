@@ -263,125 +263,132 @@ func (m *Menu) nextPage(p gruid.Point) (gruid.Point, bool) {
 // user input messages. It considers mouse message coordinates to be absolute in
 // its grid.
 func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
-	grid := m.drawGrid()
-	rg := grid.Bounds()
-
 	switch msg := msg.(type) {
 	case gruid.MsgKeyDown:
-		switch {
-		case msg.Key.In(m.keys.Quit):
-			m.action = MenuQuit
-		case msg.Key.In(m.keys.Down):
-			m.moveTo(gruid.Point{0, 1})
-		case msg.Key.In(m.keys.Up):
-			m.moveTo(gruid.Point{0, -1})
-		case msg.Key.In(m.keys.Right):
-			m.moveTo(gruid.Point{1, 0})
-		case msg.Key.In(m.keys.Left):
-			m.moveTo(gruid.Point{-1, 0})
-		case msg.Key.In(m.keys.PageDown):
-			p := gruid.Point{0, 1}
-			if m.pages.Y == 0 {
-				p = gruid.Point{1, 0}
-			}
-			if p, ok := m.nextPage(p); ok {
-				m.action = MenuMove
-				m.active = p
-			}
-		case msg.Key.In(m.keys.PageUp):
-			p := gruid.Point{0, -1}
-			if m.pages.Y == 0 {
-				p = gruid.Point{-1, 0}
-			}
-			if p, ok := m.nextPage(p); ok {
-				m.action = MenuMove
-				m.active = p
-			}
-		case msg.Key.In(m.keys.Invoke) && m.contains(m.active):
-			it, ok := m.table[m.active]
-			if ok && !m.entries[it.i].Disabled {
-				m.action = MenuInvoke
-			}
-		default:
-			for i, e := range m.entries {
-				for _, k := range e.Keys {
-					if k == msg.Key {
-						m.active = m.idxToPos(i)
-						m.action = MenuInvoke
-						break
-					}
-				}
-			}
-		}
+		m.updateKeyDown(msg)
 	case gruid.MsgMouse:
-		crg := rg // content range
-		if m.box != nil {
-			crg = crg.Shift(1, 1, -1, -1)
+		m.updateMouse(msg)
+	}
+	return nil
+}
+
+func (m *Menu) updateKeyDown(msg gruid.MsgKeyDown) {
+	switch {
+	case msg.Key.In(m.keys.Quit):
+		m.action = MenuQuit
+	case msg.Key.In(m.keys.Down):
+		m.moveTo(gruid.Point{0, 1})
+	case msg.Key.In(m.keys.Up):
+		m.moveTo(gruid.Point{0, -1})
+	case msg.Key.In(m.keys.Right):
+		m.moveTo(gruid.Point{1, 0})
+	case msg.Key.In(m.keys.Left):
+		m.moveTo(gruid.Point{-1, 0})
+	case msg.Key.In(m.keys.PageDown):
+		p := gruid.Point{0, 1}
+		if m.pages.Y == 0 {
+			p = gruid.Point{1, 0}
 		}
-		p := msg.P
-		page := gruid.Point{}
-		if it, ok := m.table[m.active]; ok {
-			page = it.page
+		if p, ok := m.nextPage(p); ok {
+			m.action = MenuMove
+			m.active = p
 		}
-		switch msg.Action {
-		case gruid.MouseMove:
-			if !p.In(crg) {
-				break
-			}
-			for q, it := range m.table {
-				if it.page == page && p.In(it.grid.Bounds()) {
-					if q == m.active {
-						break
-					}
-					m.active = q
-					m.action = MenuMove
-				}
-			}
-		case gruid.MouseWheelDown:
-			if !p.In(crg) {
-				break
-			}
-			p := gruid.Point{0, 1}
-			if m.pages.Y == 0 {
-				p = gruid.Point{1, 0}
-			}
-			if p, ok := m.nextPage(p); ok {
-				m.action = MenuMove
-				m.active = p
-			}
-		case gruid.MouseWheelUp:
-			if !p.In(crg) {
-				break
-			}
-			p := gruid.Point{0, -1}
-			if m.pages.Y == 0 {
-				p = gruid.Point{-1, 0}
-			}
-			if p, ok := m.nextPage(p); ok {
-				m.action = MenuMove
-				m.active = p
-			}
-		case gruid.MouseMain:
-			if !p.In(rg) {
-				m.action = MenuQuit
-				break
-			}
-			if !p.In(crg) {
-				break
-			}
-			for q, it := range m.table {
-				if it.page == page && p.In(it.grid.Bounds()) {
-					m.active = q
-					if m.entries[it.i].Disabled {
-						m.action = MenuMove
-					} else {
-						m.action = MenuInvoke
-					}
+	case msg.Key.In(m.keys.PageUp):
+		p := gruid.Point{0, -1}
+		if m.pages.Y == 0 {
+			p = gruid.Point{-1, 0}
+		}
+		if p, ok := m.nextPage(p); ok {
+			m.action = MenuMove
+			m.active = p
+		}
+	case msg.Key.In(m.keys.Invoke) && m.contains(m.active):
+		it, ok := m.table[m.active]
+		if ok && !m.entries[it.i].Disabled {
+			m.action = MenuInvoke
+		}
+	default:
+		for i, e := range m.entries {
+			for _, k := range e.Keys {
+				if k == msg.Key {
+					m.active = m.idxToPos(i)
+					m.action = MenuInvoke
+					break
 				}
 			}
 		}
 	}
-	return nil
+}
+
+func (m *Menu) updateMouse(msg gruid.MsgMouse) {
+	grid := m.drawGrid()
+	rg := grid.Bounds()
+	crg := rg // content range
+	if m.box != nil {
+		crg = crg.Shift(1, 1, -1, -1)
+	}
+	p := msg.P
+	page := gruid.Point{}
+	if it, ok := m.table[m.active]; ok {
+		page = it.page
+	}
+	switch msg.Action {
+	case gruid.MouseMove:
+		if !p.In(crg) {
+			break
+		}
+		for q, it := range m.table {
+			if it.page == page && p.In(it.grid.Bounds()) {
+				if q == m.active {
+					break
+				}
+				m.active = q
+				m.action = MenuMove
+			}
+		}
+	case gruid.MouseWheelDown:
+		if !p.In(crg) {
+			break
+		}
+		p := gruid.Point{0, 1}
+		if m.pages.Y == 0 {
+			p = gruid.Point{1, 0}
+		}
+		if p, ok := m.nextPage(p); ok {
+			m.action = MenuMove
+			m.active = p
+		}
+	case gruid.MouseWheelUp:
+		if !p.In(crg) {
+			break
+		}
+		p := gruid.Point{0, -1}
+		if m.pages.Y == 0 {
+			p = gruid.Point{-1, 0}
+		}
+		if p, ok := m.nextPage(p); ok {
+			m.action = MenuMove
+			m.active = p
+		}
+	case gruid.MouseMain:
+		if !p.In(rg) {
+			m.action = MenuQuit
+			break
+		}
+		if !p.In(crg) {
+			break
+		}
+		for q, it := range m.table {
+			if it.page == page && p.In(it.grid.Bounds()) {
+				m.active = q
+				if m.entries[it.i].Disabled {
+					m.action = MenuMove
+				} else {
+					m.action = MenuInvoke
+				}
+			}
+		}
+	}
 }
 
 func (m *Menu) drawGrid() gruid.Grid {
@@ -405,7 +412,7 @@ const (
 	line
 )
 
-func (m *Menu) computeItems() {
+func (m *Menu) updateLayout() {
 	m.layout = m.style.Layout
 	if m.layout.Y > m.grid.Size().Y {
 		m.layout.Y = m.grid.Size().Y
@@ -416,6 +423,10 @@ func (m *Menu) computeItems() {
 	if m.layout.X > len(m.entries) {
 		m.layout.X = len(m.entries)
 	}
+}
+
+func (m *Menu) computeItems() {
+	m.updateLayout()
 	grid := m.drawGrid()
 	rg := grid.Bounds()
 	if m.box != nil {
@@ -423,12 +434,11 @@ func (m *Menu) computeItems() {
 	}
 	m.size = grid.Size()
 	w, h := m.size.X, m.size.Y
-	layout := m.layout
-	lines := layout.Y
+	lines := m.layout.Y
 	if lines <= 0 {
 		lines = len(m.entries)
 	}
-	columns := layout.X
+	columns := m.layout.X
 	if columns <= 0 {
 		if lines == len(m.entries) {
 			columns = 1
@@ -509,7 +519,7 @@ func (m *Menu) computeItems() {
 			m.points = append(m.points, p)
 		}
 	case table:
-		for i, _ := range m.entries {
+		for i := range m.entries {
 			page := i / (columns * h)
 			pageidx := i % (columns * h)
 			ln := pageidx % h
