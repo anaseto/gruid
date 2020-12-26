@@ -10,8 +10,11 @@ styling that has to be used by the Driver.
 Note that the terminal grid is not a true grid: some characters are two-cell
 wide (such as wide east-asian characters). The character width can be computed
 thanks to the [go-runewidth](github.com/mattn/go-runewidth) package, so it
-could be taken into account, but it is a bit cumbersome and ad hoc with respect
-to the graphical drivers which can handle this problem more easily (the tile
+can be taken into account, but it is a bit cumbersome and ad hoc with respect
+to the graphical drivers which could handle this problem more easily (the tile
 width can be adjusted to fit any wanted character). Currently, runes with zero
 value are ignored by this terminal driver, so they can be placed after a wide
-character, but this is not portable to other drivers.
+character. A portable solution is to always pass wide-characters twice, but
+with different attributes, and then handle this in each driver, either
+replacing the second one with a zero rune (for this driver), or a different
+image (for graphical drivers).

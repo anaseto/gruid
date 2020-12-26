@@ -16,9 +16,15 @@ type StyleManager interface {
 	GetStyle(gruid.Style) tcell.Style
 }
 
+// RuneManager is optional and allows for custom mapping of runes.
+type RuneManager interface {
+	GetRune(gruid.Cell) rune
+}
+
 // Driver implements gruid.Driver using the tcell terminal library.
 type Driver struct {
 	sm        StyleManager
+	rm        RuneManager
 	screen    tcell.Screen
 	mouse     bool
 	mousedrag bool
@@ -31,11 +37,16 @@ type Driver struct {
 type Config struct {
 	StyleManager StyleManager // for cell styling (required)
 	DisableMouse bool         // disable mouse-related messages
+	RuneManager  RuneManager  // optional custom mapping for runes
 }
 
 // NewDriver returns a new driver with given configuration options.
 func NewDriver(cfg Config) *Driver {
-	return &Driver{sm: cfg.StyleManager, mouse: !cfg.DisableMouse}
+	return &Driver{
+		sm:    cfg.StyleManager,
+		mouse: !cfg.DisableMouse,
+		rm:    cfg.RuneManager,
+	}
 }
 
 // PreventQuit will make next call to Close keep the same tcell screen. It can
@@ -242,17 +253,19 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 
 // Flush implements gruid.Driver.Flush.
 func (dr *Driver) Flush(frame gruid.Frame) {
-	// TODO: find a way to handle wide-characters that does not complicate
-	// gruid nor graphical drivers. Maybe just allow columns to be at
-	// different widths? (that would work only if wide characters are
-	// placed only at places where columnar layout does not matter)
 	for _, fc := range frame.Cells {
+		var r rune
 		c := fc.Cell
+		if dr.rm != nil {
+			r = dr.rm.GetRune(c)
+		} else {
+			r = c.Rune
+		}
 		if c.Rune == 0 {
 			continue
 		}
 		st := dr.sm.GetStyle(c.Style)
-		dr.screen.SetContent(fc.P.X, fc.P.Y, c.Rune, nil, st)
+		dr.screen.SetContent(fc.P.X, fc.P.Y, r, nil, st)
 	}
 	dr.screen.Show()
 }
