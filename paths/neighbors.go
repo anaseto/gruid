@@ -12,7 +12,7 @@ type Pather interface {
 
 // Neighbors fetches adjacent positions. It returns a cached slice for
 // efficiency, so results are invalidated by next method calls. It is suitable
-// for use in satisfying the Dijkstra, Astar and Neighborer interfaces.
+// for use in satisfying the Dijkstra, Astar and Pather interfaces.
 type Neighbors struct {
 	nb []gruid.Point
 }
