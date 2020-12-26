@@ -52,6 +52,7 @@ type Pager struct {
 	action PagerAction
 	init   bool // Update received MsgInit
 	keys   PagerKeys
+	dirty  bool       // state changed in Update and Draw was still not called
 	drawn  gruid.Grid // last drawn grid slice
 }
 
@@ -117,13 +118,14 @@ func NewPager(cfg PagerConfig) *Pager {
 	if pg.keys.Quit == nil {
 		pg.keys.Quit = []gruid.Key{gruid.KeyEscape, "q", "Q"}
 	}
+	pg.dirty = true
 	return pg
 }
 
 // SetBox updates the pager surrounding box.
 func (pg *Pager) SetBox(b *Box) {
 	pg.box = b
-	pg.drawn = gruid.Grid{}
+	pg.dirty = true
 }
 
 // SetLines updates the pager text lines.
@@ -136,7 +138,7 @@ func (pg *Pager) SetLines(lines []string) {
 	if pg.index+nlines-1 >= len(pg.lines) {
 		pg.index = len(pg.lines) - nlines
 	}
-	pg.drawn = gruid.Grid{}
+	pg.dirty = true
 }
 
 // View returns a range (Min, Max) such that the currently displayed lines are
@@ -188,16 +190,19 @@ func (pg *Pager) up(shift int) {
 // and send a gruid.Quit() command on PagerQuit action.
 func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 	pg.action = PagerPass
+	var eff gruid.Effect
 	switch msg := msg.(type) {
 	case gruid.MsgInit:
 		pg.init = true
-		return nil
 	case gruid.MsgKeyDown:
-		return pg.updateMsgKeyDown(msg)
+		eff = pg.updateMsgKeyDown(msg)
 	case gruid.MsgMouse:
-		return pg.updateMsgMouse(msg)
+		eff = pg.updateMsgMouse(msg)
 	}
-	return nil
+	if pg.Action() != PagerPass {
+		pg.dirty = true
+	}
+	return eff
 }
 
 func (pg *Pager) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
@@ -293,7 +298,7 @@ func (pg *Pager) Action() PagerAction {
 // Draw implements gruid.Model.Draw for Pager. It returns the grid slice that
 // was drawn, or the whole grid if it is used as main model.
 func (pg *Pager) Draw() gruid.Grid {
-	if pg.Action() == PagerPass && !pg.drawn.Range().Empty() {
+	if !pg.dirty {
 		if pg.init {
 			return pg.drawn.Slice(gruid.Range{})
 		}
@@ -347,6 +352,7 @@ func (pg *Pager) Draw() gruid.Grid {
 			pg.stt.WithText(vs).Draw(line)
 		}
 	}
+	pg.dirty = false
 	pg.drawn = grid
 	if pg.init {
 		pg.drawn = pg.grid

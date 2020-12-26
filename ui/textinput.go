@@ -43,6 +43,7 @@ type TextInput struct {
 	cursor    int
 	action    TextInputAction
 	keys      TextInputKeys
+	dirty     bool       // state changed in Update and Draw was still not called
 	drawn     gruid.Grid // the last grid slice that was drawn
 }
 
@@ -78,13 +79,14 @@ func NewTextInput(cfg TextInputConfig) *TextInput {
 	if ti.keys.Quit == nil {
 		ti.keys.Quit = []gruid.Key{gruid.KeyEscape, gruid.KeyTab}
 	}
+	ti.dirty = true
 	return ti
 }
 
 // SetBox updates the text input surrounding box.
 func (ti *TextInput) SetBox(b *Box) {
 	ti.box = b
-	ti.drawn = gruid.Grid{}
+	ti.dirty = true
 }
 
 func (ti *TextInput) cursorMax() int {
@@ -100,6 +102,9 @@ func (ti *TextInput) Update(msg gruid.Msg) gruid.Effect {
 		ti.updateMsgKeyDown(msg)
 	case gruid.MsgMouse:
 		ti.updateMsgMouse(msg)
+	}
+	if ti.action != TextInputPass {
+		ti.dirty = true
 	}
 	return nil
 }
@@ -224,7 +229,7 @@ func (ti *TextInput) start() int {
 
 // Draw implements gruid.Model.Draw for TextInput.
 func (ti *TextInput) Draw() gruid.Grid {
-	if ti.Action() == TextInputPass && !ti.drawn.Range().Empty() {
+	if !ti.dirty {
 		return ti.drawn
 	}
 	cgrid := ti.grid
@@ -239,6 +244,7 @@ func (ti *TextInput) Draw() gruid.Grid {
 	start := ti.start()
 	ti.stt.WithText(string(ti.content[start:])).Draw(cgrid.Slice(crg.Shift(ti.cursorMin, 0, 0, 0)))
 	ti.stt.With(string(ti.cursorRune()), ti.style.Cursor).Draw(cgrid.Slice(crg.Shift(ti.cursorMin+ti.cursor-start, 0, 0, 0)))
+	ti.dirty = false
 	ti.drawn = ti.grid
 	return ti.drawn
 }

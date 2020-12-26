@@ -72,6 +72,7 @@ type Menu struct {
 	action  MenuAction
 	keys    MenuKeys
 	layout  gruid.Point // current menu layout
+	dirty   bool        // state changed in Update and Draw was still not called
 	drawn   gruid.Grid  // last grid slice that was drawn
 }
 
@@ -143,6 +144,7 @@ func NewMenu(cfg MenuConfig) *Menu {
 	}
 	m.computeItems()
 	m.cursorAtFirstChoice()
+	m.dirty = true
 	return m
 }
 
@@ -163,14 +165,14 @@ func (m *Menu) SetEntries(entries []MenuEntry) {
 	if !m.contains(m.active) {
 		m.cursorAtLastChoice()
 	}
-	m.drawn = gruid.Grid{}
+	m.dirty = true
 }
 
 // SetBox updates the menu surrounding box.
 func (m *Menu) SetBox(b *Box) {
 	m.box = b
 	m.computeItems()
-	m.drawn = gruid.Grid{}
+	m.dirty = true
 }
 
 func (m *Menu) contains(p gruid.Point) bool {
@@ -187,7 +189,7 @@ func (m *Menu) SetActive(i int) {
 	if !m.entries[i].Disabled {
 		m.active = m.idxToPos(i)
 	}
-	m.drawn = gruid.Grid{}
+	m.dirty = true
 }
 
 func (m *Menu) idxToPos(i int) gruid.Point {
@@ -268,6 +270,9 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 		m.updateKeyDown(msg)
 	case gruid.MsgMouse:
 		m.updateMouse(msg)
+	}
+	if m.Action() != MenuPass {
+		m.dirty = true
 	}
 	return nil
 }
@@ -568,7 +573,7 @@ func (m *Menu) cursorAtLastChoice() {
 
 // Draw implements gruid.Model.Draw. It returns the grid slice that was drawn.
 func (m *Menu) Draw() gruid.Grid {
-	if m.Action() == MenuPass && !m.drawn.Range().Empty() {
+	if !m.dirty {
 		return m.drawn
 	}
 	grid := m.drawGrid()
@@ -614,6 +619,7 @@ func (m *Menu) Draw() gruid.Grid {
 			m.stt.With(c.Text, st).Draw(it.grid)
 		}
 	}
+	m.dirty = false
 	m.drawn = grid
 	return m.drawn
 }
