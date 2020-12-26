@@ -173,10 +173,6 @@ func (pg *Pager) down(shift int) {
 }
 
 func (pg *Pager) up(shift int) {
-	nlines := pg.grid.Size().Y
-	if pg.box != nil {
-		nlines -= 2
-	}
 	if pg.index-shift < 0 {
 		shift = pg.index
 	}
@@ -325,7 +321,7 @@ func (pg *Pager) Draw() gruid.Grid {
 		s := pg.lines[i+pg.index]
 		count := 0
 		vs := s
-		for i, _ := range s {
+		for i := range s {
 			if count <= pg.x {
 				vs = s[i:]
 			} else {
