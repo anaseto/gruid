@@ -283,7 +283,7 @@ func (rg Range) Iter(fn func(Point)) {
 
 // Grid represents the grid that is used to draw a model logical contents that
 // are then sent to the driver. It is a slice type, so it represents a
-// rectangular range within the whole grid of the application. Due to how it is
+// rectangular range within an underlying original grid. Due to how it is
 // represented internally, it is more efficient to iterate whole lines first,
 // as in the following pattern:
 //
