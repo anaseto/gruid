@@ -224,7 +224,7 @@ func (rg Range) RelMsg(msg Msg) Msg {
 }
 
 // Intersect returns the largest range contained both by rg and r. If the two
-// ranges dot not overlap, the zero range will be returned.
+// ranges do not overlap, the zero range will be returned.
 func (rg Range) Intersect(r Range) Range {
 	if rg.Max.X > r.Max.X {
 		rg.Max.X = r.Max.X
