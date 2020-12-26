@@ -50,6 +50,7 @@ func main() {
 	fmt.Printf("Successful quit.\n")
 }
 
+// Those constants represent the generic colors we use in this example.
 const (
 	ColorTitle gruid.Color = 1 + iota // skip zero value ColorDefault
 	ColorLnum

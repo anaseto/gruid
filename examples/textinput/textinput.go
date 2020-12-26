@@ -26,6 +26,7 @@ func main() {
 	}
 }
 
+// Those constants represent the generic colors we use in this example.
 const (
 	ColorCursor gruid.Color = 1 + iota // skip zero value ColorDefault
 	ColorTitle

@@ -27,6 +27,7 @@ func main() {
 	}
 }
 
+// Those constants represent the generic colors we use in this example.
 const (
 	ColorHeader gruid.Color = 1 + iota // skip zero value ColorDefault
 	ColorActive
