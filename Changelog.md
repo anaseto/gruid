@@ -1,6 +1,10 @@
-## v0.3.0 - ?
+This Changelog is not exhaustive. Only major new features and incompatible
+changes (if any while version < 1.0.0), are mentioned.
+
+## v0.3.0 - 2020-12-26
 
 + Renamed Menu.Style.Selected into Menu.Style.Active (incompatible change)
++ Added optional RuneManager in tcell driver.
 
 ## v0.2.0 - 2020-12-25
 
