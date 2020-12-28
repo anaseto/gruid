@@ -40,7 +40,8 @@ func NewEventQueue() *EventQueue {
 	}
 }
 
-// Push adds a new event to the heap with a given rank.
+// Push adds a new event to the heap with a given rank. Events with the same
+// rank are processed in a first-in first-out order.
 func (eq *EventQueue) Push(ev Event, rank int) {
 	evr := event{Event: ev, Rank: rank, Idx: eq.idx}
 	eq.idx++
