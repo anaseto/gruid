@@ -7,8 +7,8 @@ import (
 func TestEventsQueuePush(t *testing.T) {
 	eq := NewEventQueue()
 	eq.Push(3, 1)
-	eq.Push(2, 2)
 	eq.Push(1, 3)
+	eq.Push(2, 2)
 	count := 3
 	for !eq.Empty() {
 		ev := eq.Pop()
@@ -27,8 +27,8 @@ func TestEventsQueuePush(t *testing.T) {
 func TestEventsQueueFilter(t *testing.T) {
 	eq := NewEventQueue()
 	eq.Push(3, 1)
-	eq.Push(2, 2)
 	eq.Push(1, 3)
+	eq.Push(2, 2)
 	eq.Filter(func(ev Event) bool {
 		switch n := ev.(type) {
 		case int:
