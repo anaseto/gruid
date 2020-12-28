@@ -23,13 +23,15 @@ type event struct {
 // rank in ascending order. The rank may represent for example a turn number or
 // some more fine-grained priority measure.
 //
+// EventQueue must be created with NewEventQueue.
+//
 // TODO: make it possible to encode it with encoding/gob.
 type EventQueue struct {
 	queue *eventQueue
 	idx   int
 }
 
-// NewEventQueue returns a new EventQueue.
+// NewEventQueue returns a new EventQueue suitable for use.
 func NewEventQueue() *EventQueue {
 	q := &eventQueue{}
 	heap.Init(q)
@@ -51,7 +53,7 @@ func (eq *EventQueue) Push(ev Event, rank int) {
 
 // Empty reports whether the event queue is empty.
 func (eq *EventQueue) Empty() bool {
-	return eq.queue.Len() > 0
+	return eq.queue.Len() <= 0
 }
 
 // Filter removes events that do not satisfy a given predicate from the event
