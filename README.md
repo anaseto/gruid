@@ -54,3 +54,19 @@ respective folders for specific build and deployment instructions. *Note that
 until lazy module loading comes (hopefully with Go 1.16), unless you manually
 remove the sdl dependency, you will probably need to install SDL2 even if you
 only want to use tcell for the terminal.*
+
+# See also
+
+If you need to handle wide-characters, that is characters that take two cells
+in the terminal, you may want to look into
+[go-runewidth](https://github.com/mattn/go-runewidth).
+
+The [clipboard](https://github.com/atotto/clipboard) module may be of interest
+for some applications too, as copying and pasting is not handled by gruid. Note
+that, at this time, the clipboard module does not support the js platform, but
+there's at least one fork that does.
+
+As gruid does not still cover map generation, you may be interested in the
+[dngn](https://github.com/SolarLune/dngn) module, which provides a few map
+generation algoritms, though its conventions for representing positions are
+somewhat different.
