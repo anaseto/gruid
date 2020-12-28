@@ -68,5 +68,5 @@ there's at least one fork that does.
 
 As gruid does not still cover map generation, you may be interested in the
 [dngn](https://github.com/SolarLune/dngn) module, which provides a few map
-generation algoritms, though its conventions for representing positions are
+generation algorithms, though its conventions for representing positions are
 somewhat different.
