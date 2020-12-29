@@ -24,7 +24,7 @@ func NewFrameDecoder(r io.Reader) (*FrameDecoder, error) {
 	var err error
 	fd.gzr, err = gzip.NewReader(r)
 	if err != nil {
-		return nil, fmt.Errorf("video decoding: gzip: %v", err)
+		return nil, fmt.Errorf("frame decoding: gzip: %v", err)
 	}
 	fd.gbd = gob.NewDecoder(fd.gzr)
 	return fd, nil
