@@ -187,6 +187,12 @@ func TestCopy(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestCopy2(t *testing.T) {
+	gd := NewGrid(80, 10)
+	max := gd.Size()
+	w, h := max.X, max.Y
 	gd.Fill(Cell{Rune: '.'})
 	rg := gd.rg
 	slice := gd.Slice(rg.Lines(1, 3))
@@ -220,7 +226,17 @@ func TestCopy(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestCopy3(t *testing.T) {
+	gd := NewGrid(80, 10)
+	max := gd.Size()
+	w, h := max.X, max.Y
 	gd.Fill(Cell{Rune: '.'})
+	rg := gd.rg
+	slice := gd.Slice(rg.Lines(1, 3))
+	slice2 := gd.Slice(rg.Line(2))
+	slice3 := gd.Slice(rg.Lines(2, 4))
 	slice.Fill(Cell{Rune: '1'})  // line 1
 	slice3.Fill(Cell{Rune: '3'}) // line 3
 	slice2.Fill(Cell{Rune: '2'}) // line 2
@@ -249,7 +265,17 @@ func TestCopy(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestCopy4(t *testing.T) {
+	gd := NewGrid(80, 10)
+	max := gd.Size()
+	w, h := max.X, max.Y
 	gd.Fill(Cell{Rune: '.'})
+	rg := gd.rg
+	slice := gd.Slice(rg.Lines(1, 3))
+	slice2 := gd.Slice(rg.Line(2))
+	slice3 := gd.Slice(rg.Lines(2, 4))
 	slice.Fill(Cell{Rune: '1'})  // line 1
 	slice3.Fill(Cell{Rune: '3'}) // line 3
 	slice2.Fill(Cell{Rune: '2'}) // line 2
@@ -278,7 +304,17 @@ func TestCopy(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestCopy5(t *testing.T) {
+	gd := NewGrid(80, 10)
+	max := gd.Size()
+	w, h := max.X, max.Y
 	gd.Fill(Cell{Rune: '.'})
+	rg := gd.rg
+	slice := gd.Slice(rg.Lines(1, 3))
+	slice2 := gd.Slice(rg.Line(2))
+	slice3 := gd.Slice(rg.Lines(2, 4))
 	slice.Fill(Cell{Rune: '1'})  // line 1
 	slice3.Fill(Cell{Rune: '3'}) // line 3
 	slice2.Fill(Cell{Rune: '2'}) // line 2
@@ -307,7 +343,17 @@ func TestCopy(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestCopy6(t *testing.T) {
+	gd := NewGrid(80, 10)
+	max := gd.Size()
+	w, h := max.X, max.Y
 	gd.Fill(Cell{Rune: '.'})
+	rg := gd.rg
+	slice := gd.Slice(rg.Lines(1, 3))
+	slice2 := gd.Slice(rg.Line(2))
+	slice3 := gd.Slice(rg.Lines(2, 4))
 	slice.Fill(Cell{Rune: '1'})  // line 1
 	slice3.Fill(Cell{Rune: '3'}) // line 3
 	slice2.Fill(Cell{Rune: '2'}) // line 2
@@ -336,7 +382,17 @@ func TestCopy(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestCopy7(t *testing.T) {
+	gd := NewGrid(80, 10)
+	max := gd.Size()
+	w, h := max.X, max.Y
 	gd.Fill(Cell{Rune: '.'})
+	rg := gd.rg
+	slice := gd.Slice(rg.Lines(1, 3))
+	slice2 := gd.Slice(rg.Line(2))
+	slice3 := gd.Slice(rg.Lines(2, 4))
 	slice.Fill(Cell{Rune: '1'})  // line 1
 	slice3.Fill(Cell{Rune: '3'}) // line 3
 	slice2.Fill(Cell{Rune: '2'}) // line 2
