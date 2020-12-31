@@ -137,6 +137,9 @@ func (pg *Pager) SetLines(lines []string) {
 	pg.lines = lines
 	if pg.index+nlines-1 >= len(pg.lines) {
 		pg.index = len(pg.lines) - nlines
+		if pg.index <= 0 {
+			pg.index = 0
+		}
 	}
 	pg.dirty = true
 }
