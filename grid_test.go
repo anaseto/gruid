@@ -422,3 +422,108 @@ func TestCopy7(t *testing.T) {
 		}
 	}
 }
+
+func TestCell(t *testing.T) {
+	c := Cell{}
+	if c.WithRune('x').Rune != 'x' {
+		t.Errorf("bad rune: %c", c.WithRune('x').Rune)
+	}
+	st := Style{Fg: 1, Bg: 2, Attrs: 3}
+	if c.WithStyle(st).Style != st {
+		t.Errorf("bad style: %+v", st)
+	}
+	if st.WithFg(4).Fg != Color(4) {
+		t.Errorf("bad fg: %+v", st.WithFg(4).Fg)
+	}
+	if st.WithBg(4).Bg != Color(4) {
+		t.Errorf("bad fg: %+v", st.WithBg(4).Bg)
+	}
+	if st.WithAttrs(4).Attrs != AttrMask(4) {
+		t.Errorf("bad fg: %+v", st.WithBg(4).Bg)
+	}
+}
+
+func TestPoint(t *testing.T) {
+	p := Point{2, 3}
+	if p.Mul(3).X != 6 {
+		t.Errorf("bad mul: %v", p.Mul(3))
+	}
+	if p.Div(2).X != 1 {
+		t.Errorf("bad mul: %v", p.Div(2))
+	}
+}
+
+func TestRangeShift(t *testing.T) {
+	rg := NewRange(1, 2, 3, 4)
+	nrg := NewRange(2, 3, 4, 5)
+	if rg.Shift(1, 1, 1, 1) != nrg {
+		t.Errorf("bad shift: %v", rg.Shift(1, 1, 1, 1))
+	}
+	empty := Range{}
+	if rg.Shift(0, 0, -5, 0) != empty {
+		t.Errorf("bad shift: %v", rg.Shift(0, 0, -5, 0))
+	}
+	if rg.Shift(0, 0, 0, -5) != empty {
+		t.Errorf("bad shift: %v", rg.Shift(0, 0, 0, -5))
+	}
+	if rg.Add(Point{1, 1}) != nrg {
+		t.Errorf("bad add: %v", rg.Add(Point{1, 1}))
+	}
+}
+
+func TestRangeColumnsLines(t *testing.T) {
+	rg := NewRange(1, 1, 30, 30)
+	if rg.Columns(4, 10).Size().X != 6 {
+		t.Errorf("bad number of columns for range %v", rg.Columns(4, 10).Size().Y)
+	}
+	if rg.Columns(4, 10).Min.X != 5 {
+		t.Errorf("bad min.X for range %v", rg.Columns(4, 10).Min.X)
+	}
+	if rg.Lines(4, 10).Size().Y != 6 {
+		t.Errorf("bad number of columns for range %v", rg.Columns(4, 10).Size().Y)
+	}
+	if rg.Lines(4, 10).Min.Y != 5 {
+		t.Errorf("bad min.X for range %v", rg.Columns(4, 10).Min.Y)
+	}
+	if !rg.Column(200).Empty() {
+		t.Errorf("not empty column")
+	}
+	if !rg.Line(200).Empty() {
+		t.Errorf("not empty line")
+	}
+}
+
+func TestRangeEq(t *testing.T) {
+	rg := NewRange(1, 2, 3, 4)
+	if !rg.Eq(rg) {
+		t.Errorf("bad reflexive Eq for %v", rg)
+	}
+	if rg.Eq(rg.Shift(1, 0, 0, 0)) {
+		t.Errorf("bad shift Eq for %v", rg)
+	}
+	erg := Range{Point{2, 3}, Point{-1, -4}}
+	empty := Range{}
+	if !erg.Eq(empty) {
+		t.Errorf("bad empty range equality")
+	}
+}
+
+func TestRangeUnion(t *testing.T) {
+	rg := NewRange(1, 2, 3, 4)
+	org := NewRange(11, 12, 13, 14)
+	union := NewRange(1, 2, 13, 14)
+	if rg.Union(org) != union {
+		t.Errorf("bad Union")
+	}
+	if !rg.In(union) {
+		t.Errorf("bad In")
+	}
+}
+
+func TestBounds(t *testing.T) {
+	gd := NewGrid(10, 10)
+	slice := gd.Slice(NewRange(2, 2, 4, 4))
+	if slice.Bounds() != NewRange(2, 2, 4, 4) {
+		t.Errorf("bad Bounds %v", slice.Bounds())
+	}
+}

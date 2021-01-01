@@ -1,6 +1,7 @@
 package gruid
 
 import (
+	"bytes"
 	"context"
 	"testing"
 )
@@ -9,30 +10,47 @@ type testModel struct {
 	gd    Grid
 	count int
 	quit  bool
+	draw  bool
+	test  int
 }
+
+type testMsg int
 
 const niter = 90
 
 func (tm *testModel) Update(msg Msg) Effect {
-	if tm.quit {
-		return nil
-	}
+	tm.draw = true
 	switch msg := msg.(type) {
 	case MsgInit:
+		cmd := Cmd(func() Msg {
+			return testMsg(1)
+		})
+		return Batch(cmd, cmd)
+	case testMsg:
+		tm.test++
+		if tm.test == 2 && tm.quit {
+			return End()
+		}
 	case MsgKeyDown:
+		if tm.quit {
+			return nil
+		}
 		switch msg.Key {
 		case KeyEnter:
 			tm.count++
 		case KeyEscape:
+			tm.draw = false
 			tm.quit = true
-			return End()
+			if tm.test == 2 {
+				return End()
+			}
 		}
 	}
 	return nil
 }
 
 func (tm *testModel) Draw() Grid {
-	if tm.quit {
+	if !tm.draw || tm.quit {
 		return tm.gd.Slice(Range{})
 	}
 	if tm.count%3 == 0 {
@@ -58,8 +76,12 @@ func (td *testDriver) Init() error {
 func (td *testDriver) PollMsgs(ctx context.Context, msgs chan<- Msg) error {
 	count := 0
 	for {
-		msg := MsgKeyDown{Key: KeyEnter}
+		var msg Msg
+		msg = MsgKeyDown{Key: KeyEnter}
 		if count == niter {
+			msg = MsgScreen{}
+		}
+		if count == niter+1 {
 			msg = MsgKeyDown{Key: KeyEscape}
 		}
 		select {
@@ -86,9 +108,11 @@ func TestApp(t *testing.T) {
 	gd := NewGrid(8, 4)
 	m := &testModel{gd: gd}
 	td := &testDriver{t: t}
+	framebuf := &bytes.Buffer{} // for compressed recording
 	app := NewApp(AppConfig{
-		Driver: td,
-		Model:  m,
+		Driver:      td,
+		Model:       m,
+		FrameWriter: framebuf,
 	})
 	if err := app.Start(context.Background()); err != nil {
 		t.Errorf("Start returns error: %v", err)
@@ -96,7 +120,7 @@ func TestApp(t *testing.T) {
 	if m.count != niter {
 		t.Errorf("bad count: %d", m.count)
 	}
-	if td.count != 1+2*niter/3 {
+	if td.count != 1+1+2*niter/3 {
 		t.Errorf("bad driver count: %d", td.count)
 	}
 	m.gd.Iter(func(p Point, c Cell) {

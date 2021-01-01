@@ -133,11 +133,8 @@ func (rg Range) Size() Point {
 // Shift returns a new range with coordinates shifted by (x0,y0) and (x1,y1).
 func (rg Range) Shift(x0, y0, x1, y1 int) Range {
 	rg = Range{Min: rg.Min.Shift(x0, y0), Max: rg.Max.Shift(x1, y1)}
-	if rg.Min.X > rg.Max.X {
-		rg.Min.X = rg.Max.X
-	}
-	if rg.Min.Y > rg.Max.Y {
-		rg.Max.Y = rg.Min.Y
+	if rg.Empty() {
+		return Range{}
 	}
 	return rg
 }
