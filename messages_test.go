@@ -28,7 +28,7 @@ func TestModMask(t *testing.T) {
 	}
 }
 
-func TestRelMsg(t *testing.T) {
+func TestMouseMsg(t *testing.T) {
 	m := MsgMouse{}
 	m.P = Point{7, 6}
 	rg := NewRange(5, 5, 20, 20)
@@ -36,5 +36,8 @@ func TestRelMsg(t *testing.T) {
 	p := Point{2, 1}
 	if nm.P != p {
 		t.Errorf("bad relative position: %v", nm.P)
+	}
+	if m.Action.String() != "MouseMain" {
+		t.Errorf("bad action")
 	}
 }

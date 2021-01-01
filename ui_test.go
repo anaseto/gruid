@@ -131,6 +131,19 @@ func TestApp(t *testing.T) {
 	if !td.closed || !td.init {
 		t.Errorf("not closed or not init")
 	}
+	dec, err := NewFrameDecoder(framebuf)
+	if err != nil {
+		t.Errorf("frame decoding %v", err)
+	}
+	count := 0
+	_, err = dec.Decode()
+	for err == nil {
+		count++
+		_, err = dec.Decode()
+	}
+	if count != td.count {
+		t.Errorf("bad frame count: %d vs %d", count, td.count)
+	}
 }
 
 func TestApp2(t *testing.T) {
