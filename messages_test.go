@@ -7,6 +7,9 @@ func TestKey(t *testing.T) {
 	if !Key("b").In(keys) {
 		t.Error("not in keys")
 	}
+	if Key(KeyEscape).In(keys) {
+		t.Error("escape in keys")
+	}
 	if !Key("b").IsRune() {
 		t.Error("not rune")
 	}

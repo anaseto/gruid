@@ -166,6 +166,13 @@ func TestGridSlice(t *testing.T) {
 	}
 }
 
+func TestGridSlice2(t *testing.T) {
+	gd := NewGrid(10, 10)
+	if gd.Slice(NewRange(-5, -5, 20, 20)).Range() != gd.Range() {
+		t.Errorf("bad oversized slice")
+	}
+}
+
 func TestCopy(t *testing.T) {
 	gd := NewGrid(80, 30)
 	max := gd.Size()
@@ -420,6 +427,13 @@ func TestCopy7(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestCopy8(t *testing.T) {
+	gd := NewGrid(80, 10)
+	if gd.Copy(gd) != gd.Range().Size() {
+		t.Errorf("bad same range copy")
 	}
 }
 

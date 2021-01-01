@@ -25,10 +25,10 @@ func (tm *testModel) Update(msg Msg) Effect {
 		cmd := Cmd(func() Msg {
 			return testMsg(1)
 		})
-		return Batch(cmd, cmd)
+		return Batch(cmd, cmd, Sub(func(ctx context.Context, msgs chan<- Msg) { msgs <- testMsg(1) }))
 	case testMsg:
 		tm.test++
-		if tm.test == 2 && tm.quit {
+		if tm.test == 3 && tm.quit {
 			return End()
 		}
 	case MsgKeyDown:
@@ -41,7 +41,7 @@ func (tm *testModel) Update(msg Msg) Effect {
 		case KeyEscape:
 			tm.draw = false
 			tm.quit = true
-			if tm.test == 2 {
+			if tm.test == 3 {
 				return End()
 			}
 		}
