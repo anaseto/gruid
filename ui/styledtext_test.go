@@ -39,6 +39,10 @@ func TestFormat(t *testing.T) {
 	if newlines != 2 {
 		t.Errorf("bad formatted text number of lines: %d. Text:\n%s", newlines, stt.Text())
 	}
+	spaces := strings.Count(stt.Text(), " ")
+	if spaces != 2 {
+		t.Errorf("bad formatted text number of spaces: %d. Text:\n%s", spaces, stt.Text())
+	}
 	if max.X != 9 || max.Y != 3 {
 		t.Errorf("bad formatted text size: %v. Text:\n%s", max, stt.Text())
 	}
@@ -83,6 +87,20 @@ func TestFormat4(t *testing.T) {
 	}
 	if max.X != 4 || max.Y != 5 {
 		t.Errorf("bad formatted text size: %v. Text:\n%s", max, stt.Text())
+	}
+}
+
+func TestFormat5(t *testing.T) {
+	text := "word word word word word"
+	stt := NewStyledText(text)
+	stt = stt.Format(20)
+	newlines := strings.Count(stt.Text(), "\n")
+	if newlines != 1 {
+		t.Errorf("bad formatted text number of lines: %d. Text:\n%s", newlines, stt.Text())
+	}
+	spaces := strings.Count(stt.Text(), " ")
+	if spaces != 3 {
+		t.Errorf("bad formatted text number of spaces: %d. Text:\n%s", spaces, stt.Text())
 	}
 }
 
