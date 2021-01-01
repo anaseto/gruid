@@ -61,8 +61,8 @@ func (st Style) WithBg(cl Color) Style {
 }
 
 // WithAttrs returns a derived style with new attributes.
-func (st Style) WithAttrs(cl Color) Style {
-	st.Bg = cl
+func (st Style) WithAttrs(attrs AttrMask) Style {
+	st.Attrs = attrs
 	return st
 }
 
