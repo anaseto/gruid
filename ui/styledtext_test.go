@@ -104,6 +104,15 @@ func TestFormat5(t *testing.T) {
 	}
 }
 
+func TestFormat6(t *testing.T) {
+	text := "word word word word word"
+	stt := NewStyledText(text)
+	stt = stt.Format(10)
+	if stt.Text() != stt.Format(10).Text() {
+		t.Errorf("not idempotent:\n[%v]\n[%v]", stt.Text(), stt.Format(10).Text())
+	}
+}
+
 func TestFormatWithMarkup(t *testing.T) {
 	text := "word @cword@N word word word"
 	st := gruid.Style{}

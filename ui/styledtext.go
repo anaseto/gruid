@@ -161,8 +161,10 @@ func (stt StyledText) Format(width int) StyledText {
 		}
 		if r == '\n' {
 			if wlen > 0 {
-				if col+wlen > width && wantspace {
+				if 1+col+wlen > width && wantspace {
 					pbuf.WriteRune('\n')
+				} else if wantspace {
+					pbuf.WriteRune(' ')
 				}
 				pbuf.Write(wordbuf.Bytes())
 				wordbuf.Reset()
