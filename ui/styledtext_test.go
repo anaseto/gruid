@@ -109,3 +109,15 @@ func TestFormatWithMarkup(t *testing.T) {
 		t.Errorf("bad formatted text size: %v. Text:\n%s", max, stt.Text())
 	}
 }
+
+func TestSizeMarkup(t *testing.T) {
+	st := gruid.Style{}
+	stt := NewStyledText("@t•@N ").WithMarkup('t', st)
+	if stt.Size().X != 2 || stt.Size().Y != 1 {
+		t.Errorf("bad size: %v", stt.Size())
+	}
+	stt = stt.Format(10)
+	if stt.Size().X != 1 || stt.Size().Y != 1 {
+		t.Errorf("bad size: %v", stt.Size())
+	}
+}
