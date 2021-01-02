@@ -41,7 +41,6 @@ type Driver struct {
 	window      *sdl.Window
 	renderer    *sdl.Renderer
 	textures    map[gruid.Cell]*sdl.Texture
-	surfaces    map[gruid.Cell]*sdl.Surface
 	mousepos    gruid.Point
 	mousedrag   gruid.MouseAction
 	init        bool
@@ -206,7 +205,6 @@ func (dr *Driver) Init() error {
 		sdl.SetTextInputRect(&rect)
 	}
 	dr.textures = make(map[gruid.Cell]*sdl.Texture)
-	dr.surfaces = make(map[gruid.Cell]*sdl.Surface)
 	dr.mousedrag = -1
 	dr.init = true
 	return nil
@@ -565,12 +563,12 @@ func (dr *Driver) draw(cell gruid.Cell, x, y int) {
 			log.Println(err)
 			return
 		}
-		dr.surfaces[cell] = sf
 		tx, err = dr.renderer.CreateTextureFromSurface(sf)
 		if err != nil {
 			log.Println(err)
 			return
 		}
+		sf.Free()
 		dr.textures[cell] = tx
 	}
 	rect := sdl.Rect{X: int32(x) * dr.tw, Y: int32(y) * dr.th, W: dr.tw, H: dr.th}
@@ -586,7 +584,6 @@ func (dr *Driver) Close() {
 		return
 	}
 	dr.ClearCache()
-	dr.surfaces = nil
 	dr.textures = nil
 	if !dr.noQuit {
 		sdl.StopTextInput()
@@ -606,10 +603,6 @@ func (dr *Driver) Close() {
 
 // ClearCache clears the tile textures internal cache.
 func (dr *Driver) ClearCache() {
-	for i, s := range dr.surfaces {
-		s.Free()
-		delete(dr.surfaces, i)
-	}
 	for i, s := range dr.textures {
 		err := s.Destroy()
 		if err != nil {
