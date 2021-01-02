@@ -323,7 +323,7 @@ type FrameCell struct {
 
 // NewGrid returns a new grid with given width and height in cells. The width
 // and height should be positive or null. The new grid contains all positions
-// (X,Y) with 0 <= X < w and 0 <= Y < h.
+// (X,Y) with 0 <= X < w and 0 <= Y < h. The grid is filled with Cell{Rune: ' '}.
 func NewGrid(w, h int) Grid {
 	gd := Grid{}
 	gd.ug = &grid{}
@@ -381,7 +381,8 @@ func (gd Grid) Size() Point {
 
 // Resize is similar to Slice, but it only specifies new dimensions, and if the
 // range goes beyond the underlying original grid range, it will grow the
-// underlying grid.
+// underlying grid. In case of growth, it preserves the content, and new cells
+// are initialized to Cell{Rune: ' '}.
 func (gd Grid) Resize(w, h int) Grid {
 	max := gd.Size()
 	ow, oh := max.X, max.Y
