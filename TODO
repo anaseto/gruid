@@ -1,5 +1,5 @@
 ----- TODO
-add more tests
+add more tests (always)
 add map generation utilities package?
 add field of view package?
 add ecs package? (probably not: easy to reimplement and not easy to do generically without code generation)

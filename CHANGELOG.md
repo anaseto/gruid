@@ -1,3 +1,12 @@
+## v0.5.0 - 2020-12-02
+
++ New Iter method for styled text.
++ Made pager's horizontal scrolling markup-aware.
++ Disable any markups in the text input widget (it doesn't make really sense there).
++ Fixed a potential crash with SetLines for pager.
++ Fixed issue with formatting of already multi-line styled text.
++ Added many tests.
+
 ## v0.4.0 - 2020-12-29
 
 + New EXPERIMENTAL rl package. It currently just offers an event priority queue.
