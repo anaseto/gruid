@@ -1,53 +1,84 @@
 // Package paths provides utilities for efficient pathfinding in rectangular maps.
 package paths
 
-import "github.com/anaseto/gruid"
+import (
+	"bytes"
+	"encoding/gob"
+
+	"github.com/anaseto/gruid"
+)
 
 // PathRange allows for efficient path finding within a range. It caches
 // structures, so that they can be reused without further memory allocations.
+//
+// It implements gob.Encoder and gob.Decoder for easy serialization.
 type PathRange struct {
-	rg            gruid.Range
-	astarNodes    *nodeMap
-	astarQueue    priorityQueue
-	dijkstraNodes *nodeMap // dijkstra map
-	dijkstraQueue priorityQueue
-	iterNodeCache []Node
-	dijkstra      Dijkstra // used by MapIter
-	bfmap         []bfNode // breadth first map
-	bfqueue       []int
-	bfunreachable int      // last maxcost + 1
-	bfidx         int      // bf map number
-	cc            []ccNode // connected components
-	ccstack       []int
-	ccidx         int // cc map number
-	ccIterCache   []int
-	neighbors     Pather
+	pathRange
+}
+
+type pathRange struct {
+	Rg            gruid.Range
+	AstarNodes    *nodeMap
+	AstarQueue    priorityQueue
+	DijkstraNodes *nodeMap // dijkstra map
+	DijkstraQueue priorityQueue
+	IterNodeCache []Node
+	Bfmap         []bfNode // breadth first map
+	Bfqueue       []int
+	Bfunreachable int      // last maxcost + 1
+	Bfidx         int      // bf map number
+	CC            []ccNode // connected components
+	CCstack       []int
+	CCidx         int // cc map number
+	CCIterCache   []int
+}
+
+// GobDecode implements gob.GobDecoder.
+func (pr *PathRange) GobDecode(bs []byte) error {
+	r := bytes.NewReader(bs)
+	gd := gob.NewDecoder(r)
+	ipr := &pathRange{}
+	err := gd.Decode(ipr)
+	if err != nil {
+		return err
+	}
+	pr.pathRange = *ipr
+	return nil
+}
+
+// GobEncode implements gob.GobEncoder.
+func (pr *PathRange) GobEncode() ([]byte, error) {
+	buf := bytes.Buffer{}
+	ge := gob.NewEncoder(&buf)
+	err := ge.Encode(&pr.pathRange)
+	return buf.Bytes(), err
 }
 
 // NewPathRange returns a new PathFinder for positions in a given range,
 // such as the range occupied by the whole map, or a part of it.
 func NewPathRange(rg gruid.Range) *PathRange {
 	pr := &PathRange{}
-	pr.rg = rg
+	pr.Rg = rg
 	return pr
 }
 
 // SetRange updates the range used by the PathFinder. If the size is the same,
 // cached structures will be preserved, otherwise they will be reinitialized.
 func (pr *PathRange) SetRange(rg gruid.Range) {
-	org := pr.rg
-	pr.rg = rg
+	org := pr.Rg
+	pr.Rg = rg
 	max := rg.Size()
 	omax := org.Size()
 	if max == omax {
 		return
 	}
-	*pr = PathRange{rg: rg}
+	*pr = PathRange{}
+	pr.Rg = rg
 }
 
 func (pr *PathRange) idx(p gruid.Point) int {
-	p = p.Sub(pr.rg.Min)
-	w := pr.rg.Size().X
+	p = p.Sub(pr.Rg.Min)
+	w := pr.Rg.Size().X
 	return p.Y*w + p.X
 }
 

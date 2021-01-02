@@ -8,19 +8,19 @@ import "github.com/anaseto/gruid"
 // breadth first map, that will be invalidated in case a new one is computed
 // using the same PathFinder.
 func (pr *PathRange) CostAt(p gruid.Point) int {
-	if !p.In(pr.rg) || pr.bfmap == nil {
-		return pr.bfunreachable
+	if !p.In(pr.Rg) || pr.Bfmap == nil {
+		return pr.Bfunreachable
 	}
-	node := pr.bfmap[pr.idx(p)]
-	if node.idx != pr.bfidx {
-		return pr.bfunreachable
+	node := pr.Bfmap[pr.idx(p)]
+	if node.Idx != pr.Bfidx {
+		return pr.Bfunreachable
 	}
-	return node.cost
+	return node.Cost
 }
 
 type bfNode struct {
-	idx  int // map number (for caching)
-	cost int // path cost from source
+	Idx  int // map number (for caching)
+	Cost int // path cost from source
 }
 
 // BreadthFirstMap efficiently computes a map of minimal distance costs from
@@ -30,42 +30,42 @@ type bfNode struct {
 // with a cost function that returns 1 for all neighbors, but it is more
 // efficient.
 func (pr *PathRange) BreadthFirstMap(nb Pather, sources []gruid.Point, maxCost int) {
-	max := pr.rg.Size()
+	max := pr.Rg.Size()
 	w, h := max.X, max.Y
-	if pr.bfmap == nil {
-		pr.bfmap = make([]bfNode, w*h)
-		pr.bfqueue = make([]int, w*h)
+	if pr.Bfmap == nil {
+		pr.Bfmap = make([]bfNode, w*h)
+		pr.Bfqueue = make([]int, w*h)
 	}
-	pr.bfidx++
+	pr.Bfidx++
 	var qstart, qend int
-	pr.bfunreachable = maxCost + 1
+	pr.Bfunreachable = maxCost + 1
 	for _, p := range sources {
-		if !p.In(pr.rg) {
+		if !p.In(pr.Rg) {
 			continue
 		}
 		idx := pr.idx(p)
-		pr.bfmap[idx].cost = 0
-		pr.bfmap[idx].idx = pr.bfidx
-		pr.bfqueue[qend] = idx
+		pr.Bfmap[idx].Cost = 0
+		pr.Bfmap[idx].Idx = pr.Bfidx
+		pr.Bfqueue[qend] = idx
 		qend++
 	}
 	for qstart < qend {
-		cidx := pr.bfqueue[qstart]
+		cidx := pr.Bfqueue[qstart]
 		qstart++
-		if pr.bfmap[cidx].cost >= maxCost {
+		if pr.Bfmap[cidx].Cost >= maxCost {
 			continue
 		}
 		cpos := idxToPos(cidx, w)
 		for _, q := range nb.Neighbors(cpos) {
-			if !q.In(pr.rg) {
+			if !q.In(pr.Rg) {
 				continue
 			}
 			nidx := pr.idx(q)
-			if pr.bfmap[nidx].idx != pr.bfidx {
-				pr.bfqueue[qend] = nidx
+			if pr.Bfmap[nidx].Idx != pr.Bfidx {
+				pr.Bfqueue[qend] = nidx
 				qend++
-				pr.bfmap[nidx].cost = 1 + pr.bfmap[cidx].cost
-				pr.bfmap[nidx].idx = pr.bfidx
+				pr.Bfmap[nidx].Cost = 1 + pr.Bfmap[cidx].Cost
+				pr.Bfmap[nidx].Idx = pr.Bfidx
 			}
 		}
 	}

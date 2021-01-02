@@ -22,22 +22,21 @@ type Dijkstra interface {
 // maximal cost from those sources. The resulting map can then be iterated with
 // Iter.
 func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost int) {
-	if pr.dijkstraNodes == nil {
-		pr.dijkstraNodes = &nodeMap{}
-		max := pr.rg.Size()
-		pr.dijkstraNodes.Nodes = make([]node, max.X*max.Y)
-		pr.dijkstraQueue = make(priorityQueue, 0, max.X*max.Y)
-		pr.iterNodeCache = []Node{}
+	if pr.DijkstraNodes == nil {
+		pr.DijkstraNodes = &nodeMap{}
+		max := pr.Rg.Size()
+		pr.DijkstraNodes.Nodes = make([]node, max.X*max.Y)
+		pr.DijkstraQueue = make(priorityQueue, 0, max.X*max.Y)
+		pr.IterNodeCache = []Node{}
 	}
-	pr.iterNodeCache = pr.iterNodeCache[:0]
-	nm := pr.dijkstraNodes
-	pr.dijkstra = dij
+	pr.IterNodeCache = pr.IterNodeCache[:0]
+	nm := pr.DijkstraNodes
 	nm.Index++
-	nqs := pr.dijkstraQueue[:0]
+	nqs := pr.DijkstraQueue[:0]
 	nq := &nqs
 	heap.Init(nq)
 	for _, f := range sources {
-		if !f.In(pr.rg) {
+		if !f.In(pr.Rg) {
 			continue
 		}
 		n := nm.get(pr, f)
@@ -51,10 +50,10 @@ func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost in
 		n := heap.Pop(nq).(*node)
 		n.Open = false
 		n.Closed = true
-		pr.iterNodeCache = append(pr.iterNodeCache, Node{P: n.P, Cost: n.Cost})
+		pr.IterNodeCache = append(pr.IterNodeCache, Node{P: n.P, Cost: n.Cost})
 
 		for _, nb := range dij.Neighbors(n.P) {
-			if !nb.In(pr.rg) {
+			if !nb.In(pr.Rg) {
 				continue
 			}
 			cost := n.Cost + dij.Cost(n.P, nb)
@@ -95,7 +94,7 @@ func idxToPos(i, w int) gruid.Point {
 // DijkstraMap methods on the same PathFinder within the iteration function, as
 // that could invalidate the iteration state.
 func (pr *PathRange) MapIter(f func(Node)) {
-	for _, n := range pr.iterNodeCache {
+	for _, n := range pr.IterNodeCache {
 		f(n)
 	}
 }

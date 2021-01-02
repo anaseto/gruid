@@ -49,18 +49,18 @@ type Astar interface {
 // AstarPath return a path from a position to another, including thoses
 // positions, in the path order. It returns nil if no path was found.
 func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
-	if !from.In(pr.rg) || !to.In(pr.rg) {
+	if !from.In(pr.Rg) || !to.In(pr.Rg) {
 		return nil
 	}
-	if pr.astarNodes == nil {
-		pr.astarNodes = &nodeMap{}
-		max := pr.rg.Size()
-		pr.astarNodes.Nodes = make([]node, max.X*max.Y)
-		pr.astarQueue = make(priorityQueue, 0, max.X*max.Y)
+	if pr.AstarNodes == nil {
+		pr.AstarNodes = &nodeMap{}
+		max := pr.Rg.Size()
+		pr.AstarNodes.Nodes = make([]node, max.X*max.Y)
+		pr.AstarQueue = make(priorityQueue, 0, max.X*max.Y)
 	}
-	nm := pr.astarNodes
+	nm := pr.AstarNodes
 	nm.Index++
-	nqs := pr.astarQueue[:0]
+	nqs := pr.AstarQueue[:0]
 	nq := &nqs
 	heap.Init(nq)
 	fromNode := nm.get(pr, from)
@@ -95,7 +95,7 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 		}
 
 		for _, nb := range ast.Neighbors(n.P) {
-			if !nb.In(pr.rg) {
+			if !nb.In(pr.Rg) {
 				continue
 			}
 			cost := n.Cost + ast.Cost(n.P, nb)

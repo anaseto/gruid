@@ -1,8 +1,10 @@
 package paths
 
 import (
+	"bytes"
 	"testing"
 
+	"encoding/gob"
 	"github.com/anaseto/gruid"
 )
 
@@ -21,11 +23,61 @@ func (nb npath) Cost(p, q gruid.Point) int {
 	return 2
 }
 
+func abs(x int) int {
+	if x < 0 {
+		return -x
+	}
+	return x
+}
+
+func (nb npath) Estimation(p, q gruid.Point) int {
+	r := p.Sub(q)
+	return abs(r.X) + abs(r.Y)
+}
+
+func TestAstar(t *testing.T) {
+	pr := NewPathRange(gruid.NewRange(0, 0, 10, 5))
+	nb := npath{}
+	path := pr.AstarPath(nb, gruid.Point{0, 0}, gruid.Point{4, 0})
+	if len(path) != 5 {
+		t.Errorf("bad length: %d", len(path))
+	}
+	path = pr.AstarPath(nb, gruid.Point{0, 0}, gruid.Point{0, 1})
+	if len(path) != 0 {
+		t.Errorf("not empty path: %d", len(path))
+	}
+}
+
+func TestGob(t *testing.T) {
+	pr := NewPathRange(gruid.NewRange(0, 0, 10, 5))
+	nb := npath{}
+	path := pr.AstarPath(nb, gruid.Point{0, 0}, gruid.Point{4, 0})
+	if len(path) != 5 {
+		t.Errorf("bad length: %d", len(path))
+	}
+	buf := bytes.Buffer{}
+	ge := gob.NewEncoder(&buf)
+	err := ge.Encode(pr)
+	if err != nil {
+		t.Error(err)
+	}
+	pr = &PathRange{}
+	gd := gob.NewDecoder(&buf)
+	err = gd.Decode(pr)
+	if err != nil {
+		t.Error(err)
+	}
+	path = pr.AstarPath(nb, gruid.Point{0, 0}, gruid.Point{5, 0})
+	if len(path) != 6 {
+		t.Errorf("bad length: %d", len(path))
+	}
+}
+
 func TestCCBf(t *testing.T) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 10, 5))
 	nb := npath{}
 	pr.ComputeCCAll(nb)
-	rg := pr.rg
+	rg := pr.Rg
 	p := gruid.Point{X: rg.Min.X, Y: rg.Min.Y}
 	id := pr.CCAt(p)
 	for y := rg.Min.Y + 1; y < rg.Max.Y; y++ {
