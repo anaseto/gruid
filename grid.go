@@ -439,7 +439,7 @@ func (gd Grid) Set(p Point, c Cell) {
 }
 
 // At returns the cell content and styling at a given position. If the position
-// is out of range, it returns de zero value.
+// is out of range, it returns the zero value.
 func (gd Grid) At(p Point) Cell {
 	if !gd.Contains(p) {
 		return Cell{}
