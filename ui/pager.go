@@ -130,10 +130,7 @@ func (pg *Pager) SetBox(b *Box) {
 
 // SetLines updates the pager text lines.
 func (pg *Pager) SetLines(lines []string) {
-	nlines := pg.grid.Size().Y
-	if pg.box != nil {
-		nlines -= 2
-	}
+	nlines := pg.nlines()
 	pg.lines = lines
 	if pg.index+nlines-1 >= len(pg.lines) {
 		pg.index = len(pg.lines) - nlines
@@ -142,6 +139,14 @@ func (pg *Pager) SetLines(lines []string) {
 		}
 	}
 	pg.dirty = true
+}
+
+func (pg *Pager) nlines() int {
+	nlines := pg.grid.Size().Y
+	if pg.box != nil {
+		nlines -= 2
+	}
+	return nlines
 }
 
 // View returns a range (Min, Max) such that the currently displayed lines are
@@ -164,10 +169,7 @@ func (pg *Pager) View() gruid.Range {
 }
 
 func (pg *Pager) down(shift int) {
-	nlines := pg.grid.Size().Y
-	if pg.box != nil {
-		nlines -= 2
-	}
+	nlines := pg.nlines()
 	if pg.index+nlines+shift-1 >= len(pg.lines) {
 		shift = len(pg.lines) - pg.index - nlines
 	}
@@ -184,6 +186,43 @@ func (pg *Pager) up(shift int) {
 	if shift > 0 {
 		pg.action = PagerMove
 		pg.index -= shift
+	}
+}
+
+func (pg *Pager) right() {
+	pg.action = PagerMove
+	pg.x += 8
+}
+
+func (pg *Pager) left() {
+	if pg.x > 0 {
+		pg.action = PagerMove
+		pg.x -= 8
+		if pg.x <= 0 {
+			pg.x = 0
+		}
+	}
+}
+
+func (pg *Pager) lineStart() {
+	if pg.x > 0 {
+		pg.action = PagerMove
+		pg.x = 0
+	}
+}
+
+func (pg *Pager) top() {
+	if pg.index != 0 {
+		pg.index = 0
+		pg.action = PagerMove
+	}
+}
+
+func (pg *Pager) bottom() {
+	nlines := pg.nlines()
+	if pg.index != len(pg.lines)-nlines {
+		pg.index = len(pg.lines) - nlines
+		pg.action = PagerMove
 	}
 }
 
@@ -209,10 +248,6 @@ func (pg *Pager) Update(msg gruid.Msg) gruid.Effect {
 }
 
 func (pg *Pager) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
-	nlines := pg.grid.Size().Y
-	if pg.box != nil {
-		nlines -= 2
-	}
 	key := msg.Key
 	switch {
 	case key.In(pg.keys.Down):
@@ -220,43 +255,27 @@ func (pg *Pager) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
 	case key.In(pg.keys.Up):
 		pg.up(1)
 	case key.In(pg.keys.Left):
-		if pg.x > 0 {
-			pg.action = PagerMove
-			pg.x -= 8
-			if pg.x <= 0 {
-				pg.x = 0
-			}
-		}
+		pg.left()
 	case key.In(pg.keys.Right):
-		pg.action = PagerMove
-		pg.x += 8
+		pg.right()
 	case key.In(pg.keys.Start):
-		if pg.x > 0 {
-			pg.action = PagerMove
-			pg.x = 0
-		}
+		pg.lineStart()
 	case key.In(pg.keys.PageDown), key.In(pg.keys.HalfPageDown):
-		shift := nlines - 1
+		shift := pg.nlines() - 1
 		if key.In(pg.keys.HalfPageDown) {
 			shift /= 2
 		}
 		pg.down(shift)
 	case key.In(pg.keys.PageUp), key.In(pg.keys.HalfPageUp):
-		shift := nlines - 1
+		shift := pg.nlines() - 1
 		if key.In(pg.keys.HalfPageUp) {
 			shift /= 2
 		}
 		pg.up(shift)
 	case key.In(pg.keys.Top):
-		if pg.index != 0 {
-			pg.index = 0
-			pg.action = PagerMove
-		}
+		pg.top()
 	case key.In(pg.keys.Bottom):
-		if pg.index != len(pg.lines)-nlines {
-			pg.index = len(pg.lines) - nlines
-			pg.action = PagerMove
-		}
+		pg.bottom()
 	case key.In(pg.keys.Quit):
 		pg.action = PagerQuit
 		if pg.init {
