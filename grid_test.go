@@ -119,7 +119,12 @@ func TestGridSlice(t *testing.T) {
 			}
 		}
 	}
-	slice = gd.Slice(NewRange(0, 0, 0, 0))
+}
+
+func TestGridSlice2(t *testing.T) {
+	gd := NewGrid(80, 24)
+	gd.Fill(Cell{Rune: '.'})
+	slice := gd.Slice(NewRange(0, 0, 0, 0))
 	if !slice.rg.Empty() {
 		t.Errorf("non empty range %v", slice.rg)
 	}
@@ -132,8 +137,14 @@ func TestGridSlice(t *testing.T) {
 	if rg.Max.X != 5 || rg.Max.Y != 5 || rg.Min.X != 0 || rg.Min.Y != 0 {
 		t.Errorf("bad inversed range %+v", slice.rg)
 	}
-	slice = gd.Slice(gd.Range().Line(1))
+}
+
+func TestGridSlice3(t *testing.T) {
+	gd := NewGrid(80, 24)
+	max := gd.Size()
+	w, h := max.X, max.Y
 	gd.Fill(Cell{Rune: '.'})
+	slice := gd.Slice(gd.Range().Line(1))
 	slice.Fill(Cell{Rune: '1'})
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
@@ -166,7 +177,7 @@ func TestGridSlice(t *testing.T) {
 	}
 }
 
-func TestGridSlice2(t *testing.T) {
+func TestGridSlice4(t *testing.T) {
 	gd := NewGrid(10, 10)
 	if gd.Slice(NewRange(-5, -5, 20, 20)).Range() != gd.Range() {
 		t.Errorf("bad oversized slice")

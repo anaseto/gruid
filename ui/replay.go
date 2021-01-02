@@ -107,39 +107,12 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 		rep.decodeNext()
 		return rep.tick()
 	case gruid.MsgKeyDown:
-		key := msg.Key
-		switch {
-		case key.In(rep.keys.Quit):
-			if rep.init {
-				return gruid.End()
-			}
-		case key.In(rep.keys.Pause):
-			rep.action = replayTogglePause
-		case key.In(rep.keys.SpeedMore):
-			rep.action = replaySpeedMore
-		case key.In(rep.keys.SpeedLess):
-			rep.action = replaySpeedLess
-		case key.In(rep.keys.FrameNext):
-			rep.action = replayNext
-			rep.auto = false
-		case key.In(rep.keys.FramePrev):
-			rep.action = replayPrevious
-			rep.auto = false
+		eff := rep.updateMsgKeyDown(msg)
+		if eff != nil {
+			return eff
 		}
 	case gruid.MsgMouse:
-		if !msg.P.In(rep.grid.Bounds()) {
-			break
-		}
-		switch msg.Action {
-		case gruid.MouseMain:
-			rep.action = replayTogglePause
-		case gruid.MouseAuxiliary:
-			rep.action = replayNext
-			rep.auto = false
-		case gruid.MouseSecondary:
-			rep.action = replayPrevious
-			rep.auto = false
-		}
+		rep.updateMsgMouse(msg)
 	case msgTick:
 		if rep.auto && rep.fidx == int(msg) {
 			rep.action = replayNext
@@ -151,6 +124,45 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 		return nil
 	}
 	return rep.tick()
+}
+
+func (rep *Replay) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
+	key := msg.Key
+	switch {
+	case key.In(rep.keys.Quit):
+		if rep.init {
+			return gruid.End()
+		}
+	case key.In(rep.keys.Pause):
+		rep.action = replayTogglePause
+	case key.In(rep.keys.SpeedMore):
+		rep.action = replaySpeedMore
+	case key.In(rep.keys.SpeedLess):
+		rep.action = replaySpeedLess
+	case key.In(rep.keys.FrameNext):
+		rep.action = replayNext
+		rep.auto = false
+	case key.In(rep.keys.FramePrev):
+		rep.action = replayPrevious
+		rep.auto = false
+	}
+	return nil
+}
+
+func (rep *Replay) updateMsgMouse(msg gruid.MsgMouse) {
+	if !msg.P.In(rep.grid.Bounds()) {
+		return
+	}
+	switch msg.Action {
+	case gruid.MouseMain:
+		rep.action = replayTogglePause
+	case gruid.MouseAuxiliary:
+		rep.action = replayNext
+		rep.auto = false
+	case gruid.MouseSecondary:
+		rep.action = replayPrevious
+		rep.auto = false
+	}
 }
 
 func (rep *Replay) handleAction() {

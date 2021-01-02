@@ -277,6 +277,40 @@ func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
 	return nil
 }
 
+func (m *Menu) pageDown() {
+	p := gruid.Point{0, 1}
+	if m.pages.Y == 0 {
+		p = gruid.Point{1, 0}
+	}
+	if p, ok := m.nextPage(p); ok {
+		m.action = MenuMove
+		m.active = p
+	}
+}
+
+func (m *Menu) pageUp() {
+	p := gruid.Point{0, -1}
+	if m.pages.Y == 0 {
+		p = gruid.Point{-1, 0}
+	}
+	if p, ok := m.nextPage(p); ok {
+		m.action = MenuMove
+		m.active = p
+	}
+}
+
+func (m *Menu) keyInvoke(key gruid.Key) {
+	for i, e := range m.entries {
+		for _, k := range e.Keys {
+			if k == key {
+				m.active = m.idxToPos(i)
+				m.action = MenuInvoke
+				break
+			}
+		}
+	}
+}
+
 func (m *Menu) updateKeyDown(msg gruid.MsgKeyDown) {
 	switch {
 	case msg.Key.In(m.keys.Quit):
@@ -290,38 +324,16 @@ func (m *Menu) updateKeyDown(msg gruid.MsgKeyDown) {
 	case msg.Key.In(m.keys.Left):
 		m.moveTo(gruid.Point{-1, 0})
 	case msg.Key.In(m.keys.PageDown):
-		p := gruid.Point{0, 1}
-		if m.pages.Y == 0 {
-			p = gruid.Point{1, 0}
-		}
-		if p, ok := m.nextPage(p); ok {
-			m.action = MenuMove
-			m.active = p
-		}
+		m.pageDown()
 	case msg.Key.In(m.keys.PageUp):
-		p := gruid.Point{0, -1}
-		if m.pages.Y == 0 {
-			p = gruid.Point{-1, 0}
-		}
-		if p, ok := m.nextPage(p); ok {
-			m.action = MenuMove
-			m.active = p
-		}
+		m.pageUp()
 	case msg.Key.In(m.keys.Invoke) && m.contains(m.active):
 		it, ok := m.table[m.active]
 		if ok && !m.entries[it.i].Disabled {
 			m.action = MenuInvoke
 		}
 	default:
-		for i, e := range m.entries {
-			for _, k := range e.Keys {
-				if k == msg.Key {
-					m.active = m.idxToPos(i)
-					m.action = MenuInvoke
-					break
-				}
-			}
-		}
+		m.keyInvoke(msg.Key)
 	}
 }
 
@@ -355,26 +367,12 @@ func (m *Menu) updateMouse(msg gruid.MsgMouse) {
 		if !p.In(crg) {
 			break
 		}
-		p := gruid.Point{0, 1}
-		if m.pages.Y == 0 {
-			p = gruid.Point{1, 0}
-		}
-		if p, ok := m.nextPage(p); ok {
-			m.action = MenuMove
-			m.active = p
-		}
+		m.pageDown()
 	case gruid.MouseWheelUp:
 		if !p.In(crg) {
 			break
 		}
-		p := gruid.Point{0, -1}
-		if m.pages.Y == 0 {
-			p = gruid.Point{-1, 0}
-		}
-		if p, ok := m.nextPage(p); ok {
-			m.action = MenuMove
-			m.active = p
-		}
+		m.pageUp()
 	case gruid.MouseMain:
 		if !p.In(rg) {
 			m.action = MenuQuit
