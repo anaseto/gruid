@@ -341,19 +341,12 @@ func (pg *Pager) Draw() gruid.Grid {
 	for i := 0; i < h-bh; i++ {
 		line := cgrid.Slice(rg.Line(i))
 		s := pg.lines[i+pg.index]
-		count := 0
-		vs := s
-		for i := range s {
-			if count <= pg.x {
-				vs = s[i:]
-			} else {
-				break
+		pg.stt.WithText(s).Iter(func(p gruid.Point, c gruid.Cell) {
+			p = p.Shift(-pg.x, 0)
+			if p.X >= 0 {
+				line.Set(p, c)
 			}
-			count++
-		}
-		if count >= pg.x {
-			pg.stt.WithText(vs).Draw(line)
-		}
+		})
 	}
 	pg.dirty = false
 	pg.drawn = grid

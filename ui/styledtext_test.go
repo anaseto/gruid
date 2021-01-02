@@ -143,6 +143,11 @@ func TestSizeMarkup(t *testing.T) {
 	if stt.Size().X != 2 || stt.Size().Y != 1 {
 		t.Errorf("bad size: %v", stt.Size())
 	}
+	count := 0
+	stt.Iter(func(p gruid.Point, c gruid.Cell) { count++ })
+	if count != 2 {
+		t.Errorf("bad count: %v", count)
+	}
 	stt = stt.Format(10)
 	if stt.Size().X != 1 || stt.Size().Y != 1 {
 		t.Errorf("bad size: %v", stt.Size())

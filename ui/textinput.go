@@ -63,7 +63,7 @@ const (
 func NewTextInput(cfg TextInputConfig) *TextInput {
 	ti := &TextInput{
 		grid:   cfg.Grid,
-		stt:    cfg.StyledText,
+		stt:    cfg.StyledText.WithMarkups(nil),
 		box:    cfg.Box,
 		prompt: cfg.Prompt,
 		style:  cfg.Style,

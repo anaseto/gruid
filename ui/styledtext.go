@@ -86,11 +86,22 @@ func (stt StyledText) WithMarkups(markups map[rune]gruid.Style) StyledText {
 	return stt
 }
 
-// Size returns the minimum (w, h) size in cells which can fit the text.
-func (stt StyledText) Size() gruid.Point {
-	x := 0
+// Markups returns a copy of the markups currently defined for the styled text.
+func (stt StyledText) Markups() map[rune]gruid.Style {
+	markups := make(map[rune]gruid.Style, len(stt.markups))
+	for k, v := range stt.markups {
+		markups[k] = v
+	}
+	return markups
+}
+
+// Iter iterates a function for all couples positions and cells representing
+// the styled text, and returns the minimum (w, h) size in cells which can fit
+// the text.
+func (stt StyledText) Iter(fn func(gruid.Point, gruid.Cell)) gruid.Point {
+	x, y := 0, 0
 	xmax := 0
-	y := 0
+	c := gruid.Cell{Style: stt.style}
 	markup := stt.markups != nil // whether markup is activated
 	procm := false               // processing markup
 	for _, r := range stt.text {
@@ -98,6 +109,14 @@ func (stt StyledText) Size() gruid.Point {
 			if procm {
 				procm = false
 				if r != '@' {
+					if r == 'N' {
+						c.Style = stt.style
+						continue
+					}
+					st, ok := stt.markups[r]
+					if ok {
+						c.Style = st
+					}
 					continue
 				}
 			} else if r == '@' {
@@ -113,6 +132,8 @@ func (stt StyledText) Size() gruid.Point {
 			y++
 			continue
 		}
+		c.Rune = r
+		fn(gruid.Point{X: x, Y: y}, c)
 		x++
 	}
 	if x > xmax {
@@ -122,6 +143,11 @@ func (stt StyledText) Size() gruid.Point {
 		y++ // at least one line
 	}
 	return gruid.Point{X: xmax, Y: y}
+}
+
+// Size returns the minimum (w, h) size in cells which can fit the text.
+func (stt StyledText) Size() gruid.Point {
+	return stt.Iter(func(p gruid.Point, c gruid.Cell) {})
 }
 
 // Format formats the text so that lines longer than a certain width get
@@ -137,6 +163,29 @@ func (stt StyledText) Format(width int) StyledText {
 	procm := false               // processing markup
 	start := true                // whether at line start
 	for _, r := range stt.text {
+		if markup {
+			if procm {
+				procm = false
+				switch r {
+				case '@', '\n', ' ':
+				default:
+					if wlen == 0 {
+						pbuf.WriteRune(r)
+					} else {
+						wordbuf.WriteRune(r)
+					}
+					continue
+				}
+			} else if r == '@' {
+				procm = true
+				if wlen == 0 {
+					pbuf.WriteRune(r)
+				} else {
+					wordbuf.WriteRune(r)
+				}
+				continue
+			}
+		}
 		if r == ' ' {
 			switch {
 			case start:
@@ -176,27 +225,6 @@ func (stt StyledText) Format(width int) StyledText {
 			start = true
 			continue
 		}
-		if markup {
-			if procm {
-				procm = false
-				if r != '@' {
-					if wlen == 0 {
-						pbuf.WriteRune(r)
-					} else {
-						wordbuf.WriteRune(r)
-					}
-					continue
-				}
-			} else if r == '@' {
-				procm = true
-				if wlen == 0 {
-					pbuf.WriteRune(r)
-				} else {
-					wordbuf.WriteRune(r)
-				}
-				continue
-			}
-		}
 		start = false
 		wordbuf.WriteRune(r)
 		wlen++
@@ -220,48 +248,6 @@ func (stt StyledText) Format(width int) StyledText {
 // spaces beforehand by this function, not even the returned one, you should
 // use the styled text with a label for this.
 func (stt StyledText) Draw(gd gruid.Grid) gruid.Grid {
-	x, y := 0, 0
-	c := gruid.Cell{Style: stt.style}
-	markup := stt.markups != nil // whether markup is activated
-	procm := false               // processing markup
-	xmax := 0
-	for _, r := range stt.text {
-		if markup {
-			if procm {
-				procm = false
-				if r != '@' {
-					if r == 'N' {
-						c.Style = stt.style
-						continue
-					}
-					st, ok := stt.markups[r]
-					if ok {
-						c.Style = st
-					}
-					continue
-				}
-			} else if r == '@' {
-				procm = true
-				continue
-			}
-		}
-		if r == '\n' {
-			if x > xmax {
-				xmax = x
-			}
-			x = 0
-			y++
-			continue
-		}
-		c.Rune = r
-		gd.Set(gruid.Point{X: x, Y: y}, c)
-		x++
-	}
-	if x > xmax {
-		xmax = x
-	}
-	if xmax > 0 || y > 0 {
-		y++ // at least one line
-	}
-	return gd.Slice(gruid.NewRange(0, 0, xmax, y))
+	max := stt.Iter(gd.Set)
+	return gd.Slice(gruid.NewRange(0, 0, max.X, max.Y))
 }
