@@ -31,6 +31,8 @@ type RandomWalker interface {
 // performs a certain number of approximately equal length random walks,
 // digging using the given cell, until a certain filling percentage (given by a
 // float between 0 and 1) is reached. It returns the number of digged cells.
+// If more than one walk is done, the result is not guaranteed to be connex and
+// has to be made connex later.
 func (mp MapGen) RandomWalkCave(walker RandomWalker, c Cell, fillp float64, walks int) int {
 	if fillp > 0.9 {
 		fillp = 0.9

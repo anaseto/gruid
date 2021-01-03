@@ -121,7 +121,7 @@ func (m *model) InitializeMap() {
 	wlk := walker{rand: m.rand}
 	wlk.neighbors = &paths.Neighbors{}
 	mgen := rl.MapGen{Rand: m.rand, Grid: m.mapgd}
-	mgen.RandomWalkCave(wlk, Ground, 0.5, 4)
+	mgen.RandomWalkCave(wlk, Ground, 0.5, 1)
 	m.fov = rl.NewFOV(m.mapgd.Range())
 	max := m.mapgd.Size()
 	var p gruid.Point
