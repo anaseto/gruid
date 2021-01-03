@@ -8,11 +8,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand"
 	"strings"
 	"time"
 
 	"github.com/anaseto/gruid"
 	"github.com/anaseto/gruid/paths"
+	"github.com/anaseto/gruid/rl"
 	"github.com/anaseto/gruid/ui"
 )
 
@@ -61,6 +63,12 @@ func main() {
 const (
 	ColorPlayer gruid.Color = 1 + iota // skip special zero value gruid.ColorDefault
 	ColorPath
+	ColorLOS
+)
+
+const (
+	Wall rl.Cell = iota
+	Ground
 )
 
 // models represents our main application state.
@@ -70,6 +78,9 @@ type model struct {
 	move      autoMove         // automatic movement
 	pr        *paths.PathRange // path finding in the grid range
 	path      []gruid.Point    // current path (reverse highlighting)
+	mapgd     rl.Grid          // map grid
+	rand      *rand.Rand       // random number generator
+	fov       *rl.FOV
 }
 
 // autoMove represents the information for an automatic-movement step.
@@ -91,6 +102,8 @@ type msgAutoMove struct {
 // messages and updates the model in response to them.
 func (m *model) Update(msg gruid.Msg) gruid.Effect {
 	switch msg := msg.(type) {
+	case gruid.MsgInit:
+		m.InitializeMap()
 	case gruid.MsgKeyDown:
 		return m.updateMsgKeyDown(msg)
 	case gruid.MsgMouse:
@@ -99,6 +112,32 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 		return m.updateMsgAutomove(msg)
 	}
 	return nil
+}
+
+func (m *model) InitializeMap() {
+	m.mapgd = rl.NewGrid(80, 24)
+	m.rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+	wlk := walker{rand: m.rand}
+	wlk.neighbors = &paths.Neighbors{}
+	mgen := rl.MapGen{Rand: m.rand, Grid: m.mapgd}
+	mgen.RandomWalkCave(wlk, Ground, 0.5, 4)
+	m.fov = rl.NewFOV(m.mapgd.Range())
+	max := m.mapgd.Size()
+	var p gruid.Point
+	for {
+		// find an empty starting position for the player
+		p = gruid.Point{m.rand.Intn(max.X), m.rand.Intn(max.Y)}
+		if m.mapgd.At(p) != Wall {
+			break
+		}
+	}
+	m.MovePlayer(p)
+}
+
+func (m *model) MovePlayer(to gruid.Point) {
+	m.playerPos = to
+	lt := &lighter{mapgd: m.mapgd}
+	m.fov.VisionMap(lt, m.playerPos, maxLOS)
 }
 
 func (m *model) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
@@ -126,8 +165,8 @@ func (m *model) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
 	}
 	if pdelta.X != 0 || pdelta.Y != 0 {
 		np := m.playerPos.Add(pdelta) //
-		if m.grid.Contains(np) {
-			m.playerPos = np
+		if m.grid.Contains(np) && m.mapgd.At(np) != Wall {
+			m.MovePlayer(np)
 			if msg.Mod&gruid.ModShift != 0 || strings.ToUpper(string(msg.Key)) == string(msg.Key) {
 				// activate automatic movement in that direction
 				m.move.delta = pdelta
@@ -168,9 +207,9 @@ func (m *model) updateMsgAutomove(msg msgAutoMove) gruid.Effect {
 		}
 	} else {
 		np := m.playerPos.Add(msg.delta)
-		if m.grid.Contains(np) {
+		if m.grid.Contains(np) && m.mapgd.At(np) != Wall {
 			m.path = nil // remove path highlighting if any
-			m.playerPos = np
+			m.MovePlayer(np)
 			// continue automatic movement in the same direction
 			return automoveCmd(msg.delta)
 		}
@@ -206,6 +245,7 @@ func (m *model) stopAuto() {
 func (m *model) pathAt(p gruid.Point) {
 	pp := &playerPath{}
 	pp.neighbors = &paths.Neighbors{}
+	pp.mapgd = m.mapgd
 	m.path = m.pr.AstarPath(pp, m.playerPos, p)
 }
 
@@ -217,21 +257,19 @@ func (m *model) pathNext() gruid.Cmd {
 	m.path = m.path[1:]
 	m.move.path = true
 	m.move.delta = p.Sub(m.playerPos)
-	m.playerPos = p
+	m.MovePlayer(p)
 	return automoveCmd(m.move.delta)
 }
 
 // playerPath implements paths.Astar interface.
 type playerPath struct {
 	neighbors *paths.Neighbors
+	mapgd     rl.Grid
 }
 
 func (pp *playerPath) Neighbors(p gruid.Point) []gruid.Point {
-	return pp.neighbors.All(p, func(q gruid.Point) bool {
-		// This is were in a real game we would filter non passable
-		// neighbors, such as walls. For this example, we return always
-		// true, as there are no obstacles.
-		return true
+	return pp.neighbors.Cardinal(p, func(q gruid.Point) bool {
+		return pp.mapgd.Contains(q) && pp.mapgd.At(q) != Wall
 	})
 }
 
@@ -246,6 +284,36 @@ func (pp *playerPath) Estimation(p, q gruid.Point) int {
 	return abs(p.X) + abs(p.Y)
 }
 
+// walker implements rl.RandomWalker.
+type walker struct {
+	neighbors *paths.Neighbors
+	rand      *rand.Rand
+}
+
+func (w walker) Neighbor(p gruid.Point) gruid.Point {
+	neighbors := w.neighbors.Cardinal(p, func(q gruid.Point) bool {
+		return true
+	})
+	return neighbors[w.rand.Intn(len(neighbors))]
+}
+
+// lighter implements rl.Lighter (in a very simple way).
+type lighter struct {
+	mapgd rl.Grid
+}
+
+const maxLOS = 8
+
+func (lt *lighter) Cost(src, from, to gruid.Point) int {
+	if src == from {
+		return 0
+	}
+	if lt.mapgd.At(from) == Wall {
+		return maxLOS
+	}
+	return 1
+}
+
 func abs(x int) int {
 	if x < 0 {
 		return -x
@@ -256,8 +324,24 @@ func abs(x int) int {
 // Draw implements gruid.Model.Draw. It draws a simple map that spans the whole
 // grid.
 func (m *model) Draw() gruid.Grid {
-	m.grid.Fill(gruid.Cell{Rune: '.'})
-	m.grid.Set(m.playerPos, gruid.Cell{Rune: '@', Style: gruid.Style{}.WithFg(ColorPlayer)})
+	max := m.grid.Size()
+	for y := 0; y < max.Y; y++ {
+		for x := 0; x < max.X; x++ {
+			p := gruid.Point{x, y}
+			st := gruid.Style{}
+			if cost, ok := m.fov.At(p); ok && cost < maxLOS {
+				st = st.WithFg(ColorLOS)
+			}
+			switch {
+			case p == m.playerPos:
+				m.grid.Set(p, gruid.Cell{Rune: '@', Style: st.WithFg(ColorPlayer)})
+			case m.mapgd.At(p) == Wall:
+				m.grid.Set(p, gruid.Cell{Rune: '#', Style: st})
+			case m.mapgd.At(p) == Ground:
+				m.grid.Set(p, gruid.Cell{Rune: '.', Style: st})
+			}
+		}
+	}
 	for _, p := range m.path {
 		c := m.grid.At(p)
 		m.grid.Set(p, c.WithStyle(c.Style.WithBg(ColorPath)))

@@ -25,6 +25,8 @@ func (sty styler) GetStyle(st gruid.Style) tc.Style {
 	switch st.Fg {
 	case ColorPlayer:
 		ts = ts.Foreground(tc.ColorNavy) // blue color for the player
+	case ColorLOS:
+		ts = ts.Foreground(tc.ColorYellow)
 	}
 	switch st.Bg {
 	case ColorPath:
