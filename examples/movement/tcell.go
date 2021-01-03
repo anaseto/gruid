@@ -28,6 +28,11 @@ func (sty styler) GetStyle(st gruid.Style) tc.Style {
 	case ColorLOS:
 		ts = ts.Foreground(tc.ColorYellow)
 	}
+	ts = ts.Background(tc.ColorBlack)
+	switch st.Bg {
+	case ColorDark:
+		ts = ts.Background(tc.ColorDefault)
+	}
 	switch st.Bg {
 	case ColorPath:
 		ts = ts.Reverse(true)

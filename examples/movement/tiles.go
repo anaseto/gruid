@@ -48,13 +48,17 @@ type TileDrawer struct {
 func (t *TileDrawer) GetImage(c gruid.Cell) *image.RGBA {
 	// we use some selenized colors
 	fg := image.NewUniform(color.RGBA{0xad, 0xbc, 0xbc, 255})
+	bg := image.NewUniform(color.RGBA{0x18, 0x49, 0x56, 255})
 	switch c.Style.Fg {
 	case ColorPlayer:
 		fg = image.NewUniform(color.RGBA{0x46, 0x95, 0xf7, 255})
 	case ColorLOS:
 		fg = image.NewUniform(color.RGBA{0xdb, 0xb3, 0x2d, 255})
 	}
-	bg := image.NewUniform(color.RGBA{0x10, 0x3c, 0x48, 255})
+	switch c.Style.Bg {
+	case ColorDark:
+		bg = image.NewUniform(color.RGBA{0x10, 0x3c, 0x48, 255})
+	}
 	switch c.Style.Bg {
 	case ColorPath:
 		fg, bg = bg, fg

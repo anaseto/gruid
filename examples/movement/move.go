@@ -64,6 +64,7 @@ const (
 	ColorPlayer gruid.Color = 1 + iota // skip special zero value gruid.ColorDefault
 	ColorPath
 	ColorLOS
+	ColorDark
 )
 
 const (
@@ -331,6 +332,8 @@ func (m *model) Draw() gruid.Grid {
 			st := gruid.Style{}
 			if cost, ok := m.fov.At(p); ok && cost < maxLOS {
 				st = st.WithFg(ColorLOS)
+			} else {
+				st = st.WithBg(ColorDark)
 			}
 			switch {
 			case p == m.playerPos:
