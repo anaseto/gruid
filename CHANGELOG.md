@@ -1,3 +1,11 @@
+This changelog file only lists important changes.
+
+## v0.6.0 - 2020-12-04
+
++ New field of view algorithm in rl package.
++ Add configurable map generation algoritms in rl package: RandomWalkCave and
+  CellularAutomataCave.
+
 ## v0.5.0 - 2020-12-02
 
 + New Iter method for styled text.

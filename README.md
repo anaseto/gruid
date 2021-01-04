@@ -47,6 +47,11 @@ Dijkstra, breadth first, and connected components maps computations. See the
 [movement example](examples/movement/move.go) for an annotated example using
 A\* and the mouse.
 
+The **rl** package provides some additional utilities commonly needed in
+grid-based games such as roguelikes. The package is usable, but still
+experimental: it provides an event priority queue, a field of view algorithm as
+well as map generation algorithms.
+
 The **tcell**, **js**, and **sdl** packages in the [drivers
 sub-directory](drivers/) provide specific rendering and input implementations
 satisfying gruid's package Driver interface. See the README.md files in their
@@ -66,7 +71,7 @@ for some applications too, as copying and pasting is not handled by gruid. Note
 that, at this time, the clipboard module does not support the js platform, but
 there's at least one fork that does.
 
-As gruid does not still cover map generation, you may be interested in the
-[dngn](https://github.com/SolarLune/dngn) module, which provides a few map
-generation algorithms, though its conventions for representing positions are
-somewhat different.
+As gruid only provides a few map generation algorithms, you may be interested
+in the [dngn](https://github.com/SolarLune/dngn) module, which provides map
+generation algorithms too, though its conventions for representing positions
+are somewhat different.
