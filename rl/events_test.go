@@ -40,8 +40,8 @@ func TestEventsQueueFilter(t *testing.T) {
 	if eq.Empty() {
 		t.Errorf("empty: %+v", eq)
 	}
-	if eq.queue.Len() != 1 {
-		t.Errorf("bad length: %d vs 1", eq.queue.Len())
+	if eq.Queue.Len() != 1 {
+		t.Errorf("bad length: %d vs 1", eq.Queue.Len())
 	}
 	n := eq.Pop().(int)
 	if n != 3 {

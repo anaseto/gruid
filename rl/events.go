@@ -1,9 +1,12 @@
 // Package rl will provide some facilities for common roguelike programming
-// needs. It is still EXPERIMENTAL, do not use for production.
+// needs. It is usable, but still EXPERIMENTAL, do not expect the API to be
+// stable.
 package rl
 
 import (
+	"bytes"
 	"container/heap"
+	"encoding/gob"
 	"math"
 )
 
@@ -25,28 +28,53 @@ type event struct {
 //
 // EventQueue must be created with NewEventQueue.
 //
-// TODO: make it possible to encode it with encoding/gob.
+// EventQueue implements gob.Decoder and gob.Encoder for easy serialization.
 type EventQueue struct {
-	queue *eventQueue
-	idx   int
+	eventQueue
+}
+
+type eventQueue struct {
+	Queue *evSliceQueue
+	Idx   int
 }
 
 // NewEventQueue returns a new EventQueue suitable for use.
 func NewEventQueue() *EventQueue {
-	q := &eventQueue{}
+	q := &evSliceQueue{}
 	heap.Init(q)
-	return &EventQueue{
-		queue: q,
+	return &EventQueue{eventQueue{
+		Queue: q,
+	}}
+}
+
+// GobDecode implements gob.GobDecoder.
+func (evq *EventQueue) GobDecode(bs []byte) error {
+	r := bytes.NewReader(bs)
+	gdec := gob.NewDecoder(r)
+	ievq := &eventQueue{}
+	err := gdec.Decode(ievq)
+	if err != nil {
+		return err
 	}
+	evq.eventQueue = *ievq
+	return nil
+}
+
+// GobEncode implements gob.GobEncoder.
+func (evq *EventQueue) GobEncode() ([]byte, error) {
+	buf := bytes.Buffer{}
+	ge := gob.NewEncoder(&buf)
+	err := ge.Encode(&evq.eventQueue)
+	return buf.Bytes(), err
 }
 
 // Push adds a new event to the heap with a given rank. Events with the same
 // rank are processed in a first-in first-out order.
 func (eq *EventQueue) Push(ev Event, rank int) {
-	evr := event{Event: ev, Rank: rank, Idx: eq.idx}
-	eq.idx++
-	heap.Push(eq.queue, evr)
-	if eq.idx == math.MaxInt32 {
+	evr := event{Event: ev, Rank: rank, Idx: eq.Idx}
+	eq.Idx++
+	heap.Push(eq.Queue, evr)
+	if eq.Idx == math.MaxInt32 {
 		// should not happen in practical situations
 		eq.Filter(func(ev Event) bool { return true })
 	}
@@ -54,13 +82,13 @@ func (eq *EventQueue) Push(ev Event, rank int) {
 
 // Empty reports whether the event queue is empty.
 func (eq *EventQueue) Empty() bool {
-	return eq.queue.Len() <= 0
+	return eq.Queue.Len() <= 0
 }
 
 // Filter removes events that do not satisfy a given predicate from the event
 // queue.
 func (eq *EventQueue) Filter(fn func(ev Event) bool) {
-	eq.idx = 0
+	eq.Idx = 0
 	ievs := []event{}
 	for !eq.Empty() {
 		evr := eq.popIEvent()
@@ -68,7 +96,7 @@ func (eq *EventQueue) Filter(fn func(ev Event) bool) {
 			ievs = append(ievs, evr)
 		}
 	}
-	*eq.queue = (*eq.queue)[:0]
+	*eq.Queue = (*eq.Queue)[:0]
 	for _, evr := range ievs {
 		eq.Push(evr.Event, evr.Rank)
 	}
@@ -81,32 +109,32 @@ func (eq *EventQueue) Pop() Event {
 }
 
 func (eq *EventQueue) popIEvent() event {
-	evr := heap.Pop(eq.queue).(event)
+	evr := heap.Pop(eq.Queue).(event)
 	return evr
 }
 
-// eventQueue implements heap.Interface.
-type eventQueue []event
+// evSliceQueue implements heap.Interface.
+type evSliceQueue []event
 
-func (evq eventQueue) Len() int {
+func (evq evSliceQueue) Len() int {
 	return len(evq)
 }
 
-func (evq eventQueue) Less(i, j int) bool {
+func (evq evSliceQueue) Less(i, j int) bool {
 	return evq[i].Rank < evq[j].Rank ||
 		evq[i].Rank == evq[j].Rank && evq[i].Idx < evq[j].Idx
 }
 
-func (evq eventQueue) Swap(i, j int) {
+func (evq evSliceQueue) Swap(i, j int) {
 	evq[i], evq[j] = evq[j], evq[i]
 }
 
-func (evq *eventQueue) Push(x interface{}) {
+func (evq *evSliceQueue) Push(x interface{}) {
 	no := x.(event)
 	*evq = append(*evq, no)
 }
 
-func (evq *eventQueue) Pop() interface{} {
+func (evq *evSliceQueue) Pop() interface{} {
 	old := *evq
 	n := len(old)
 	no := old[n-1]
