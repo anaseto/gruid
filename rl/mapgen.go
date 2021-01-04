@@ -49,7 +49,7 @@ func (mg *MapGen) RandomWalkCave(walker RandomWalker, c Cell, fillp float64, wal
 	digged := 0
 	mg.Grid.Iter(func(p gruid.Point, cc Cell) {
 		// Compute number of cells already equal to c (in case some
-		// other map generation occured before).
+		// other map generation occurred before).
 		if cc == c {
 			digged++
 		}
