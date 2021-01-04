@@ -68,6 +68,7 @@ const (
 	ColorDark
 )
 
+// Those constants represent styling attributes.
 const (
 	AttrNone gruid.AttrMask = iota
 	AttrReverse
