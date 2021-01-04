@@ -1,6 +1,8 @@
 // This example program shows how to implement movement on a grid either on
 // keyboard or mouse input. It implements both single-step movement and
-// automatic movement in a direction or path.
+// automatic movement in a direction or path, and provides some simple map
+// generation and field of vision (the map is considered already explored to
+// simplify).
 package main
 
 import (
@@ -62,11 +64,16 @@ func main() {
 // Those constants represent the generic colors we use in this example.
 const (
 	ColorPlayer gruid.Color = 1 + iota // skip special zero value gruid.ColorDefault
-	ColorPath
 	ColorLOS
 	ColorDark
 )
 
+const (
+	AttrNone gruid.AttrMask = iota
+	AttrReverse
+)
+
+// Those constants represent the different types of terrains in the map grid.
 const (
 	Wall rl.Cell = iota
 	Ground
@@ -122,7 +129,6 @@ func (m *model) InitializeMap() {
 	wlk.neighbors = &paths.Neighbors{}
 	mgen := rl.MapGen{Rand: m.rand, Grid: m.mapgd}
 	mgen.RandomWalkCave(wlk, Ground, 0.5, 1)
-	m.fov = rl.NewFOV(m.mapgd.Range())
 	max := m.mapgd.Size()
 	var p gruid.Point
 	for {
@@ -132,10 +138,16 @@ func (m *model) InitializeMap() {
 			break
 		}
 	}
+	m.fov = rl.NewFOV(gruid.NewRange(-maxLOS, -maxLOS, maxLOS+1, maxLOS+1))
 	m.MovePlayer(p)
 }
 
 func (m *model) MovePlayer(to gruid.Point) {
+	// We shift the FOV's Range so that it will be centered on the new
+	// player's position. We could have simply used the whole map for the
+	// range, though it would have used a little bit more memory (not
+	// important here, just for showing what can be done).
+	m.fov.SetRange(m.fov.Range().Add(to.Sub(m.playerPos)))
 	m.playerPos = to
 	lt := &lighter{mapgd: m.mapgd}
 	m.fov.VisionMap(lt, m.playerPos, maxLOS)
@@ -306,13 +318,24 @@ type lighter struct {
 const maxLOS = 8
 
 func (lt *lighter) Cost(src, from, to gruid.Point) int {
+	if lt.mapgd.At(from) == Wall || lt.diagonalWalls(from, to) {
+		return maxLOS
+	}
 	if src == from {
 		return 0
 	}
-	if lt.mapgd.At(from) == Wall {
-		return maxLOS
-	}
 	return 1
+}
+
+// diagonalWalls checks whether diagonal light has to be blocked (this would
+// not be necessary if 8-way movement geometry is chosen).
+func (lt *lighter) diagonalWalls(from, to gruid.Point) bool {
+	step := to.Sub(from)
+	if step.X == 0 || step.Y == 0 {
+		return false
+	}
+	return lt.mapgd.At(from.Add(gruid.Point{X: step.X})) == Wall &&
+		lt.mapgd.At(from.Add(gruid.Point{Y: step.Y})) == Wall
 }
 
 func abs(x int) int {
@@ -347,7 +370,7 @@ func (m *model) Draw() gruid.Grid {
 	}
 	for _, p := range m.path {
 		c := m.grid.At(p)
-		m.grid.Set(p, c.WithStyle(c.Style.WithBg(ColorPath)))
+		m.grid.Set(p, c.WithStyle(c.Style.WithAttrs(AttrReverse)))
 	}
 	return m.grid
 }

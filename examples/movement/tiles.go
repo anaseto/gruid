@@ -59,8 +59,8 @@ func (t *TileDrawer) GetImage(c gruid.Cell) *image.RGBA {
 	case ColorDark:
 		bg = image.NewUniform(color.RGBA{0x10, 0x3c, 0x48, 255})
 	}
-	switch c.Style.Bg {
-	case ColorPath:
+	switch c.Style.Attrs {
+	case AttrReverse:
 		fg, bg = bg, fg
 	}
 	return t.drawer.Draw(c.Rune, fg, bg)

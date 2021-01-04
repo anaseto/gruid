@@ -69,6 +69,11 @@ func (fov *FOV) SetRange(rg gruid.Range) {
 	fov.Rg = rg
 }
 
+// Range returns the current FOV's range of positions.
+func (fov *FOV) Range() gruid.Range {
+	return fov.Rg
+}
+
 // GobDecode implements gob.GobDecoder.
 func (fov *FOV) GobDecode(bs []byte) error {
 	r := bytes.NewReader(bs)

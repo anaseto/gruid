@@ -76,6 +76,11 @@ func (pr *PathRange) SetRange(rg gruid.Range) {
 	pr.Rg = rg
 }
 
+// Range returns the current PathRange's range of positions.
+func (pr *PathRange) Range() gruid.Range {
+	return pr.Rg
+}
+
 func (pr *PathRange) idx(p gruid.Point) int {
 	p = p.Sub(pr.Rg.Min)
 	w := pr.Rg.Size().X
