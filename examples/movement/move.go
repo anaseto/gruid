@@ -128,7 +128,15 @@ func (m *model) InitializeMap() {
 	wlk := walker{rand: m.rand}
 	wlk.neighbors = &paths.Neighbors{}
 	mgen := rl.MapGen{Rand: m.rand, Grid: m.mapgd}
-	mgen.RandomWalkCave(wlk, Ground, 0.5, 1)
+	if m.rand.Float64() > 0.5 {
+		mgen.RandomWalkCave(wlk, Ground, 0.5, 1)
+	} else {
+		rules := []rl.CellularAutomataRule{
+			{WCutoff1: 5, WCutoff2: 2, Reps: 4, WallsOutOfRange: true},
+			{WCutoff1: 5, WCutoff2: 25, Reps: 3, WallsOutOfRange: true},
+		}
+		mgen.CellularAutomataCave(Wall, Ground, 0.40, rules)
+	}
 	max := m.mapgd.Size()
 	var p gruid.Point
 	for {

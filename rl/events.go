@@ -48,7 +48,7 @@ func NewEventQueue() *EventQueue {
 }
 
 // GobDecode implements gob.GobDecoder.
-func (evq *EventQueue) GobDecode(bs []byte) error {
+func (eq *EventQueue) GobDecode(bs []byte) error {
 	r := bytes.NewReader(bs)
 	gdec := gob.NewDecoder(r)
 	ievq := &eventQueue{}
@@ -56,15 +56,15 @@ func (evq *EventQueue) GobDecode(bs []byte) error {
 	if err != nil {
 		return err
 	}
-	evq.eventQueue = *ievq
+	eq.eventQueue = *ievq
 	return nil
 }
 
 // GobEncode implements gob.GobEncoder.
-func (evq *EventQueue) GobEncode() ([]byte, error) {
+func (eq *EventQueue) GobEncode() ([]byte, error) {
 	buf := bytes.Buffer{}
 	ge := gob.NewEncoder(&buf)
-	err := ge.Encode(&evq.eventQueue)
+	err := ge.Encode(&eq.eventQueue)
 	return buf.Bytes(), err
 }
 
