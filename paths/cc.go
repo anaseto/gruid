@@ -1,6 +1,10 @@
 package paths
 
-import "github.com/anaseto/gruid"
+import (
+	"math"
+
+	"github.com/anaseto/gruid"
+)
 
 type ccNode struct {
 	Idx int // map number (for caching)
@@ -17,6 +21,7 @@ func (pr *PathRange) ComputeCCAll(nb Pather) {
 		pr.CC = make([]ccNode, w*h)
 	}
 	pr.CCidx++
+	defer pr.checkCCIdx()
 	pr.CCstack = pr.CCstack[:0]
 	ccid := 0
 	for i := 0; i < len(pr.CC); i++ {
@@ -57,6 +62,7 @@ func (pr *PathRange) ComputeCC(nb Pather, p gruid.Point) {
 		pr.CC = make([]ccNode, w*h)
 	}
 	pr.CCidx++
+	defer pr.checkCCIdx()
 	if pr.CCIterCache == nil {
 		pr.CCIterCache = make([]int, w*h)
 	}
@@ -114,4 +120,18 @@ func (pr *PathRange) CCIter(fn func(gruid.Point)) {
 		p := idxToPos(idx, w)
 		fn(p)
 	}
+}
+
+func (pr *PathRange) checkCCIdx() {
+	if pr.CCidx < math.MaxInt32 {
+		return
+	}
+	for i, n := range pr.CC {
+		idx := 0
+		if n.Idx == pr.CCidx {
+			idx = 1
+		}
+		pr.CC[i] = ccNode{ID: n.ID, Idx: idx}
+	}
+	pr.CCidx = 1
 }

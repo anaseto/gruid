@@ -25,6 +25,7 @@ package paths
 
 import (
 	"container/heap"
+	"math"
 
 	"github.com/anaseto/gruid"
 )
@@ -52,14 +53,10 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 	if !from.In(pr.Rg) || !to.In(pr.Rg) {
 		return nil
 	}
-	if pr.AstarNodes == nil {
-		pr.AstarNodes = &nodeMap{}
-		max := pr.Rg.Size()
-		pr.AstarNodes.Nodes = make([]node, max.X*max.Y)
-		pr.AstarQueue = make(priorityQueue, 0, max.X*max.Y)
-	}
+	pr.initAstar()
 	nm := pr.AstarNodes
-	nm.Index++
+	nm.Idx++
+	defer checkNodesIdx(nm)
 	nqs := pr.AstarQueue[:0]
 	nq := &nqs
 	heap.Init(nq)
@@ -102,7 +99,7 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 			nbNode := nm.get(pr, nb)
 			if cost < nbNode.Cost {
 				if nbNode.Open {
-					heap.Remove(nq, nbNode.Index)
+					heap.Remove(nq, nbNode.Idx)
 				}
 				nbNode.Open = false
 				nbNode.Closed = false
@@ -118,4 +115,28 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 			}
 		}
 	}
+}
+
+func (pr *PathRange) initAstar() {
+	if pr.AstarNodes == nil {
+		pr.AstarNodes = &nodeMap{}
+		max := pr.Rg.Size()
+		pr.AstarNodes.Nodes = make([]node, max.X*max.Y)
+		pr.AstarQueue = make(priorityQueue, 0, max.X*max.Y)
+	}
+}
+
+func checkNodesIdx(nm *nodeMap) {
+	if nm.Idx < math.MaxInt32 {
+		return
+	}
+	for i, n := range nm.Nodes {
+		idx := 0
+		if n.Idx == nm.Idx {
+			idx = 1
+		}
+		n.Idx = idx
+		nm.Nodes[i] = n
+	}
+	nm.Idx = 1
 }

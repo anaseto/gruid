@@ -89,15 +89,15 @@ func (pr *PathRange) idx(p gruid.Point) int {
 
 func (nm nodeMap) get(pr *PathRange, p gruid.Point) *node {
 	n := &nm.Nodes[pr.idx(p)]
-	if n.CacheIndex != nm.Index {
-		nm.Nodes[pr.idx(p)] = node{P: p, CacheIndex: nm.Index}
+	if n.CacheIndex != nm.Idx {
+		nm.Nodes[pr.idx(p)] = node{P: p, CacheIndex: nm.Idx}
 	}
 	return n
 }
 
 func (nm nodeMap) at(pr *PathRange, p gruid.Point) (*node, bool) {
 	n := &nm.Nodes[pr.idx(p)]
-	if n.CacheIndex != nm.Index {
+	if n.CacheIndex != nm.Idx {
 		return nil, false
 	}
 	return n, true
@@ -110,14 +110,14 @@ type node struct {
 	Parent     *gruid.Point
 	Open       bool
 	Closed     bool
-	Index      int
+	Idx      int
 	Num        int
 	CacheIndex int
 }
 
 type nodeMap struct {
 	Nodes []node
-	Index int
+	Idx int
 }
 
 // A priorityQueue implements heap.Interface with Node elements.
@@ -133,14 +133,14 @@ func (pq priorityQueue) Less(i, j int) bool {
 
 func (pq priorityQueue) Swap(i, j int) {
 	pq[i], pq[j] = pq[j], pq[i]
-	pq[i].Index = i
-	pq[j].Index = j
+	pq[i].Idx = i
+	pq[j].Idx = j
 }
 
 func (pq *priorityQueue) Push(x interface{}) {
 	n := len(*pq)
 	no := x.(*node)
-	no.Index = n
+	no.Idx = n
 	*pq = append(*pq, no)
 }
 
@@ -148,7 +148,7 @@ func (pq *priorityQueue) Pop() interface{} {
 	old := *pq
 	n := len(old)
 	no := old[n-1]
-	no.Index = -1
+	no.Idx = -1
 	*pq = old[0 : n-1]
 	return no
 }

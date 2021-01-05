@@ -31,7 +31,8 @@ func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost in
 	}
 	pr.IterNodeCache = pr.IterNodeCache[:0]
 	nm := pr.DijkstraNodes
-	nm.Index++
+	nm.Idx++
+	defer checkNodesIdx(nm)
 	nqs := pr.DijkstraQueue[:0]
 	nq := &nqs
 	heap.Init(nq)
@@ -60,7 +61,7 @@ func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost in
 			nbNode := nm.get(pr, nb)
 			if cost < nbNode.Cost {
 				if nbNode.Open {
-					heap.Remove(nq, nbNode.Index)
+					heap.Remove(nq, nbNode.Idx)
 				}
 				nbNode.Open = false
 				nbNode.Closed = false

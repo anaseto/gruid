@@ -1,6 +1,10 @@
 package paths
 
-import "github.com/anaseto/gruid"
+import (
+	"math"
+
+	"github.com/anaseto/gruid"
+)
 
 // CostAt returns the cost associated to a position in the last computed
 // breadth first map. It returns the last maxCost + 1 if the position is out of
@@ -69,4 +73,19 @@ func (pr *PathRange) BreadthFirstMap(nb Pather, sources []gruid.Point, maxCost i
 			}
 		}
 	}
+	pr.checkBfIdx()
+}
+
+func (pr *PathRange) checkBfIdx() {
+	if pr.Bfidx < math.MaxInt32 {
+		return
+	}
+	for i, n := range pr.Bfmap {
+		idx := 0
+		if n.Idx == pr.Bfidx {
+			idx = 1
+		}
+		pr.Bfmap[i] = bfNode{Cost: n.Cost, Idx: idx}
+	}
+	pr.Bfidx = 1
 }
