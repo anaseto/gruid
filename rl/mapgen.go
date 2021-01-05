@@ -1,7 +1,9 @@
 package rl
 
 import (
+	"fmt"
 	"math/rand"
+	"strings"
 
 	"github.com/anaseto/gruid"
 )
@@ -9,11 +11,20 @@ import (
 // MapGen provides some grid-map generation facilities using a given random
 // number generator and a destination grid slice.
 type MapGen struct {
-	Rand *rand.Rand // random number generator (required)
-	Grid Grid       // destination grid slice where generated maps are drawn
+	// Rand is the random number generator to be used in map generation.
+	Rand *rand.Rand
+
+	// Grid is the destination grid slice where generated maps are drawn.
+	Grid Grid
 }
 
-func (mg *MapGen) rand(n int) int {
+// WithGrid returns a derived MapGen using the given destination grid slice.
+func (mg MapGen) WithGrid(gd Grid) MapGen {
+	mg.Grid = gd
+	return mg
+}
+
+func (mg MapGen) rand(n int) int {
 	if n <= 0 {
 		return 0
 	}
@@ -33,7 +44,7 @@ type RandomWalker interface {
 // float between 0 and 1) is reached. It returns the number of digged cells.
 // If more than one walk is done, the result is not guaranteed to be connected
 // and has to be made connected later.
-func (mg *MapGen) RandomWalkCave(walker RandomWalker, c Cell, fillp float64, walks int) int {
+func (mg MapGen) RandomWalkCave(walker RandomWalker, c Cell, fillp float64, walks int) int {
 	if fillp > 0.9 {
 		fillp = 0.9
 	}
@@ -110,7 +121,7 @@ type CellularAutomataRule struct {
 //
 // The algorithm is based on:
 // http://www.roguebasin.com/index.php?title=Cellular_Automata_Method_for_Generating_Random_Cave-Like_Levels
-func (mg *MapGen) CellularAutomataCave(wall, ground Cell, winit float64, rules []CellularAutomataRule) int {
+func (mg MapGen) CellularAutomataCave(wall, ground Cell, winit float64, rules []CellularAutomataRule) int {
 	if winit > 0.9 {
 		winit = 0.9
 	}
@@ -151,7 +162,7 @@ func (mg *MapGen) CellularAutomataCave(wall, ground Cell, winit float64, rules [
 	return count
 }
 
-func (mg *MapGen) applyRule(wall, ground Cell, bufgd Grid, rule CellularAutomataRule) {
+func (mg MapGen) applyRule(wall, ground Cell, bufgd Grid, rule CellularAutomataRule) {
 	max := mg.Grid.Size()
 	for i := 0; i < rule.Reps; i++ {
 		for y := 0; y < max.Y; y++ {
@@ -170,7 +181,7 @@ func (mg *MapGen) applyRule(wall, ground Cell, bufgd Grid, rule CellularAutomata
 	}
 }
 
-func (mg *MapGen) applyRuleWithoutW1(wall, ground Cell, bufgd Grid, rule CellularAutomataRule) {
+func (mg MapGen) applyRuleWithoutW1(wall, ground Cell, bufgd Grid, rule CellularAutomataRule) {
 	max := mg.Grid.Size()
 	// optimization equivalent to disabling WCutoff1
 	for i := 0; i < rule.Reps; i++ {
@@ -189,7 +200,7 @@ func (mg *MapGen) applyRuleWithoutW1(wall, ground Cell, bufgd Grid, rule Cellula
 	}
 }
 
-func (mg *MapGen) applyRuleWithoutW2(wall, ground Cell, bufgd Grid, rule CellularAutomataRule) {
+func (mg MapGen) applyRuleWithoutW2(wall, ground Cell, bufgd Grid, rule CellularAutomataRule) {
 	max := mg.Grid.Size()
 	// optimization equivalent to disabling WCutoff2
 	for i := 0; i < rule.Reps; i++ {
@@ -208,7 +219,7 @@ func (mg *MapGen) applyRuleWithoutW2(wall, ground Cell, bufgd Grid, rule Cellula
 	}
 }
 
-func (mg *MapGen) countWalls(p gruid.Point, w Cell, radius int, countOut bool) int {
+func (mg MapGen) countWalls(p gruid.Point, w Cell, radius int, countOut bool) int {
 	count := 0
 	for y := p.Y - radius; y <= p.Y+radius; y++ {
 		for x := p.X - radius; x <= p.X+radius; x++ {
@@ -225,4 +236,102 @@ func (mg *MapGen) countWalls(p gruid.Point, w Cell, radius int, countOut bool) i
 		}
 	}
 	return count
+}
+
+// Vault represents a prefabricated room or level section built from a textual
+// description using Parse.
+type Vault struct {
+	content string
+	size    gruid.Point
+	runes   string
+}
+
+// Content returns the vault's textual content.
+func (v *Vault) Content() string {
+	return v.content
+}
+
+// Size returns the (width, height) size of the vault in cells.
+func (v *Vault) Size() gruid.Point {
+	return v.size
+}
+
+// SetRunes states that the permitted runes in the textual vault content should
+// be among the runes in the given string. If empty, any rune is allowed.
+func (v *Vault) SetRunes(s string) {
+	v.runes = s
+}
+
+// Runes returns a string containing the currently permitted runes in the
+// textual vault content.
+func (v *Vault) Runes() string {
+	return v.runes
+}
+
+// Parse updates the vault's textual content. Each line in the string should
+// have the same length (leading and trailing spaces are removed
+// automatically).
+func (v *Vault) Parse(s string) error {
+	x, y := 0, 0
+	w := -1
+	s = strings.TrimSpace(s)
+	for _, r := range s {
+		if r == '\n' {
+			if x > w {
+				if w > 0 {
+					return fmt.Errorf("vault: inconsistent size: %s", s)
+				}
+				w = x
+			}
+			x = 0
+			y++
+			continue
+		}
+		if v.runes != "" && !strings.ContainsRune(v.runes, r) {
+			return fmt.Errorf("vault contains invalid rune “%c” at %v", r, gruid.Point{x, y})
+		}
+		x++
+	}
+	if x > w {
+		if w > 0 {
+			return fmt.Errorf("vault: inconsistent size: %s", s)
+		}
+		w = x
+	}
+	if w > 0 || y > 0 {
+		y++ // at least one line
+	}
+	v.content = s
+	v.size = gruid.Point{x, y}
+	return nil
+}
+
+// Iter iterates a function for all the vault positions and content runes.
+func (v *Vault) Iter(fn func(gruid.Point, rune)) {
+	x, y := 0, 0
+	for _, r := range v.content {
+		if r == '\n' {
+			x = 0
+			y++
+			continue
+		}
+		fn(gruid.Point{x, y}, r)
+		x++
+	}
+}
+
+// Draw uses a mapping from runes to cells to draw the vault in a grid. It
+// returns the grid slice that was drawn.
+func (v *Vault) Draw(gd Grid, fn func(rune) Cell) Grid {
+	x, y := 0, 0
+	for _, r := range v.content {
+		if r == '\n' {
+			x = 0
+			y++
+			continue
+		}
+		gd.Set(gruid.Point{x, y}, fn(r))
+		x++
+	}
+	return gd.Slice(gruid.NewRange(0, 0, v.size.X, v.size.Y))
 }
