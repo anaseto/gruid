@@ -5,6 +5,7 @@ package rl
 import (
 	"bytes"
 	"encoding/gob"
+	"math"
 
 	"github.com/anaseto/gruid"
 )
@@ -97,7 +98,7 @@ func (fov *FOV) GobEncode() ([]byte, error) {
 
 // At returns the total ray cost at a given position from the last source given
 // to VisionMap. It returns a false boolean if the position was out of reach
-// (distance greater than maxDist).
+// (distance greater than the radius).
 func (fov *FOV) At(p gruid.Point) (int, bool) {
 	if !p.In(fov.Rg) || fov.LMap == nil {
 		return 0, false
@@ -186,14 +187,14 @@ type Lighter interface {
 }
 
 // VisionMap builds a field of vision map for a viewer at src that has a
-// maxDist reach. Values can then be consulted with At.
-func (fov *FOV) VisionMap(lt Lighter, src gruid.Point, maxDist int) {
+// radius reach. Values can then be consulted with At.
+func (fov *FOV) VisionMap(lt Lighter, src gruid.Point, radius int) {
 	fov.Idx++
 	if !src.In(fov.Rg) {
 		return
 	}
 	fov.LMap[fov.idx(src)] = fovNode{Cost: 0, Idx: fov.Idx}
-	for d := 1; d <= maxDist; d++ {
+	for d := 1; d <= radius; d++ {
 		for x := -d + src.X; x <= d+src.X; x++ {
 			fov.visionUpdate(lt, src, gruid.Point{x, src.Y + d})
 			fov.visionUpdate(lt, src, gruid.Point{x, src.Y - d})
@@ -203,6 +204,7 @@ func (fov *FOV) VisionMap(lt Lighter, src gruid.Point, maxDist int) {
 			fov.visionUpdate(lt, src, gruid.Point{src.X - d, y})
 		}
 	}
+	fov.checkIdx()
 }
 
 func (fov *FOV) visionUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
@@ -213,16 +215,16 @@ func (fov *FOV) visionUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
 	fov.LMap[fov.idx(to)] = fovNode{Cost: c, Idx: fov.Idx}
 }
 
-// LightMap builds a lighting map with given light sources that have a maxDist
+// LightMap builds a lighting map with given light sources that have a radius
 // reach. Values can then be consulted with At.
-func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point, maxDist int) {
+func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point, radius int) {
 	fov.Idx++
 	for _, src := range srcs {
 		if !src.In(fov.Rg) {
 			continue
 		}
 		fov.LMap[fov.idx(src)] = fovNode{Cost: 0, Idx: fov.Idx}
-		for d := 1; d <= maxDist; d++ {
+		for d := 1; d <= radius; d++ {
 			for x := -d + src.X; x <= d+src.X; x++ {
 				fov.lightUpdate(lt, src, gruid.Point{x, src.Y + d})
 				fov.lightUpdate(lt, src, gruid.Point{x, src.Y - d})
@@ -233,6 +235,7 @@ func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point, maxDist int) {
 			}
 		}
 	}
+	fov.checkIdx()
 }
 
 func (fov *FOV) lightUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
@@ -245,6 +248,20 @@ func (fov *FOV) lightUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
 		return
 	}
 	fov.LMap[fov.idx(to)] = fovNode{Cost: c, Idx: fov.Idx}
+}
+
+func (fov *FOV) checkIdx() {
+	if fov.Idx < math.MaxInt32 {
+		return
+	}
+	for i, n := range fov.LMap {
+		idx := 0
+		if n.Idx == fov.Idx {
+			idx = 1
+		}
+		fov.LMap[i] = fovNode{Cost: n.Cost, Idx: idx}
+	}
+	fov.Idx = 1
 }
 
 // LightNode represents the information attached to a given position in a light

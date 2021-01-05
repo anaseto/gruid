@@ -89,7 +89,7 @@ type model struct {
 	path      []gruid.Point    // current path (reverse highlighting)
 	mapgd     rl.Grid          // map grid
 	rand      *rand.Rand       // random number generator
-	fov       *rl.FOV
+	fov       *rl.FOV          // field of vision
 }
 
 // autoMove represents the information for an automatic-movement step.

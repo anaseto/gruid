@@ -6,8 +6,8 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-// MapGen provides some grid-map generation facilities using a given math.Rand
-// number generator.
+// MapGen provides some grid-map generation facilities using a given random
+// number generator and a destination grid slice.
 type MapGen struct {
 	Rand *rand.Rand // random number generator (required)
 	Grid Grid       // destination grid slice where generated maps are drawn

@@ -9,10 +9,10 @@ import (
 )
 
 // Grid is modeled after gruid.Grid but with int Cells. It is suitable for
-// example for representing a map. It is a slice type, so it represents a
-// rectangular range within an underlying original grid. Due to how it is
-// represented internally, it is more efficient to iterate whole lines first,
-// as in the following pattern:
+// representing a map. It is a slice type, so it represents a rectangular range
+// within an underlying original grid. Due to how it is represented internally,
+// it is more efficient to iterate whole lines first, as in the following
+// pattern:
 //
 // 	max := gd.Size()
 //	for y := 0; y < max.Y; y++ {
