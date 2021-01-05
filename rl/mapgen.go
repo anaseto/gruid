@@ -270,7 +270,8 @@ func (v *Vault) Runes() string {
 
 // Parse updates the vault's textual content. Each line in the string should
 // have the same length (leading and trailing spaces are removed
-// automatically).
+// automatically). Only characters defined by SetRunes are allowed in the
+// textual content.
 func (v *Vault) Parse(s string) error {
 	x, y := 0, 0
 	w := -1
@@ -320,7 +321,7 @@ func (v *Vault) Iter(fn func(gruid.Point, rune)) {
 	}
 }
 
-// Draw uses a mapping from runes to cells to draw the vault in a grid. It
+// Draw uses a mapping from runes to cells to draw the vault into a grid. It
 // returns the grid slice that was drawn.
 func (v *Vault) Draw(gd Grid, fn func(rune) Cell) Grid {
 	x, y := 0, 0
