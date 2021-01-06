@@ -401,13 +401,14 @@ func (v *Vault) rotate90() {
 	v.size.X, v.size.Y = v.size.Y, v.size.X
 }
 
-// Rotate180 rotates the vault by 180 degrees.
+// rotate180 rotates the vault by 180 degrees. It can be obtained with two
+// rotate90, but it's just a simple string reversal, so we make a special case
+// for it.
 func (v *Vault) rotate180() {
 	runes := []rune(v.content)
-	sb := strings.Builder{}
-	sb.Grow(len(v.content))
-	for i := len(runes) - 1; i >= 0; i-- {
-		sb.WriteRune(runes[i])
+	for i := 0; i < len(runes)/2; i++ {
+		j := len(runes) - 1 - i
+		runes[i], runes[j] = runes[j], runes[i]
 	}
-	v.content = sb.String()
+	v.content = string(runes)
 }
