@@ -336,3 +336,78 @@ func (v *Vault) Draw(gd Grid, fn func(rune) Cell) Grid {
 	}
 	return gd.Slice(gruid.NewRange(0, 0, v.size.X, v.size.Y))
 }
+
+// Reflect changes the content with its reflection with respect to a middle
+// vertical axis (order of characters in each line reversed). The result has
+// the same size.
+func (v *Vault) Reflect() {
+	sb := strings.Builder{}
+	sb.Grow(len(v.content))
+	line := make([]rune, 0, v.Size().X)
+	for _, r := range v.content {
+		if r == '\n' {
+			for i := len(line) - 1; i >= 0; i-- {
+				sb.WriteRune(line[i])
+			}
+			sb.WriteRune('\n')
+			line = line[:0]
+			continue
+		}
+		line = append(line, r)
+	}
+	for i := len(line) - 1; i >= 0; i-- {
+		sb.WriteRune(line[i])
+	}
+	v.content = sb.String()
+}
+
+// Rotate rotates the vault content n times by 90 degrees counter-clockwise (or
+// clockwise for negative n values).  The result's size has dimensions
+// exchanged for odd n.
+func (v *Vault) Rotate(n int) {
+	n %= 4
+	if n < 0 {
+		n = 4 + n
+	}
+	switch n {
+	case 1:
+		v.rotate90()
+	case 2:
+		v.rotate180()
+	case 3:
+		v.rotate180()
+		v.rotate90()
+	}
+}
+
+func (v *Vault) rotate90() {
+	lines := strings.Split(v.content, "\n")
+	runelines := make([][]rune, len(lines))
+	for i, s := range lines {
+		runelines[i] = []rune(s)
+	}
+	sb := strings.Builder{}
+	sb.Grow(len(v.content))
+	max := v.size
+	for x := 0; x < max.X; x++ {
+		for y := 0; y < max.Y; y++ {
+			sb.WriteRune(runelines[y][max.X-x-1])
+		}
+		if x < max.X-1 {
+			sb.WriteRune('\n')
+		}
+	}
+	v.content = sb.String()
+	v.size.X, v.size.Y = v.size.Y, v.size.X
+}
+
+// Rotate180 rotates the vault by 180 degrees.
+func (v *Vault) rotate180() {
+	runes := []rune(v.content)
+	sb := strings.Builder{}
+	sb.Grow(len(v.content))
+	for i := len(runes) - 1; i >= 0; i-- {
+		sb.WriteRune(runes[i])
+	}
+	v.content = sb.String()
+}
