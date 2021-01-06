@@ -53,10 +53,6 @@ func (mg MapGen) RandomWalkCave(walker RandomWalker, c Cell, fillp float64, walk
 	}
 	max := mg.Grid.Size()
 	maxdigs := int(float64(max.X*max.Y) * fillp)
-	wlkmax := maxdigs
-	if walks > 0 {
-		wlkmax /= walks
-	}
 	digged := 0
 	mg.Grid.Iter(func(p gruid.Point, cc Cell) {
 		// Compute number of cells already equal to c (in case some
@@ -66,6 +62,10 @@ func (mg MapGen) RandomWalkCave(walker RandomWalker, c Cell, fillp float64, walk
 		}
 	})
 	digs := digged
+	wlkmax := maxdigs - digged
+	if walks > 0 {
+		wlkmax /= walks
+	}
 	for digs <= maxdigs {
 		p := gruid.Point{mg.rand(max.X), mg.rand(max.Y)}
 		sc := mg.Grid.At(p)
