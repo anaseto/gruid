@@ -324,7 +324,7 @@ type lighter struct {
 	mapgd rl.Grid
 }
 
-const maxLOS = 8
+const maxLOS = 9
 
 func (lt *lighter) Cost(src, from, to gruid.Point) int {
 	if lt.mapgd.At(from) == Wall || lt.diagonalWalls(from, to) {
@@ -333,18 +333,27 @@ func (lt *lighter) Cost(src, from, to gruid.Point) int {
 	if src == from {
 		return 0
 	}
+	if lt.diagonalStep(from, to) {
+		return 2
+	}
 	return 1
 }
 
 // diagonalWalls checks whether diagonal light has to be blocked (this would
 // not be necessary if 8-way movement geometry is chosen).
 func (lt *lighter) diagonalWalls(from, to gruid.Point) bool {
-	step := to.Sub(from)
-	if step.X == 0 || step.Y == 0 {
+	if !lt.diagonalStep(from, to) {
 		return false
 	}
+	step := to.Sub(from)
 	return lt.mapgd.At(from.Add(gruid.Point{X: step.X})) == Wall &&
 		lt.mapgd.At(from.Add(gruid.Point{Y: step.Y})) == Wall
+}
+
+// diagonalStep reports whether it is a diagonal step.
+func (lt *lighter) diagonalStep(from, to gruid.Point) bool {
+	step := to.Sub(from)
+	return step.X != 0 && step.Y != 0
 }
 
 func abs(x int) int {
