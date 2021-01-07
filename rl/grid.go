@@ -198,7 +198,7 @@ func (gd Grid) getIdx(p gruid.Point) int {
 
 // idxToPos returns a grid position given an index and the width of the grid.
 func idxToPos(i, w int) gruid.Point {
-	return gruid.Point{X: i - (i/w)*w, Y: i / w}
+	return gruid.Point{X: i % w, Y: i / w}
 }
 
 // Fill sets the given cell as content for all the grid positions.
