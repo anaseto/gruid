@@ -136,11 +136,11 @@ func TestCCBfOutOfRange(t *testing.T) {
 }
 
 type bpath struct {
-	nb Neighbors
+	nb *Neighbors
 }
 
 func (nb bpath) Neighbors(p gruid.Point) []gruid.Point {
-	return nb.nb.Cardinal(p, func(q gruid.Point) bool {
+	return nb.nb.All(p, func(q gruid.Point) bool {
 		return true
 	})
 }
@@ -149,9 +149,14 @@ func (nb bpath) Cost(p, q gruid.Point) int {
 	return 1
 }
 
+func (nb bpath) Estimation(p, q gruid.Point) int {
+	p = p.Sub(q)
+	return abs(p.X) + abs(p.Y)
+}
+
 func BenchmarkCCAll(b *testing.B) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
-	nb := bpath{}
+	nb := bpath{&Neighbors{}}
 	for i := 0; i < b.N; i++ {
 		pr.ComputeCCAll(nb)
 	}
@@ -159,7 +164,7 @@ func BenchmarkCCAll(b *testing.B) {
 
 func BenchmarkCC(b *testing.B) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
-	nb := bpath{}
+	nb := bpath{&Neighbors{}}
 	for i := 0; i < b.N; i++ {
 		pr.ComputeCC(nb, gruid.Point{5, 5})
 	}

@@ -57,7 +57,7 @@ func TestPathMaps(t *testing.T) {
 
 func BenchmarkDijktraMapSmall(b *testing.B) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
-	nb := bpath{}
+	nb := bpath{&Neighbors{}}
 	for i := 0; i < b.N; i++ {
 		pr.DijkstraMap(nb, []gruid.Point{{X: 2, Y: 2}}, 9)
 	}
@@ -65,7 +65,7 @@ func BenchmarkDijktraMapSmall(b *testing.B) {
 
 func BenchmarkDijktraMapBig(b *testing.B) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
-	nb := bpath{}
+	nb := bpath{&Neighbors{}}
 	for i := 0; i < b.N; i++ {
 		pr.DijkstraMap(nb, []gruid.Point{{X: 2, Y: 2}}, 80)
 	}
@@ -73,7 +73,7 @@ func BenchmarkDijktraMapBig(b *testing.B) {
 
 func BenchmarkBfMapSmall(b *testing.B) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
-	nb := bpath{}
+	nb := bpath{&Neighbors{}}
 	for i := 0; i < b.N; i++ {
 		pr.BreadthFirstMap(nb, []gruid.Point{{X: 2, Y: 2}}, 9)
 	}
@@ -81,8 +81,16 @@ func BenchmarkBfMapSmall(b *testing.B) {
 
 func BenchmarkBfMapBig(b *testing.B) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
-	nb := bpath{}
+	nb := bpath{&Neighbors{}}
 	for i := 0; i < b.N; i++ {
 		pr.BreadthFirstMap(nb, []gruid.Point{{X: 2, Y: 2}}, 80)
+	}
+}
+
+func BenchmarkAstar(b *testing.B) {
+	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
+	nb := bpath{&Neighbors{}}
+	for i := 0; i < b.N; i++ {
+		pr.AstarPath(nb, gruid.Point{X: 2, Y: 2}, gruid.Point{X: 70, Y: 20})
 	}
 }
