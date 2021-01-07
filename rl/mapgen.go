@@ -274,7 +274,7 @@ func (v *Vault) Parse(s string) error {
 		if r == '\n' {
 			if x > w {
 				if w > 0 {
-					return fmt.Errorf("vault: inconsistent size: %s", s)
+					return fmt.Errorf("vault: inconsistent size:\n%s", s)
 				}
 				w = x
 			}
@@ -289,7 +289,7 @@ func (v *Vault) Parse(s string) error {
 	}
 	if x > w {
 		if w > 0 {
-			return fmt.Errorf("vault: inconsistent size: %s", s)
+			return fmt.Errorf("vault: inconsistent size:\n%s", s)
 		}
 		w = x
 	}
