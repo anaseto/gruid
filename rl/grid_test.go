@@ -201,6 +201,16 @@ func BenchmarkGridIterSet(b *testing.B) {
 	}
 }
 
+func BenchmarkGridRangeIterSet(b *testing.B) {
+	gd := NewGrid(80, 24)
+	gd.Fill(Cell(1))
+	for i := 0; i < b.N; i++ {
+		gd.Range().Iter(func(p gruid.Point) {
+			gd.Set(p, Cell(2))
+		})
+	}
+}
+
 func BenchmarkGridLoopSet(b *testing.B) {
 	gd := NewGrid(80, 24)
 	gd.Fill(Cell(1))
