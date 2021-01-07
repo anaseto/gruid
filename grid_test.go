@@ -57,7 +57,7 @@ func TestNewGrid(t *testing.T) {
 	if w != 50 && h != 50 {
 		t.Errorf("grid size does not match configuration: (%d,%d)", w, h)
 	}
-	max = gd.rg.Size()
+	max = gd.Bounds().Size()
 	rw, rh := max.X, max.Y
 	if w != rw || rh != h {
 		t.Errorf("incompatible sizes: grid (%d,%d) range (%d,%d)", w, h, rw, rh)
@@ -110,7 +110,7 @@ func TestGridSlice(t *testing.T) {
 		for x := 0; x < w; x++ {
 			p := Point{x, y}
 			c := gd.At(p)
-			if p.In(slice.rg) {
+			if p.In(slice.Bounds()) {
 				if c.Rune != 's' {
 					t.Errorf("bad slice cell: %c at %+v", c.Rune, p)
 				}
@@ -125,17 +125,17 @@ func TestGridSlice2(t *testing.T) {
 	gd := NewGrid(80, 24)
 	gd.Fill(Cell{Rune: '.'})
 	slice := gd.Slice(NewRange(0, 0, 0, 0))
-	if !slice.rg.Empty() {
-		t.Errorf("non empty range %v", slice.rg)
+	if !slice.Bounds().Empty() {
+		t.Errorf("non empty range %v", slice.Bounds())
 	}
 	slice = gd.Slice(NewRange(0, 0, -5, -5))
-	if !slice.rg.Empty() {
-		t.Errorf("non empty negative range %v", slice.rg)
+	if !slice.Bounds().Empty() {
+		t.Errorf("non empty negative range %v", slice.Bounds())
 	}
 	slice = gd.Slice(NewRange(5, 5, 0, 0))
-	rg := slice.rg
+	rg := slice.Bounds()
 	if rg.Max.X != 5 || rg.Max.Y != 5 || rg.Min.X != 0 || rg.Min.Y != 0 {
-		t.Errorf("bad inversed range %+v", slice.rg)
+		t.Errorf("bad inversed range %+v", slice.Bounds())
 	}
 }
 
@@ -212,7 +212,7 @@ func TestCopy2(t *testing.T) {
 	max := gd.Size()
 	w, h := max.X, max.Y
 	gd.Fill(Cell{Rune: '.'})
-	rg := gd.rg
+	rg := gd.Bounds()
 	slice := gd.Slice(rg.Lines(1, 3))
 	slice2 := gd.Slice(rg.Line(2))
 	slice3 := gd.Slice(rg.Lines(2, 4))
@@ -251,7 +251,7 @@ func TestCopy3(t *testing.T) {
 	max := gd.Size()
 	w, h := max.X, max.Y
 	gd.Fill(Cell{Rune: '.'})
-	rg := gd.rg
+	rg := gd.Bounds()
 	slice := gd.Slice(rg.Lines(1, 3))
 	slice2 := gd.Slice(rg.Line(2))
 	slice3 := gd.Slice(rg.Lines(2, 4))
@@ -290,7 +290,7 @@ func TestCopy4(t *testing.T) {
 	max := gd.Size()
 	w, h := max.X, max.Y
 	gd.Fill(Cell{Rune: '.'})
-	rg := gd.rg
+	rg := gd.Bounds()
 	slice := gd.Slice(rg.Lines(1, 3))
 	slice2 := gd.Slice(rg.Line(2))
 	slice3 := gd.Slice(rg.Lines(2, 4))
@@ -329,7 +329,7 @@ func TestCopy5(t *testing.T) {
 	max := gd.Size()
 	w, h := max.X, max.Y
 	gd.Fill(Cell{Rune: '.'})
-	rg := gd.rg
+	rg := gd.Bounds()
 	slice := gd.Slice(rg.Lines(1, 3))
 	slice2 := gd.Slice(rg.Line(2))
 	slice3 := gd.Slice(rg.Lines(2, 4))
@@ -368,7 +368,7 @@ func TestCopy6(t *testing.T) {
 	max := gd.Size()
 	w, h := max.X, max.Y
 	gd.Fill(Cell{Rune: '.'})
-	rg := gd.rg
+	rg := gd.Bounds()
 	slice := gd.Slice(rg.Lines(1, 3))
 	slice2 := gd.Slice(rg.Line(2))
 	slice3 := gd.Slice(rg.Lines(2, 4))
@@ -407,7 +407,7 @@ func TestCopy7(t *testing.T) {
 	max := gd.Size()
 	w, h := max.X, max.Y
 	gd.Fill(Cell{Rune: '.'})
-	rg := gd.rg
+	rg := gd.Bounds()
 	slice := gd.Slice(rg.Lines(1, 3))
 	slice2 := gd.Slice(rg.Line(2))
 	slice3 := gd.Slice(rg.Lines(2, 4))

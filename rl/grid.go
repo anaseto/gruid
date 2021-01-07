@@ -203,14 +203,76 @@ func idxToPos(i, w int) gruid.Point {
 
 // Fill sets the given cell as content for all the grid positions.
 func (gd Grid) Fill(c Cell) {
-	max := gd.Size()
-	min := gd.Rg.Min
-	for y := 0; y < max.Y; y++ {
-		idx := (min.Y+y)*gd.Ug.Width + min.X
-		for x := 0; x < max.X; x++ {
-			gd.Ug.Cells[idx+x] = c
+	ug := gd.Ug
+	yimax := gd.Rg.Max.Y * ug.Width
+	for yi := gd.Rg.Min.Y * ug.Width; yi < yimax; yi += ug.Width {
+		ximax := yi + gd.Rg.Max.X
+		for xi := yi + gd.Rg.Min.X; xi < ximax; xi++ {
+			ug.Cells[xi] = c
 		}
 	}
+}
+
+// FillFunc updates the content for all the grid positions in order using the
+// given function return value.
+func (gd Grid) FillFunc(fn func() Cell) {
+	ug := gd.Ug
+	yimax := gd.Rg.Max.Y * ug.Width
+	for yi := gd.Rg.Min.Y * ug.Width; yi < yimax; yi += ug.Width {
+		ximax := yi + gd.Rg.Max.X
+		for xi := yi + gd.Rg.Min.X; xi < ximax; xi++ {
+			ug.Cells[xi] = fn()
+		}
+	}
+}
+
+// Map updates the grid content using the given mapping function from cells to
+// cells.
+func (gd Grid) Map(fn func(c Cell) Cell) {
+	ug := gd.Ug
+	yimax := gd.Rg.Max.Y * ug.Width
+	for yi := gd.Rg.Min.Y * ug.Width; yi < yimax; yi += ug.Width {
+		ximax := yi + gd.Rg.Max.X
+		for xi := yi + gd.Rg.Min.X; xi < ximax; xi++ {
+			c := gd.Ug.Cells[xi]
+			gd.Ug.Cells[xi] = fn(c)
+		}
+	}
+}
+
+// CountFunc returns the number of cells for which the given function returns
+// true.
+func (gd Grid) CountFunc(fn func(c Cell) bool) int {
+	ug := gd.Ug
+	count := 0
+	yimax := gd.Rg.Max.Y * ug.Width
+	for yi := gd.Rg.Min.Y * ug.Width; yi < yimax; yi += ug.Width {
+		ximax := yi + gd.Rg.Max.X
+		for xi := yi + gd.Rg.Min.X; xi < ximax; xi++ {
+			c := ug.Cells[xi]
+			if fn(c) {
+				count++
+			}
+		}
+	}
+	return count
+}
+
+// Count returns the number of cells which are equal to the given one.
+func (gd Grid) Count(c Cell) int {
+	ug := gd.Ug
+	count := 0
+	yimax := gd.Rg.Max.Y * ug.Width
+	for yi := gd.Rg.Min.Y * ug.Width; yi < yimax; yi += ug.Width {
+		ximax := yi + gd.Rg.Max.X
+		for xi := yi + gd.Rg.Min.X; xi < ximax; xi++ {
+			cc := ug.Cells[xi]
+			if c == cc {
+				count++
+			}
+		}
+	}
+	return count
 }
 
 // Iter iterates a function on all the grid positions and cells.

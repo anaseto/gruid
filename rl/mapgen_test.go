@@ -97,7 +97,7 @@ const (
 	ground
 )
 
-func BenchmarkRandomWalkCave(b *testing.B) {
+func BenchmarkMapGenRandomWalkCave(b *testing.B) {
 	mapgd := NewGrid(80, 24)
 	rd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	mgen := MapGen{Rand: rd, Grid: mapgd}
@@ -108,7 +108,7 @@ func BenchmarkRandomWalkCave(b *testing.B) {
 	}
 }
 
-func BenchmarkCellularAutomataCave(b *testing.B) {
+func BenchmarkMapGenCellularAutomataCave(b *testing.B) {
 	mapgd := NewGrid(80, 24)
 	rd := rand.New(rand.NewSource(time.Now().UnixNano()))
 	mgen := MapGen{Rand: rd, Grid: mapgd}

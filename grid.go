@@ -461,12 +461,12 @@ func idxToPos(i, w int) Point {
 
 // Fill sets the given cell as content for all the grid positions.
 func (gd Grid) Fill(c Cell) {
-	max := gd.Size()
-	min := gd.rg.Min
-	for y := 0; y < max.Y; y++ {
-		idx := (min.Y+y)*gd.ug.width + min.X
-		for x := 0; x < max.X; x++ {
-			gd.ug.cells[idx+x] = c
+	ug := gd.ug
+	yimax := gd.rg.Max.Y * ug.width
+	for yi := gd.rg.Min.Y * ug.width; yi < yimax; yi += ug.width {
+		ximax := yi + gd.rg.Max.X
+		for xi := yi + gd.rg.Min.X; xi < ximax; xi++ {
+			ug.cells[xi] = c
 		}
 	}
 }

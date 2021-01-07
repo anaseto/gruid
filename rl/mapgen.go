@@ -54,14 +54,7 @@ func (mg MapGen) RandomWalkCave(walker RandomWalker, c Cell, fillp float64, walk
 	}
 	max := mg.Grid.Size()
 	maxdigs := int(float64(max.X*max.Y) * fillp)
-	digged := 0
-	mg.Grid.Iter(func(p gruid.Point, cc Cell) {
-		// Compute number of cells already equal to c (in case some
-		// other map generation occurred before).
-		if cc == c {
-			digged++
-		}
-	})
+	digged := mg.Grid.Count(c)
 	digs := digged
 	wlkmax := maxdigs - digged
 	if walks > 0 {
@@ -130,17 +123,13 @@ func (mg MapGen) CellularAutomataCave(wall, ground Cell, winit float64, rules []
 		winit = 0.1
 	}
 	max := mg.Grid.Size()
-	for y := 0; y < max.Y; y++ {
-		for x := 0; x < max.X; x++ {
-			p := gruid.Point{x, y}
-			f := mg.Rand.Float64()
-			if f < winit {
-				mg.Grid.Set(p, wall)
-			} else {
-				mg.Grid.Set(p, ground)
-			}
+	mg.Grid.FillFunc(func() Cell {
+		f := mg.Rand.Float64()
+		if f < winit {
+			return wall
 		}
-	}
+		return ground
+	})
 	bufgd := NewGrid(max.X, max.Y)
 	for _, rule := range rules {
 		if rule.WCutoff2 >= 25 {
@@ -151,91 +140,70 @@ func (mg MapGen) CellularAutomataCave(wall, ground Cell, winit float64, rules []
 			mg.applyRule(wall, ground, bufgd, rule)
 		}
 	}
-	count := 0
-	for y := 0; y < max.Y; y++ {
-		for x := 0; x < max.X; x++ {
-			p := gruid.Point{x, y}
-			if mg.Grid.At(p) == ground {
-				count++
-			}
-		}
-	}
-	return count
+	return mg.Grid.Count(ground)
 }
 
 func (mg MapGen) applyRule(wall, ground Cell, bufgd Grid, rule CellularAutomataRule) {
-	max := mg.Grid.Size()
 	for i := 0; i < rule.Reps; i++ {
-		for y := 0; y < max.Y; y++ {
-			for x := 0; x < max.X; x++ {
-				p := gruid.Point{x, y}
-				c1 := mg.countWalls(p, wall, 1, rule.WallsOutOfRange)
-				c2 := mg.countWalls(p, wall, 2, rule.WallsOutOfRange)
-				if c1 >= rule.WCutoff1 || c2 <= rule.WCutoff2 {
-					bufgd.Set(p, wall)
-				} else {
-					bufgd.Set(p, ground)
-				}
+		mg.Grid.Range().Iter(func(p gruid.Point) {
+			c1 := mg.countWalls(p, wall, 1, rule.WallsOutOfRange)
+			c2 := mg.countWalls(p, wall, 2, rule.WallsOutOfRange)
+			if c1 >= rule.WCutoff1 || c2 <= rule.WCutoff2 {
+				bufgd.Set(p, wall)
+			} else {
+				bufgd.Set(p, ground)
 			}
-		}
+		})
 		mg.Grid.Copy(bufgd)
 	}
 }
 
 func (mg MapGen) applyRuleWithoutW1(wall, ground Cell, bufgd Grid, rule CellularAutomataRule) {
-	max := mg.Grid.Size()
 	// optimization equivalent to disabling WCutoff1
 	for i := 0; i < rule.Reps; i++ {
-		for y := 0; y < max.Y; y++ {
-			for x := 0; x < max.X; x++ {
-				p := gruid.Point{x, y}
-				c2 := mg.countWalls(p, wall, 2, rule.WallsOutOfRange)
-				if c2 <= rule.WCutoff2 {
-					bufgd.Set(p, wall)
-				} else {
-					bufgd.Set(p, ground)
-				}
+		mg.Grid.Range().Iter(func(p gruid.Point) {
+			c2 := mg.countWalls(p, wall, 2, rule.WallsOutOfRange)
+			if c2 <= rule.WCutoff2 {
+				bufgd.Set(p, wall)
+			} else {
+				bufgd.Set(p, ground)
 			}
-		}
+		})
 		mg.Grid.Copy(bufgd)
 	}
 }
 
 func (mg MapGen) applyRuleWithoutW2(wall, ground Cell, bufgd Grid, rule CellularAutomataRule) {
-	max := mg.Grid.Size()
 	// optimization equivalent to disabling WCutoff2
 	for i := 0; i < rule.Reps; i++ {
-		for y := 0; y < max.Y; y++ {
-			for x := 0; x < max.X; x++ {
-				p := gruid.Point{x, y}
-				c1 := mg.countWalls(p, wall, 1, rule.WallsOutOfRange)
-				if c1 >= rule.WCutoff1 {
-					bufgd.Set(p, wall)
-				} else {
-					bufgd.Set(p, ground)
-				}
+		mg.Grid.Range().Iter(func(p gruid.Point) {
+			c1 := mg.countWalls(p, wall, 1, rule.WallsOutOfRange)
+			if c1 >= rule.WCutoff1 {
+				bufgd.Set(p, wall)
+			} else {
+				bufgd.Set(p, ground)
 			}
-		}
+		})
 		mg.Grid.Copy(bufgd)
 	}
 }
 
 func (mg MapGen) countWalls(p gruid.Point, w Cell, radius int, countOut bool) int {
 	count := 0
-	for y := p.Y - radius; y <= p.Y+radius; y++ {
-		for x := p.X - radius; x <= p.X+radius; x++ {
-			q := gruid.Point{x, y}
-			if !mg.Grid.Contains(q) {
-				if countOut {
-					count++
-				}
-				continue
-			}
-			if mg.Grid.At(q) == w {
-				count++
-			}
-		}
+	rg := gruid.Range{
+		gruid.Point{p.X - radius, p.Y - radius},
+		gruid.Point{p.X + radius + 1, p.Y + radius + 1},
 	}
+	if countOut {
+		osize := rg.Size()
+		rg = rg.Intersect(mg.Grid.Range())
+		size := rg.Size()
+		count += osize.X*osize.Y - size.X*size.Y
+	} else {
+		rg = rg.Intersect(mg.Grid.Range())
+	}
+	gd := mg.Grid.Slice(rg)
+	count += gd.Count(w)
 	return count
 }
 
