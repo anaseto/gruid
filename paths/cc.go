@@ -54,7 +54,8 @@ func (pr *PathRange) ComputeCCAll(nb Pather) {
 
 // ComputeCC computes the connected component which contains a given position.
 // It makes the assumption that the paths are bidirectional, allowing for
-// efficient computation.
+// efficient computation. It makes uses of the same caching structures as
+// ComputeCCAll, so CCAt will return -1 on all unreachable positions from p.
 func (pr *PathRange) ComputeCC(nb Pather, p gruid.Point) {
 	max := pr.Rg.Size()
 	w, h := max.X, max.Y
@@ -69,6 +70,9 @@ func (pr *PathRange) ComputeCC(nb Pather, p gruid.Point) {
 	pr.CCIterCache = pr.CCIterCache[:0]
 	pr.CCstack = pr.CCstack[:0]
 	ccid := 0
+	if !p.In(pr.Range()) {
+		return
+	}
 	idx := pr.idx(p)
 	pr.CC[idx].ID = ccid
 	pr.CC[idx].Idx = pr.CCidx

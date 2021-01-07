@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/anaseto/gruid"
+	"github.com/anaseto/gruid/paths"
 )
 
 // MapGen provides some grid-map generation facilities using a given random
@@ -231,6 +232,31 @@ func (mg MapGen) countWalls(p gruid.Point, w Cell, radius int, countOut bool) in
 				continue
 			}
 			if mg.Grid.At(q) == w {
+				count++
+			}
+		}
+	}
+	return count
+}
+
+// KeepCC puts walls in all the positions unreachable from p according to last
+// ComputeCC or ComputeCCAll call on pr. Paths are supposed to be
+// bidirectional. It returns the number of cells in the remaining connected
+// component.
+func (mg MapGen) KeepCC(pr *paths.PathRange, p gruid.Point, wall Cell) int {
+	max := mg.Grid.Size()
+	count := 0
+	id := pr.CCAt(p)
+	if id == -1 {
+		mg.Grid.Fill(wall)
+		return 0
+	}
+	for y := 0; y < max.Y; y++ {
+		for x := 0; x < max.X; x++ {
+			q := gruid.Point{x, y}
+			if pr.CCAt(q) != id {
+				mg.Grid.Set(q, wall)
+			} else {
 				count++
 			}
 		}
