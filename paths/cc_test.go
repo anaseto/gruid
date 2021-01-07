@@ -2,6 +2,7 @@ package paths
 
 import (
 	"bytes"
+	//"fmt"
 	"testing"
 
 	"encoding/gob"
@@ -131,5 +132,35 @@ func TestCCBfOutOfRange(t *testing.T) {
 	pr.ComputeCC(nb, p)
 	if pr.CCAt(q) != -1 {
 		t.Errorf("bad unreachable value: %v", pr.CCAt(q))
+	}
+}
+
+type bpath struct {
+	nb Neighbors
+}
+
+func (nb bpath) Neighbors(p gruid.Point) []gruid.Point {
+	return nb.nb.Cardinal(p, func(q gruid.Point) bool {
+		return true
+	})
+}
+
+func (nb bpath) Cost(p, q gruid.Point) int {
+	return 1
+}
+
+func BenchmarkCCAll(b *testing.B) {
+	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
+	nb := bpath{}
+	for i := 0; i < b.N; i++ {
+		pr.ComputeCCAll(nb)
+	}
+}
+
+func BenchmarkCC(b *testing.B) {
+	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
+	nb := bpath{}
+	for i := 0; i < b.N; i++ {
+		pr.ComputeCC(nb, gruid.Point{5, 5})
 	}
 }

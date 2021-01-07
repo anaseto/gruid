@@ -87,7 +87,7 @@ type Node struct {
 
 // idxToPos returns a grid position given an index and the width of the grid.
 func idxToPos(i, w int) gruid.Point {
-	return gruid.Point{X: i - (i/w)*w, Y: i / w}
+	return gruid.Point{X: i % w, Y: i / w}
 }
 
 // MapIter iterates a function on the nodes of the last computed dijkstra map,

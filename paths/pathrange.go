@@ -83,7 +83,7 @@ func (pr *PathRange) Range() gruid.Range {
 
 func (pr *PathRange) idx(p gruid.Point) int {
 	p = p.Sub(pr.Rg.Min)
-	w := pr.Rg.Size().X
+	w := pr.Rg.Max.X - pr.Rg.Min.X
 	return p.Y*w + p.X
 }
 
@@ -110,14 +110,14 @@ type node struct {
 	Parent     *gruid.Point
 	Open       bool
 	Closed     bool
-	Idx      int
+	Idx        int
 	Num        int
 	CacheIndex int
 }
 
 type nodeMap struct {
 	Nodes []node
-	Idx int
+	Idx   int
 }
 
 // A priorityQueue implements heap.Interface with Node elements.
