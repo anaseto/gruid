@@ -48,9 +48,9 @@ Dijkstra, breadth first, and connected components maps computations. See the
 A\* and the mouse.
 
 The **rl** package provides some additional utilities commonly needed in
-grid-based games such as roguelikes. The package is usable, but still
-experimental: it provides an event priority queue, a field of view algorithm as
-well as map generation algorithms.
+grid-based games such as roguelikes. The package provides an event priority
+queue, a field of view algorithm, map generation algorithms, as well as vault
+parsing and manipulation utilities.
 
 The **tcell**, **js**, and **sdl** packages in the [drivers
 sub-directory](drivers/) provide specific rendering and input implementations

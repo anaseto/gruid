@@ -1,12 +1,21 @@
 This changelog file only lists important changes.
 
-## v0.6.0 - 2020-12-04
+## v0.7.0 - 2020-01-08
+
++ New Vault parsing and manipulation utility in rl package.
++ Add a few new iteration facilities for grid slice types, and make some
+  optimizations based on added benchmarks.
++ MapGen type in rl package has now value receiver methods (incompatible
+  change).
++ Improve movement example with new features (such as non-explored cells).
+
+## v0.6.0 - 2020-01-04
 
 + New field of view algorithm in rl package.
 + Add configurable map generation algoritms in rl package: RandomWalkCave and
   CellularAutomataCave.
 
-## v0.5.0 - 2020-12-02
+## v0.5.0 - 2020-01-02
 
 + New Iter method for styled text.
 + Made pager's horizontal scrolling markup-aware.

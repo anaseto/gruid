@@ -1,6 +1,5 @@
 // Package rl will provide some facilities for common roguelike programming
-// needs. It is usable, but still EXPERIMENTAL, do not expect the API to be
-// stable.
+// needs.
 package rl
 
 import (
