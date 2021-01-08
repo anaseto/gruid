@@ -471,6 +471,25 @@ func TestCopy9(t *testing.T) {
 	}
 }
 
+func TestResize(t *testing.T) {
+	gd := NewGrid(20, 10)
+	gd.Fill(Cell{Rune: '.'})
+	rg := gd.Range()
+	gd = gd.Resize(30, 20)
+	if gd.Size().X != 30 || gd.Size().Y != 20 {
+		t.Errorf("bad size: %v", gd.Size())
+	}
+	gd.Iter(func(p Point, c Cell) {
+		if p.In(rg) {
+			if c.Rune != '.' {
+				t.Error("bad preservation of content")
+			}
+		} else if c.Rune != ' ' {
+			t.Error("bad new content")
+		}
+	})
+}
+
 func TestCell(t *testing.T) {
 	c := Cell{}
 	if c.WithRune('x').Rune != 'x' {
