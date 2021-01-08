@@ -127,7 +127,6 @@ func (m *model) InitializeMap() {
 	m.mapgd = rl.NewGrid(80, 24)
 	m.rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 	wlk := walker{rand: m.rand}
-	wlk.neighbors = &paths.Neighbors{}
 	mgen := rl.MapGen{Rand: m.rand, Grid: m.mapgd}
 	if m.rand.Float64() > 0.5 {
 		mgen.RandomWalkCave(wlk, Ground, 0.5, 1)
@@ -308,15 +307,22 @@ func (pp *playerPath) Estimation(p, q gruid.Point) int {
 
 // walker implements rl.RandomWalker.
 type walker struct {
-	neighbors *paths.Neighbors
-	rand      *rand.Rand
+	rand *rand.Rand
 }
 
+// Neighbor returns a random neighbor position, favoring horizontal directions
+// (because the maps we use are longer in that direction).
 func (w walker) Neighbor(p gruid.Point) gruid.Point {
-	neighbors := w.neighbors.Cardinal(p, func(q gruid.Point) bool {
-		return true
-	})
-	return neighbors[w.rand.Intn(len(neighbors))]
+	switch w.rand.Intn(6) {
+	case 0, 1:
+		return p.Shift(1, 0)
+	case 2, 3:
+		return p.Shift(-1, 0)
+	case 4:
+		return p.Shift(0, 1)
+	default:
+		return p.Shift(0, -1)
+	}
 }
 
 // lighter implements rl.Lighter (in a very simple way).
