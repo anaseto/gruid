@@ -292,7 +292,7 @@ func (rg Range) Iter(fn func(Point)) {
 //		}
 //	}
 //
-// Most iterations can be performed using the Slice, Fill, Copy and Iter
+// Most iterations can be performed using the Slice, Fill, Copy, Map and Iter
 // methods.
 type Grid struct {
 	innerGrid
