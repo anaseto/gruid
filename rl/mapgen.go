@@ -88,7 +88,7 @@ func (mg MapGen) RandomWalkCave(walker RandomWalker, c Cell, fillp float64, walk
 			} else {
 				outDigs++
 			}
-			if outDigs > wlkmax {
+			if outDigs > wlkmax || outDigs > 150 {
 				outDigs = 0
 				p = lastInRange
 			}
