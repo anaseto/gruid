@@ -295,14 +295,18 @@ func (rg Range) Iter(fn func(Point)) {
 // Most iterations can be performed using the Slice, Fill, Copy and Iter
 // methods.
 type Grid struct {
-	ug *grid // underlying whole grid
-	rg Range // range within the whole grid
+	innerGrid
+}
+
+type innerGrid struct {
+	Ug *grid // underlying whole grid
+	Rg Range // range within the whole grid
 }
 
 type grid struct {
-	width  int
-	height int
-	cells  []Cell
+	Width  int
+	Height int
+	Cells  []Cell
 }
 
 // Frame contains the necessary information to draw the frame changes from a
@@ -326,7 +330,7 @@ type FrameCell struct {
 // (X,Y) with 0 <= X < w and 0 <= Y < h. The grid is filled with Cell{Rune: ' '}.
 func NewGrid(w, h int) Grid {
 	gd := Grid{}
-	gd.ug = &grid{}
+	gd.Ug = &grid{}
 	if w < 0 || h < 0 {
 		panic(fmt.Sprintf("negative dimensions: NewGrid(%d,%d)", w, h))
 	}
@@ -337,13 +341,13 @@ func NewGrid(w, h int) Grid {
 // Bounds returns the range that is covered by this grid slice within the
 // underlying original grid.
 func (gd Grid) Bounds() Range {
-	return gd.rg
+	return gd.Rg
 }
 
 // Range returns the range with Min set to (0,0) and Max set to gd.Size(). It
 // may be convenient when using Slice with a range Shift.
 func (gd Grid) Range() Range {
-	return gd.rg.Sub(gd.rg.Min)
+	return gd.Rg.Sub(gd.Rg.Min)
 }
 
 // Slice returns a rectangular slice of the grid given by a range relative to
@@ -360,23 +364,23 @@ func (gd Grid) Slice(rg Range) Grid {
 	if rg.Min.Y < 0 {
 		rg.Min.Y = 0
 	}
-	max := gd.rg.Size()
+	max := gd.Rg.Size()
 	if rg.Max.X > max.X {
 		rg.Max.X = max.X
 	}
 	if rg.Max.Y > max.Y {
 		rg.Max.Y = max.Y
 	}
-	min := gd.rg.Min
+	min := gd.Rg.Min
 	rg.Min = rg.Min.Add(min)
 	rg.Max = rg.Max.Add(min)
-	return Grid{ug: gd.ug, rg: rg}
+	return Grid{innerGrid{Ug: gd.Ug, Rg: rg}}
 }
 
 // Size returns the grid (width, height) in cells, and is a shorthand for
 // gd.Range().Size().
 func (gd Grid) Size() Point {
-	return gd.rg.Size()
+	return gd.Rg.Size()
 }
 
 // Resize is similar to Slice, but it only specifies new dimensions, and if the
@@ -390,42 +394,42 @@ func (gd Grid) Resize(w, h int) Grid {
 		return gd
 	}
 	if w <= 0 || h <= 0 {
-		gd.rg.Max = gd.rg.Min
+		gd.Rg.Max = gd.Rg.Min
 		return gd
 	}
-	if gd.ug == nil {
-		gd.ug = &grid{}
+	if gd.Ug == nil {
+		gd.Ug = &grid{}
 	}
-	gd.rg.Max = gd.rg.Min.Shift(w, h)
-	uw := gd.ug.width
-	uh := gd.ug.height
+	gd.Rg.Max = gd.Rg.Min.Shift(w, h)
+	uw := gd.Ug.Width
+	uh := gd.Ug.Height
 	grow := false
-	if w+gd.rg.Min.X > uw {
-		gd.ug.width = w + gd.rg.Min.X
+	if w+gd.Rg.Min.X > uw {
+		gd.Ug.Width = w + gd.Rg.Min.X
 		grow = true
 	}
-	if h+gd.rg.Min.Y > uh {
-		gd.ug.height = h + gd.rg.Min.Y
+	if h+gd.Rg.Min.Y > uh {
+		gd.Ug.Height = h + gd.Rg.Min.Y
 		grow = true
 	}
 	if grow {
-		newBuf := make([]Cell, gd.ug.width*gd.ug.height)
+		newBuf := make([]Cell, gd.Ug.Width*gd.Ug.Height)
 		for i := range newBuf {
 			newBuf[i] = Cell{Rune: ' '}
 		}
-		for i := range gd.ug.cells {
+		for i := range gd.Ug.Cells {
 			p := idxToPos(i, uw)         // old absolute position
-			idx := p.X + gd.ug.width*p.Y // new index
-			newBuf[idx] = gd.ug.cells[i]
+			idx := p.X + gd.Ug.Width*p.Y // new index
+			newBuf[idx] = gd.Ug.Cells[i]
 		}
-		gd.ug.cells = newBuf
+		gd.Ug.Cells = newBuf
 	}
 	return gd
 }
 
 // Contains returns true if the given relative position is within the grid.
 func (gd Grid) Contains(p Point) bool {
-	return p.Add(gd.rg.Min).In(gd.rg)
+	return p.Add(gd.Rg.Min).In(gd.Rg)
 }
 
 // Set draws cell content and styling at a given position in the grid. If the
@@ -435,7 +439,7 @@ func (gd Grid) Set(p Point, c Cell) {
 		return
 	}
 	i := gd.getIdx(p)
-	gd.ug.cells[i] = c
+	gd.Ug.Cells[i] = c
 }
 
 // At returns the cell content and styling at a given position. If the position
@@ -445,13 +449,13 @@ func (gd Grid) At(p Point) Cell {
 		return Cell{}
 	}
 	i := gd.getIdx(p)
-	return gd.ug.cells[i]
+	return gd.Ug.Cells[i]
 }
 
 // getIdx returns the buffer index of a relative position.
 func (gd Grid) getIdx(p Point) int {
-	p = p.Add(gd.rg.Min)
-	return p.Y*gd.ug.width + p.X
+	p = p.Add(gd.Rg.Min)
+	return p.Y*gd.Ug.Width + p.X
 }
 
 // idxToPos returns a grid position given an index and the width of the grid.
@@ -461,24 +465,24 @@ func idxToPos(i, w int) Point {
 
 // Fill sets the given cell as content for all the grid positions.
 func (gd Grid) Fill(c Cell) {
-	ug := gd.ug
-	yimax := gd.rg.Max.Y * ug.width
-	for yi := gd.rg.Min.Y * ug.width; yi < yimax; yi += ug.width {
-		ximax := yi + gd.rg.Max.X
-		for xi := yi + gd.rg.Min.X; xi < ximax; xi++ {
-			ug.cells[xi] = c
+	ug := gd.Ug
+	yimax := gd.Rg.Max.Y * ug.Width
+	for yi := gd.Rg.Min.Y * ug.Width; yi < yimax; yi += ug.Width {
+		ximax := yi + gd.Rg.Max.X
+		for xi := yi + gd.Rg.Min.X; xi < ximax; xi++ {
+			ug.Cells[xi] = c
 		}
 	}
 }
 
 // Iter iterates a function on all the grid positions and cells.
 func (gd Grid) Iter(fn func(Point, Cell)) {
-	ug := gd.ug
-	yimax := gd.rg.Max.Y * ug.width
-	for y, yi := 0, gd.rg.Min.Y*ug.width; yi < yimax; y, yi = y+1, yi+ug.width {
-		ximax := yi + gd.rg.Max.X
-		for x, xi := 0, yi+gd.rg.Min.X; xi < ximax; x, xi = x+1, xi+1 {
-			c := ug.cells[xi]
+	ug := gd.Ug
+	yimax := gd.Rg.Max.Y * ug.Width
+	for y, yi := 0, gd.Rg.Min.Y*ug.Width; yi < yimax; y, yi = y+1, yi+ug.Width {
+		ximax := yi + gd.Rg.Max.X
+		for x, xi := 0, yi+gd.Rg.Min.X; xi < ximax; x, xi = x+1, xi+1 {
+			c := ug.Cells[xi]
 			p := Point{X: x, Y: y}
 			fn(p, c)
 		}
@@ -487,14 +491,14 @@ func (gd Grid) Iter(fn func(Point, Cell)) {
 
 // Map updates the grid content using the given mapping function.
 func (gd Grid) Map(fn func(Point, Cell) Cell) {
-	ug := gd.ug
-	yimax := gd.rg.Max.Y * ug.width
-	for y, yi := 0, gd.rg.Min.Y*ug.width; yi < yimax; y, yi = y+1, yi+ug.width {
-		ximax := yi + gd.rg.Max.X
-		for x, xi := 0, yi+gd.rg.Min.X; xi < ximax; x, xi = x+1, xi+1 {
-			c := ug.cells[xi]
+	ug := gd.Ug
+	yimax := gd.Rg.Max.Y * ug.Width
+	for y, yi := 0, gd.Rg.Min.Y*ug.Width; yi < yimax; y, yi = y+1, yi+ug.Width {
+		ximax := yi + gd.Rg.Max.X
+		for x, xi := 0, yi+gd.Rg.Min.X; xi < ximax; x, xi = x+1, xi+1 {
+			c := ug.Cells[xi]
 			p := Point{X: x, Y: y}
-			ug.cells[xi] = fn(p, c)
+			ug.Cells[xi] = fn(p, c)
 		}
 	}
 }
@@ -504,13 +508,13 @@ func (gd Grid) Map(fn func(Point, Cell) Cell) {
 // for each dimension. The result is independent of whether the two grids
 // referenced memory overlaps or not.
 func (gd Grid) Copy(src Grid) Point {
-	if gd.ug != src.ug {
+	if gd.Ug != src.Ug {
 		return gd.cp(src)
 	}
-	if gd.rg == src.rg {
-		return gd.rg.Size()
+	if gd.Rg == src.Rg {
+		return gd.Rg.Size()
 	}
-	if !gd.rg.Overlaps(src.rg) || gd.rg.Min.Y <= src.rg.Min.Y {
+	if !gd.Rg.Overlaps(src.Rg) || gd.Rg.Min.Y <= src.Rg.Min.Y {
 		return gd.cp(src)
 	}
 	return gd.cprev(src)
@@ -518,41 +522,41 @@ func (gd Grid) Copy(src Grid) Point {
 
 func (gd Grid) cp(src Grid) Point {
 	max := gd.Range().Intersect(src.Range()).Size()
-	ug, ugsrc := gd.ug, src.ug
-	idxmin := gd.rg.Min.Y * ug.width
-	idxsrcmin := src.rg.Min.Y * ug.width
-	idxmax := (gd.rg.Min.Y + max.Y) * ug.width
-	for idx, idxsrc := idxmin, idxsrcmin; idx < idxmax; idx, idxsrc = idx+ug.width, idxsrc+ugsrc.width {
-		copy(ug.cells[idx:idx+max.X], ugsrc.cells[idxsrc:idxsrc+max.X])
+	ug, ugsrc := gd.Ug, src.Ug
+	idxmin := gd.Rg.Min.Y * ug.Width
+	idxsrcmin := src.Rg.Min.Y * ug.Width
+	idxmax := (gd.Rg.Min.Y + max.Y) * ug.Width
+	for idx, idxsrc := idxmin, idxsrcmin; idx < idxmax; idx, idxsrc = idx+ug.Width, idxsrc+ugsrc.Width {
+		copy(ug.Cells[idx:idx+max.X], ugsrc.Cells[idxsrc:idxsrc+max.X])
 	}
 	return max
 }
 
 func (gd Grid) cprev(src Grid) Point {
 	max := gd.Range().Intersect(src.Range()).Size()
-	ug, ugsrc := gd.ug, src.ug
-	idxmax := (gd.rg.Min.Y + max.Y - 1) * ug.width
-	idxsrcmax := (src.rg.Min.Y + max.Y - 1) * ug.width
-	idxmin := gd.rg.Min.Y * ug.width
-	for idx, idxsrc := idxmax, idxsrcmax; idx >= idxmin; idx, idxsrc = idx-ug.width, idxsrc-ugsrc.width {
-		copy(ug.cells[idx:idx+max.X], ugsrc.cells[idxsrc:idxsrc+max.X])
+	ug, ugsrc := gd.Ug, src.Ug
+	idxmax := (gd.Rg.Min.Y + max.Y - 1) * ug.Width
+	idxsrcmax := (src.Rg.Min.Y + max.Y - 1) * ug.Width
+	idxmin := gd.Rg.Min.Y * ug.Width
+	for idx, idxsrc := idxmax, idxsrcmax; idx >= idxmin; idx, idxsrc = idx-ug.Width, idxsrc-ugsrc.Width {
+		copy(ug.Cells[idx:idx+max.X], ugsrc.Cells[idxsrc:idxsrc+max.X])
 	}
 	return max
 }
 
 // computeFrame computes next frame minimal changes and returns them.
 func (app *App) computeFrame(gd Grid, exposed bool) Frame {
-	if gd.ug == nil || gd.rg.Empty() {
+	if gd.Ug == nil || gd.Rg.Empty() {
 		return Frame{}
 	}
-	if app.grid.ug == nil {
-		app.grid = NewGrid(gd.ug.width, gd.ug.height)
-		app.frame.Width = gd.ug.width
-		app.frame.Height = gd.ug.height
-	} else if app.grid.ug.width != gd.ug.width || app.grid.ug.height != gd.ug.height {
-		app.grid = app.grid.Resize(gd.ug.width, gd.ug.height)
-		app.frame.Width = gd.ug.width
-		app.frame.Height = gd.ug.height
+	if app.grid.Ug == nil {
+		app.grid = NewGrid(gd.Ug.Width, gd.Ug.Height)
+		app.frame.Width = gd.Ug.Width
+		app.frame.Height = gd.Ug.Height
+	} else if app.grid.Ug.Width != gd.Ug.Width || app.grid.Ug.Height != gd.Ug.Height {
+		app.grid = app.grid.Resize(gd.Ug.Width, gd.Ug.Height)
+		app.frame.Width = gd.Ug.Width
+		app.frame.Height = gd.Ug.Height
 	}
 	app.frame.Time = time.Now()
 	app.frame.Cells = app.frame.Cells[:0]
@@ -560,17 +564,17 @@ func (app *App) computeFrame(gd Grid, exposed bool) Frame {
 		return app.refresh(gd)
 	}
 	max := gd.Size()
-	min := gd.rg.Min
+	min := gd.Rg.Min
 	for y := 0; y < max.Y; y++ {
-		idx := (min.Y+y)*gd.ug.width + min.X
+		idx := (min.Y+y)*gd.Ug.Width + min.X
 		for x := 0; x < max.X; x++ {
 			idx := idx + x
-			c := gd.ug.cells[idx]
-			if c == app.grid.ug.cells[idx] {
+			c := gd.Ug.Cells[idx]
+			if c == app.grid.Ug.Cells[idx] {
 				continue
 			}
-			app.grid.ug.cells[idx] = c
-			p := idxToPos(idx, gd.ug.width)
+			app.grid.Ug.Cells[idx] = c
+			p := idxToPos(idx, gd.Ug.Width)
 			cdraw := FrameCell{Cell: c, P: p}
 			app.frame.Cells = append(app.frame.Cells, cdraw)
 		}
@@ -581,10 +585,10 @@ func (app *App) computeFrame(gd Grid, exposed bool) Frame {
 // refresh forces a complete redraw of the screen, even for cells that did not
 // change.
 func (app *App) refresh(gd Grid) Frame {
-	for i := range gd.ug.cells {
-		c := gd.ug.cells[i]
-		app.grid.ug.cells[i] = c
-		p := idxToPos(i, gd.ug.width)
+	for i := range gd.Ug.Cells {
+		c := gd.Ug.Cells[i]
+		app.grid.Ug.Cells[i] = c
+		p := idxToPos(i, gd.Ug.Width)
 		cdraw := FrameCell{Cell: c, P: p}
 		app.frame.Cells = append(app.frame.Cells, cdraw)
 	}
