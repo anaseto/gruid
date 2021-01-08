@@ -203,6 +203,31 @@ func idxToPos(i, w int) gruid.Point {
 
 // Fill sets the given cell as content for all the grid positions.
 func (gd Grid) Fill(c Cell) {
+	w := gd.Rg.Max.X - gd.Rg.Min.X
+	switch {
+	case w > 8:
+		gd.fillcp(c)
+	case w == 1:
+		gd.fillv(c)
+	default:
+		gd.fill(c)
+	}
+}
+
+func (gd Grid) fillcp(c Cell) {
+	ug := gd.Ug
+	ymin := gd.Rg.Min.Y * ug.Width
+	w := gd.Rg.Max.X - gd.Rg.Min.X
+	for xi := ymin + gd.Rg.Min.X; xi < ymin+gd.Rg.Max.X; xi++ {
+		ug.Cells[xi] = c
+	}
+	idxmax := (gd.Rg.Max.Y-1)*ug.Width + gd.Rg.Max.X
+	for idx := ymin + ug.Width + gd.Rg.Min.X; idx < idxmax; idx += ug.Width {
+		copy(ug.Cells[idx:idx+w], ug.Cells[ymin+gd.Rg.Min.X:ymin+gd.Rg.Max.X])
+	}
+}
+
+func (gd Grid) fill(c Cell) {
 	ug := gd.Ug
 	yimax := gd.Rg.Max.Y * ug.Width
 	for yi := gd.Rg.Min.Y * ug.Width; yi < yimax; yi += ug.Width {
@@ -210,6 +235,14 @@ func (gd Grid) Fill(c Cell) {
 		for xi := yi + gd.Rg.Min.X; xi < ximax; xi++ {
 			ug.Cells[xi] = c
 		}
+	}
+}
+
+func (gd Grid) fillv(c Cell) {
+	ug := gd.Ug
+	yimax := gd.Rg.Max.Y*ug.Width + gd.Rg.Min.X
+	for xi := gd.Rg.Min.Y*ug.Width + gd.Rg.Min.X; xi < yimax; xi += ug.Width {
+		ug.Cells[xi] = c
 	}
 }
 

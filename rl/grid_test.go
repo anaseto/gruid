@@ -137,6 +137,16 @@ func TestCopy8(t *testing.T) {
 	}
 }
 
+func TestMap(t *testing.T) {
+	gd := NewGrid(8, 8)
+	gd.Map(func(p gruid.Point, c Cell) Cell {
+		return Cell(1)
+	})
+	if gd.Count(Cell(1)) != 8*8 {
+		t.Errorf("bad map")
+	}
+}
+
 func TestCount(t *testing.T) {
 	gd := NewGrid(80, 10)
 	if gd.Count(Cell(0)) != 800 {
@@ -251,5 +261,26 @@ func BenchmarkGridCopy(b *testing.B) {
 	gd2 := NewGrid(80, 24)
 	for i := 0; i < b.N; i++ {
 		gd.Copy(gd2)
+	}
+}
+
+func BenchmarkGridFillVertical(b *testing.B) {
+	gd := NewGrid(1, 24*80)
+	for i := 0; i < b.N; i++ {
+		gd.Fill(Cell(1))
+	}
+}
+
+func BenchmarkGridFillVertical8(b *testing.B) {
+	gd := NewGrid(8, 24*10)
+	for i := 0; i < b.N; i++ {
+		gd.Fill(Cell(1))
+	}
+}
+
+func BenchmarkGridFillVertical16(b *testing.B) {
+	gd := NewGrid(16, 12*10)
+	for i := 0; i < b.N; i++ {
+		gd.Fill(Cell(1))
 	}
 }

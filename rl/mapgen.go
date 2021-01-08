@@ -140,12 +140,13 @@ func (mg MapGen) CellularAutomataCave(wall, ground Cell, winit float64, rules []
 			mg.applyRule(wall, ground, bufgd, rule)
 		}
 	}
-	return mg.Grid.Count(ground)
+	count := mg.Grid.Count(ground)
+	return count
 }
 
 func (mg MapGen) applyRule(wall, ground Cell, bufgd Grid, rule CellularAutomataRule) {
 	for i := 0; i < rule.Reps; i++ {
-		mg.Grid.Map(func(p gruid.Point, c Cell) Cell {
+		bufgd.Map(func(p gruid.Point, c Cell) Cell {
 			c1 := mg.countWalls(p, wall, 1, rule.WallsOutOfRange)
 			c2 := mg.countWalls(p, wall, 2, rule.WallsOutOfRange)
 			if c1 >= rule.WCutoff1 || c2 <= rule.WCutoff2 {
@@ -160,7 +161,7 @@ func (mg MapGen) applyRule(wall, ground Cell, bufgd Grid, rule CellularAutomataR
 func (mg MapGen) applyRuleWithoutW1(wall, ground Cell, bufgd Grid, rule CellularAutomataRule) {
 	// optimization equivalent to disabling WCutoff1
 	for i := 0; i < rule.Reps; i++ {
-		mg.Grid.Map(func(p gruid.Point, c Cell) Cell {
+		bufgd.Map(func(p gruid.Point, c Cell) Cell {
 			c2 := mg.countWalls(p, wall, 2, rule.WallsOutOfRange)
 			if c2 <= rule.WCutoff2 {
 				return wall
@@ -174,7 +175,7 @@ func (mg MapGen) applyRuleWithoutW1(wall, ground Cell, bufgd Grid, rule Cellular
 func (mg MapGen) applyRuleWithoutW2(wall, ground Cell, bufgd Grid, rule CellularAutomataRule) {
 	// optimization equivalent to disabling WCutoff2
 	for i := 0; i < rule.Reps; i++ {
-		mg.Grid.Map(func(p gruid.Point, c Cell) Cell {
+		bufgd.Map(func(p gruid.Point, c Cell) Cell {
 			c1 := mg.countWalls(p, wall, 1, rule.WallsOutOfRange)
 			if c1 >= rule.WCutoff1 {
 				return wall
