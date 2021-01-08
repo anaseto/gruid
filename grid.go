@@ -645,8 +645,7 @@ func (app *App) computeFrame(gd Grid, exposed bool) Frame {
 // refresh forces a complete redraw of the screen, even for cells that did not
 // change.
 func (app *App) refresh(gd Grid) Frame {
-	for i := range gd.Ug.Cells {
-		c := gd.Ug.Cells[i]
+	for i, c := range gd.Ug.Cells {
 		app.grid.Ug.Cells[i] = c
 		p := idxToPos(i, gd.Ug.Width)
 		cdraw := FrameCell{Cell: c, P: p}
