@@ -184,6 +184,16 @@ func TestGridSlice4(t *testing.T) {
 	}
 }
 
+func TestIterMap(t *testing.T) {
+	gd := NewGrid(10, 10)
+	gd.Map(func(p Point, c Cell) Cell { return Cell{Rune: '+'} })
+	gd.Iter(func(p Point, c Cell) {
+		if c.Rune != '+' {
+			t.Errorf("bad cell %c at %v", c.Rune, p)
+		}
+	})
+}
+
 func TestCopy(t *testing.T) {
 	gd := NewGrid(80, 30)
 	max := gd.Size()
@@ -442,6 +452,19 @@ func TestCopy7(t *testing.T) {
 }
 
 func TestCopy8(t *testing.T) {
+	gd := NewGrid(3, 10)
+	gd.Fill(Cell{Rune: '.'})
+	gd2 := NewGrid(3, 10)
+	gd2.Fill(Cell{Rune: '+'})
+	gd.Copy(gd2)
+	gd.Iter(func(p Point, c Cell) {
+		if c.Rune != '+' {
+			t.Errorf("bad rune %c at %v", c.Rune, p)
+		}
+	})
+}
+
+func TestCopy9(t *testing.T) {
 	gd := NewGrid(80, 10)
 	if gd.Copy(gd) != gd.Range().Size() {
 		t.Errorf("bad same range copy")

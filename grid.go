@@ -563,11 +563,12 @@ func (gd Grid) Copy(src Grid) Point {
 
 func (gd Grid) cp(src Grid) Point {
 	w := gd.Ug.Width
+	wsrc := src.Ug.Width
 	max := gd.Range().Intersect(src.Range()).Size()
 	idxmin := gd.Rg.Min.Y * w
 	idxsrcmin := src.Rg.Min.Y * w
 	idxmax := (gd.Rg.Min.Y + max.Y) * w
-	for idx, idxsrc := idxmin, idxsrcmin; idx < idxmax; idx, idxsrc = idx+w, idxsrc+src.Ug.Width {
+	for idx, idxsrc := idxmin, idxsrcmin; idx < idxmax; idx, idxsrc = idx+w, idxsrc+wsrc {
 		copy(gd.Ug.Cells[idx:idx+max.X], src.Ug.Cells[idxsrc:idxsrc+max.X])
 	}
 	return max
@@ -575,11 +576,12 @@ func (gd Grid) cp(src Grid) Point {
 
 func (gd Grid) cpv(src Grid) Point {
 	w := gd.Ug.Width
+	wsrc := src.Ug.Width
 	max := gd.Range().Intersect(src.Range()).Size()
 	yimax := (gd.Rg.Min.Y + max.Y) * w
 	cells := gd.Ug.Cells
 	srccells := src.Ug.Cells
-	for yi, yisrc := gd.Rg.Min.Y*w, src.Rg.Min.Y*src.Ug.Width; yi < yimax; yi, yisrc = yi+w, yisrc+src.Ug.Width {
+	for yi, yisrc := gd.Rg.Min.Y*w, src.Rg.Min.Y*wsrc; yi < yimax; yi, yisrc = yi+w, yisrc+wsrc {
 		ximax := yi + max.X
 		for xi, xisrc := yi+gd.Rg.Min.X, yisrc+src.Rg.Min.X; xi < ximax; xi, xisrc = xi+1, xisrc+1 {
 			cells[xi] = srccells[xisrc]
@@ -590,11 +592,12 @@ func (gd Grid) cpv(src Grid) Point {
 
 func (gd Grid) cprev(src Grid) Point {
 	w := gd.Ug.Width
+	wsrc := src.Ug.Width
 	max := gd.Range().Intersect(src.Range()).Size()
 	idxmax := (gd.Rg.Min.Y + max.Y - 1) * w
 	idxsrcmax := (src.Rg.Min.Y + max.Y - 1) * w
 	idxmin := gd.Rg.Min.Y * w
-	for idx, idxsrc := idxmax, idxsrcmax; idx >= idxmin; idx, idxsrc = idx-w, idxsrc-src.Ug.Width {
+	for idx, idxsrc := idxmax, idxsrcmax; idx >= idxmin; idx, idxsrc = idx-w, idxsrc-wsrc {
 		copy(gd.Ug.Cells[idx:idx+max.X], src.Ug.Cells[idxsrc:idxsrc+max.X])
 	}
 	return max
