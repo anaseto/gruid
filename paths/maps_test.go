@@ -94,3 +94,11 @@ func BenchmarkAstar(b *testing.B) {
 		pr.AstarPath(nb, gruid.Point{X: 2, Y: 2}, gruid.Point{X: 70, Y: 20})
 	}
 }
+
+func BenchmarkShortPath(b *testing.B) {
+	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
+	nb := bpath{&Neighbors{}}
+	for i := 0; i < b.N; i++ {
+		pr.AstarPath(nb, gruid.Point{X: 2, Y: 2}, gruid.Point{X: 15, Y: 10})
+	}
+}
