@@ -22,7 +22,7 @@ import (
 //		}
 //	}
 //
-// Most iterations can be performed using the Slice, Fill, Copy and Iter
+// Most iterations can be performed using the Slice, Fill, Copy, Map and Iter
 // methods.
 //
 // Grid implements gob.Decoder and gob.Encoder for easy serialization.
@@ -235,7 +235,7 @@ func (gd Grid) Map(fn func(gruid.Point, Cell) Cell) {
 		for x, xi := 0, yi+gd.Rg.Min.X; xi < ximax; x, xi = x+1, xi+1 {
 			c := ug.Cells[xi]
 			p := gruid.Point{X: x, Y: y}
-			gd.Ug.Cells[xi] = fn(p, c)
+			ug.Cells[xi] = fn(p, c)
 		}
 	}
 }
@@ -307,25 +307,25 @@ func (gd Grid) Copy(src Grid) gruid.Point {
 }
 
 func (gd Grid) cp(src Grid) gruid.Point {
-	rg := gd.Rg
-	rgsrc := src.Rg
 	max := gd.Range().Intersect(src.Range()).Size()
-	for j := 0; j < max.Y; j++ {
-		idx := (rg.Min.Y+j)*gd.Ug.Width + rg.Min.X
-		idxsrc := (rgsrc.Min.Y+j)*src.Ug.Width + rgsrc.Min.X
-		copy(gd.Ug.Cells[idx:idx+max.X], src.Ug.Cells[idxsrc:idxsrc+max.X])
+	ug, ugsrc := gd.Ug, src.Ug
+	idxmin := gd.Rg.Min.Y * ug.Width
+	idxsrcmin := src.Rg.Min.Y * ug.Width
+	idxmax := (gd.Rg.Min.Y + max.Y) * ug.Width
+	for idx, idxsrc := idxmin, idxsrcmin; idx < idxmax; idx, idxsrc = idx+ug.Width, idxsrc+ugsrc.Width {
+		copy(ug.Cells[idx:idx+max.X], ugsrc.Cells[idxsrc:idxsrc+max.X])
 	}
 	return max
 }
 
 func (gd Grid) cprev(src Grid) gruid.Point {
-	rg := gd.Rg
-	rgsrc := src.Rg
 	max := gd.Range().Intersect(src.Range()).Size()
-	for j := max.Y - 1; j >= 0; j-- {
-		idx := (rg.Min.Y+j)*gd.Ug.Width + rg.Min.X
-		idxsrc := (rgsrc.Min.Y+j)*src.Ug.Width + rgsrc.Min.X
-		copy(gd.Ug.Cells[idx:idx+max.X], src.Ug.Cells[idxsrc:idxsrc+max.X])
+	ug, ugsrc := gd.Ug, src.Ug
+	idxmax := (gd.Rg.Min.Y + max.Y - 1) * ug.Width
+	idxsrcmax := (src.Rg.Min.Y + max.Y - 1) * ug.Width
+	idxmin := gd.Rg.Min.Y * ug.Width
+	for idx, idxsrc := idxmax, idxsrcmax; idx >= idxmin; idx, idxsrc = idx-ug.Width, idxsrc-ugsrc.Width {
+		copy(ug.Cells[idx:idx+max.X], ugsrc.Cells[idxsrc:idxsrc+max.X])
 	}
 	return max
 }

@@ -245,3 +245,11 @@ func BenchmarkGridFillFunc(b *testing.B) {
 		gd.FillFunc(func() Cell { return Cell(1) })
 	}
 }
+
+func BenchmarkGridCopy(b *testing.B) {
+	gd := NewGrid(80, 24)
+	gd2 := NewGrid(80, 24)
+	for i := 0; i < b.N; i++ {
+		gd.Copy(gd2)
+	}
+}

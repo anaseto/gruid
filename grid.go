@@ -473,12 +473,28 @@ func (gd Grid) Fill(c Cell) {
 
 // Iter iterates a function on all the grid positions and cells.
 func (gd Grid) Iter(fn func(Point, Cell)) {
-	max := gd.Size()
-	for y := 0; y < max.Y; y++ {
-		for x := 0; x < max.X; x++ {
+	ug := gd.ug
+	yimax := gd.rg.Max.Y * ug.width
+	for y, yi := 0, gd.rg.Min.Y*ug.width; yi < yimax; y, yi = y+1, yi+ug.width {
+		ximax := yi + gd.rg.Max.X
+		for x, xi := 0, yi+gd.rg.Min.X; xi < ximax; x, xi = x+1, xi+1 {
+			c := ug.cells[xi]
 			p := Point{X: x, Y: y}
-			c := gd.At(p)
 			fn(p, c)
+		}
+	}
+}
+
+// Map updates the grid content using the given mapping function.
+func (gd Grid) Map(fn func(Point, Cell) Cell) {
+	ug := gd.ug
+	yimax := gd.rg.Max.Y * ug.width
+	for y, yi := 0, gd.rg.Min.Y*ug.width; yi < yimax; y, yi = y+1, yi+ug.width {
+		ximax := yi + gd.rg.Max.X
+		for x, xi := 0, yi+gd.rg.Min.X; xi < ximax; x, xi = x+1, xi+1 {
+			c := ug.cells[xi]
+			p := Point{X: x, Y: y}
+			ug.cells[xi] = fn(p, c)
 		}
 	}
 }
@@ -501,25 +517,25 @@ func (gd Grid) Copy(src Grid) Point {
 }
 
 func (gd Grid) cp(src Grid) Point {
-	rg := gd.rg
-	rgsrc := src.rg
 	max := gd.Range().Intersect(src.Range()).Size()
-	for j := 0; j < max.Y; j++ {
-		idx := (rg.Min.Y+j)*gd.ug.width + rg.Min.X
-		idxsrc := (rgsrc.Min.Y+j)*src.ug.width + rgsrc.Min.X
-		copy(gd.ug.cells[idx:idx+max.X], src.ug.cells[idxsrc:idxsrc+max.X])
+	ug, ugsrc := gd.ug, src.ug
+	idxmin := gd.rg.Min.Y * ug.width
+	idxsrcmin := src.rg.Min.Y * ug.width
+	idxmax := (gd.rg.Min.Y + max.Y) * ug.width
+	for idx, idxsrc := idxmin, idxsrcmin; idx < idxmax; idx, idxsrc = idx+ug.width, idxsrc+ugsrc.width {
+		copy(ug.cells[idx:idx+max.X], ugsrc.cells[idxsrc:idxsrc+max.X])
 	}
 	return max
 }
 
 func (gd Grid) cprev(src Grid) Point {
-	rg := gd.rg
-	rgsrc := src.rg
 	max := gd.Range().Intersect(src.Range()).Size()
-	for j := max.Y - 1; j >= 0; j-- {
-		idx := (rg.Min.Y+j)*gd.ug.width + rg.Min.X
-		idxsrc := (rgsrc.Min.Y+j)*src.ug.width + rgsrc.Min.X
-		copy(gd.ug.cells[idx:idx+max.X], src.ug.cells[idxsrc:idxsrc+max.X])
+	ug, ugsrc := gd.ug, src.ug
+	idxmax := (gd.rg.Min.Y + max.Y - 1) * ug.width
+	idxsrcmax := (src.rg.Min.Y + max.Y - 1) * ug.width
+	idxmin := gd.rg.Min.Y * ug.width
+	for idx, idxsrc := idxmax, idxsrcmax; idx >= idxmin; idx, idxsrc = idx-ug.width, idxsrc-ugsrc.width {
+		copy(ug.cells[idx:idx+max.X], ugsrc.cells[idxsrc:idxsrc+max.X])
 	}
 	return max
 }
