@@ -542,6 +542,9 @@ func (gd Grid) Map(fn func(Point, Cell) Cell) {
 // referenced memory overlaps or not.
 func (gd Grid) Copy(src Grid) Point {
 	if gd.Ug != src.Ug {
+		if src.Rg.Max.X-src.Rg.Min.X <= 4 {
+			return gd.cpv(src)
+		}
 		return gd.cp(src)
 	}
 	if gd.Rg == src.Rg {
@@ -561,6 +564,19 @@ func (gd Grid) cp(src Grid) Point {
 	idxmax := (gd.Rg.Min.Y + max.Y) * ug.Width
 	for idx, idxsrc := idxmin, idxsrcmin; idx < idxmax; idx, idxsrc = idx+ug.Width, idxsrc+ugsrc.Width {
 		copy(ug.Cells[idx:idx+max.X], ugsrc.Cells[idxsrc:idxsrc+max.X])
+	}
+	return max
+}
+
+func (gd Grid) cpv(src Grid) Point {
+	max := gd.Range().Intersect(src.Range()).Size()
+	ug, ugsrc := gd.Ug, src.Ug
+	yimax := (gd.Rg.Min.Y + max.Y) * ug.Width
+	for yi, yisrc := gd.Rg.Min.Y*ug.Width, src.Rg.Min.Y*ugsrc.Width; yi < yimax; yi, yisrc = yi+ug.Width, yisrc+ugsrc.Width {
+		ximax := yi + max.X
+		for xi, xisrc := yi+gd.Rg.Min.X, yisrc+src.Rg.Min.X; xi < ximax; xi, xisrc = xi+1, xisrc+1 {
+			ug.Cells[xi] = ugsrc.Cells[xisrc]
+		}
 	}
 	return max
 }

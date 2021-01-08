@@ -264,6 +264,14 @@ func BenchmarkGridCopy(b *testing.B) {
 	}
 }
 
+func BenchmarkGridVerticalCopy(b *testing.B) {
+	gd := NewGrid(2, 40*24)
+	gd2 := NewGrid(2, 40*24)
+	for i := 0; i < b.N; i++ {
+		gd.Copy(gd2)
+	}
+}
+
 func BenchmarkGridFillVertical(b *testing.B) {
 	gd := NewGrid(1, 24*80)
 	for i := 0; i < b.N; i++ {
