@@ -224,7 +224,7 @@ func (m *model) updateMsgMouse(msg gruid.MsgMouse) gruid.Effect {
 	case gruid.MouseMain:
 		if m.autoMove() {
 			m.stopAuto()
-			m.pathAt(msg.P)
+			m.pathSet(msg.P)
 			break
 		}
 		if len(m.path) > 1 {
@@ -234,7 +234,7 @@ func (m *model) updateMsgMouse(msg gruid.MsgMouse) gruid.Effect {
 		if m.autoMove() {
 			break
 		}
-		m.pathAt(msg.P)
+		m.pathSet(msg.P)
 	}
 	return nil
 }
@@ -283,8 +283,8 @@ func (m *model) stopAuto() {
 	m.path = nil
 }
 
-// pathAt updates the path from player to a new position.
-func (m *model) pathAt(p gruid.Point) {
+// pathSet updates the path from player to a new position.
+func (m *model) pathSet(p gruid.Point) {
 	pp := &playerPath{}
 	pp.neighbors = &paths.Neighbors{}
 	pp.mapgd = m.mapgd
@@ -350,7 +350,7 @@ func (w walker) Neighbor(p gruid.Point) gruid.Point {
 	}
 }
 
-// lighter implements rl.Lighter (in a very simple way).
+// lighter implements rl.Lighter in a simple way.
 type lighter struct {
 	mapgd rl.Grid
 }
