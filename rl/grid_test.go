@@ -235,7 +235,7 @@ func BenchmarkGridFill(b *testing.B) {
 func BenchmarkGridMap(b *testing.B) {
 	gd := NewGrid(80, 24)
 	for i := 0; i < b.N; i++ {
-		gd.Map(func(c Cell) Cell { return Cell(1) })
+		gd.Map(func(p gruid.Point, c Cell) Cell { return Cell(1) })
 	}
 }
 
