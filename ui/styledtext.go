@@ -154,7 +154,7 @@ func (stt StyledText) Size() gruid.Point {
 // wrapped at word boundaries, if possible. It preserves spaces at the
 // beginning of a line.  It returns the modified style for convenience.
 func (stt StyledText) Format(width int) StyledText {
-	pbuf := bytes.Buffer{}
+	s := strings.Builder{}
 	wordbuf := bytes.Buffer{}
 	col := 0                     // current column (without counting @r markups)
 	wantspace := false           // whether we expect currently space (start of a new word that is not at line start)
@@ -170,7 +170,7 @@ func (stt StyledText) Format(width int) StyledText {
 				case '@', '\n', ' ':
 				default:
 					if wlen == 0 {
-						pbuf.WriteRune(r)
+						s.WriteRune(r)
 					} else {
 						wordbuf.WriteRune(r)
 					}
@@ -179,7 +179,7 @@ func (stt StyledText) Format(width int) StyledText {
 			} else if r == '@' {
 				procm = true
 				if wlen == 0 {
-					pbuf.WriteRune(r)
+					s.WriteRune(r)
 				} else {
 					wordbuf.WriteRune(r)
 				}
@@ -189,18 +189,18 @@ func (stt StyledText) Format(width int) StyledText {
 		if r == ' ' {
 			switch {
 			case start:
-				pbuf.WriteRune(' ')
+				s.WriteRune(' ')
 				col++
 				continue
 			case wlen > 0:
 				if col+wlen+1 > width && wantspace {
-					pbuf.WriteRune('\n')
+					s.WriteRune('\n')
 					col = 0
 				} else if wantspace {
-					pbuf.WriteRune(' ')
+					s.WriteRune(' ')
 					col++
 				}
-				pbuf.Write(wordbuf.Bytes())
+				s.Write(wordbuf.Bytes())
 				col += wlen
 				wordbuf.Reset()
 				wlen = 0
@@ -211,15 +211,15 @@ func (stt StyledText) Format(width int) StyledText {
 		if r == '\n' {
 			if wlen > 0 {
 				if 1+col+wlen > width && wantspace {
-					pbuf.WriteRune('\n')
+					s.WriteRune('\n')
 				} else if wantspace {
-					pbuf.WriteRune(' ')
+					s.WriteRune(' ')
 				}
-				pbuf.Write(wordbuf.Bytes())
+				s.Write(wordbuf.Bytes())
 				wordbuf.Reset()
 				wlen = 0
 			}
-			pbuf.WriteRune('\n')
+			s.WriteRune('\n')
 			col = 0
 			wantspace = false
 			start = true
@@ -232,14 +232,14 @@ func (stt StyledText) Format(width int) StyledText {
 	if wlen > 0 {
 		if wantspace {
 			if wlen+col+1 > width {
-				pbuf.WriteRune('\n')
+				s.WriteRune('\n')
 			} else {
-				pbuf.WriteRune(' ')
+				s.WriteRune(' ')
 			}
 		}
-		pbuf.Write(wordbuf.Bytes())
+		s.Write(wordbuf.Bytes())
 	}
-	stt.text = strings.TrimRight(pbuf.String(), " \n")
+	stt.text = strings.TrimRight(s.String(), " \n")
 	return stt
 }
 
