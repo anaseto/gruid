@@ -215,60 +215,80 @@ func (gd Grid) Fill(c Cell) {
 }
 
 func (gd Grid) fillcp(c Cell) {
-	ug := gd.Ug
-	ymin := gd.Rg.Min.Y * ug.Width
-	w := gd.Rg.Max.X - gd.Rg.Min.X
+	w := gd.Ug.Width
+	ymin := gd.Rg.Min.Y * w
+	gdw := gd.Rg.Max.X - gd.Rg.Min.X
+	cells := gd.Ug.Cells
 	for xi := ymin + gd.Rg.Min.X; xi < ymin+gd.Rg.Max.X; xi++ {
-		ug.Cells[xi] = c
+		cells[xi] = c
 	}
-	idxmax := (gd.Rg.Max.Y-1)*ug.Width + gd.Rg.Max.X
-	for idx := ymin + ug.Width + gd.Rg.Min.X; idx < idxmax; idx += ug.Width {
-		copy(ug.Cells[idx:idx+w], ug.Cells[ymin+gd.Rg.Min.X:ymin+gd.Rg.Max.X])
+	idxmax := (gd.Rg.Max.Y-1)*gdw + gd.Rg.Max.X
+	for idx := ymin + w + gd.Rg.Min.X; idx < idxmax; idx += w {
+		copy(cells[idx:idx+gdw], cells[ymin+gd.Rg.Min.X:ymin+gd.Rg.Max.X])
 	}
 }
 
 func (gd Grid) fill(c Cell) {
-	ug := gd.Ug
-	yimax := gd.Rg.Max.Y * ug.Width
-	for yi := gd.Rg.Min.Y * ug.Width; yi < yimax; yi += ug.Width {
+	w := gd.Ug.Width
+	cells := gd.Ug.Cells
+	yimax := gd.Rg.Max.Y * w
+	for yi := gd.Rg.Min.Y * w; yi < yimax; yi += w {
 		ximax := yi + gd.Rg.Max.X
 		for xi := yi + gd.Rg.Min.X; xi < ximax; xi++ {
-			ug.Cells[xi] = c
+			cells[xi] = c
 		}
 	}
 }
 
 func (gd Grid) fillv(c Cell) {
-	ug := gd.Ug
-	yimax := gd.Rg.Max.Y*ug.Width + gd.Rg.Min.X
-	for xi := gd.Rg.Min.Y*ug.Width + gd.Rg.Min.X; xi < yimax; xi += ug.Width {
-		ug.Cells[xi] = c
+	w := gd.Ug.Width
+	cells := gd.Ug.Cells
+	yimax := gd.Rg.Max.Y*w + gd.Rg.Min.X
+	for xi := gd.Rg.Min.Y*w + gd.Rg.Min.X; xi < yimax; xi += w {
+		cells[xi] = c
 	}
 }
 
 // FillFunc updates the content for all the grid positions in order using the
 // given function return value.
 func (gd Grid) FillFunc(fn func() Cell) {
-	ug := gd.Ug
-	yimax := gd.Rg.Max.Y * ug.Width
-	for yi := gd.Rg.Min.Y * ug.Width; yi < yimax; yi += ug.Width {
+	w := gd.Ug.Width
+	yimax := gd.Rg.Max.Y * w
+	cells := gd.Ug.Cells
+	for yi := gd.Rg.Min.Y * w; yi < yimax; yi += w {
 		ximax := yi + gd.Rg.Max.X
 		for xi := yi + gd.Rg.Min.X; xi < ximax; xi++ {
-			ug.Cells[xi] = fn()
+			cells[xi] = fn()
+		}
+	}
+}
+
+// Iter iterates a function on all the grid positions and cells.
+func (gd Grid) Iter(fn func(gruid.Point, Cell)) {
+	w := gd.Ug.Width
+	yimax := gd.Rg.Max.Y * w
+	cells := gd.Ug.Cells
+	for y, yi := 0, gd.Rg.Min.Y*w; yi < yimax; y, yi = y+1, yi+w {
+		ximax := yi + gd.Rg.Max.X
+		for x, xi := 0, yi+gd.Rg.Min.X; xi < ximax; x, xi = x+1, xi+1 {
+			c := cells[xi]
+			p := gruid.Point{X: x, Y: y}
+			fn(p, c)
 		}
 	}
 }
 
 // Map updates the grid content using the given mapping function.
 func (gd Grid) Map(fn func(gruid.Point, Cell) Cell) {
-	ug := gd.Ug
-	yimax := gd.Rg.Max.Y * ug.Width
-	for y, yi := 0, gd.Rg.Min.Y*ug.Width; yi < yimax; y, yi = y+1, yi+ug.Width {
+	w := gd.Ug.Width
+	cells := gd.Ug.Cells
+	yimax := gd.Rg.Max.Y * w
+	for y, yi := 0, gd.Rg.Min.Y*w; yi < yimax; y, yi = y+1, yi+w {
 		ximax := yi + gd.Rg.Max.X
 		for x, xi := 0, yi+gd.Rg.Min.X; xi < ximax; x, xi = x+1, xi+1 {
-			c := ug.Cells[xi]
+			c := cells[xi]
 			p := gruid.Point{X: x, Y: y}
-			ug.Cells[xi] = fn(p, c)
+			cells[xi] = fn(p, c)
 		}
 	}
 }
@@ -276,13 +296,14 @@ func (gd Grid) Map(fn func(gruid.Point, Cell) Cell) {
 // CountFunc returns the number of cells for which the given function returns
 // true.
 func (gd Grid) CountFunc(fn func(c Cell) bool) int {
-	ug := gd.Ug
+	w := gd.Ug.Width
 	count := 0
-	yimax := gd.Rg.Max.Y * ug.Width
-	for yi := gd.Rg.Min.Y * ug.Width; yi < yimax; yi += ug.Width {
+	yimax := gd.Rg.Max.Y * w
+	cells := gd.Ug.Cells
+	for yi := gd.Rg.Min.Y * w; yi < yimax; yi += w {
 		ximax := yi + gd.Rg.Max.X
 		for xi := yi + gd.Rg.Min.X; xi < ximax; xi++ {
-			c := ug.Cells[xi]
+			c := cells[xi]
 			if fn(c) {
 				count++
 			}
@@ -293,33 +314,20 @@ func (gd Grid) CountFunc(fn func(c Cell) bool) int {
 
 // Count returns the number of cells which are equal to the given one.
 func (gd Grid) Count(c Cell) int {
-	ug := gd.Ug
+	w := gd.Ug.Width
 	count := 0
-	yimax := gd.Rg.Max.Y * ug.Width
-	for yi := gd.Rg.Min.Y * ug.Width; yi < yimax; yi += ug.Width {
+	yimax := gd.Rg.Max.Y * w
+	cells := gd.Ug.Cells
+	for yi := gd.Rg.Min.Y * w; yi < yimax; yi += w {
 		ximax := yi + gd.Rg.Max.X
 		for xi := yi + gd.Rg.Min.X; xi < ximax; xi++ {
-			cc := ug.Cells[xi]
+			cc := cells[xi]
 			if c == cc {
 				count++
 			}
 		}
 	}
 	return count
-}
-
-// Iter iterates a function on all the grid positions and cells.
-func (gd Grid) Iter(fn func(gruid.Point, Cell)) {
-	ug := gd.Ug
-	yimax := gd.Rg.Max.Y * ug.Width
-	for y, yi := 0, gd.Rg.Min.Y*ug.Width; yi < yimax; y, yi = y+1, yi+ug.Width {
-		ximax := yi + gd.Rg.Max.X
-		for x, xi := 0, yi+gd.Rg.Min.X; xi < ximax; x, xi = x+1, xi+1 {
-			c := ug.Cells[xi]
-			p := gruid.Point{X: x, Y: y}
-			fn(p, c)
-		}
-	}
 }
 
 // Copy copies elements from a source grid src into the destination grid gd,
@@ -343,38 +351,40 @@ func (gd Grid) Copy(src Grid) gruid.Point {
 }
 
 func (gd Grid) cp(src Grid) gruid.Point {
+	w := gd.Ug.Width
 	max := gd.Range().Intersect(src.Range()).Size()
-	ug, ugsrc := gd.Ug, src.Ug
-	idxmin := gd.Rg.Min.Y * ug.Width
-	idxsrcmin := src.Rg.Min.Y * ug.Width
-	idxmax := (gd.Rg.Min.Y + max.Y) * ug.Width
-	for idx, idxsrc := idxmin, idxsrcmin; idx < idxmax; idx, idxsrc = idx+ug.Width, idxsrc+ugsrc.Width {
-		copy(ug.Cells[idx:idx+max.X], ugsrc.Cells[idxsrc:idxsrc+max.X])
+	idxmin := gd.Rg.Min.Y * w
+	idxsrcmin := src.Rg.Min.Y * w
+	idxmax := (gd.Rg.Min.Y + max.Y) * w
+	for idx, idxsrc := idxmin, idxsrcmin; idx < idxmax; idx, idxsrc = idx+w, idxsrc+src.Ug.Width {
+		copy(gd.Ug.Cells[idx:idx+max.X], src.Ug.Cells[idxsrc:idxsrc+max.X])
 	}
 	return max
 }
 
 func (gd Grid) cpv(src Grid) gruid.Point {
+	w := gd.Ug.Width
 	max := gd.Range().Intersect(src.Range()).Size()
-	ug, ugsrc := gd.Ug, src.Ug
-	yimax := (gd.Rg.Min.Y + max.Y) * ug.Width
-	for yi, yisrc := gd.Rg.Min.Y*ug.Width, src.Rg.Min.Y*ugsrc.Width; yi < yimax; yi, yisrc = yi+ug.Width, yisrc+ugsrc.Width {
+	yimax := (gd.Rg.Min.Y + max.Y) * w
+	cells := gd.Ug.Cells
+	srccells := src.Ug.Cells
+	for yi, yisrc := gd.Rg.Min.Y*w, src.Rg.Min.Y*src.Ug.Width; yi < yimax; yi, yisrc = yi+w, yisrc+src.Ug.Width {
 		ximax := yi + max.X
 		for xi, xisrc := yi+gd.Rg.Min.X, yisrc+src.Rg.Min.X; xi < ximax; xi, xisrc = xi+1, xisrc+1 {
-			ug.Cells[xi] = ugsrc.Cells[xisrc]
+			cells[xi] = srccells[xisrc]
 		}
 	}
 	return max
 }
 
 func (gd Grid) cprev(src Grid) gruid.Point {
+	w := gd.Ug.Width
 	max := gd.Range().Intersect(src.Range()).Size()
-	ug, ugsrc := gd.Ug, src.Ug
-	idxmax := (gd.Rg.Min.Y + max.Y - 1) * ug.Width
-	idxsrcmax := (src.Rg.Min.Y + max.Y - 1) * ug.Width
-	idxmin := gd.Rg.Min.Y * ug.Width
-	for idx, idxsrc := idxmax, idxsrcmax; idx >= idxmin; idx, idxsrc = idx-ug.Width, idxsrc-ugsrc.Width {
-		copy(ug.Cells[idx:idx+max.X], ugsrc.Cells[idxsrc:idxsrc+max.X])
+	idxmax := (gd.Rg.Min.Y + max.Y - 1) * w
+	idxsrcmax := (src.Rg.Min.Y + max.Y - 1) * w
+	idxmin := gd.Rg.Min.Y * w
+	for idx, idxsrc := idxmax, idxsrcmax; idx >= idxmin; idx, idxsrc = idx-w, idxsrc-src.Ug.Width {
+		copy(gd.Ug.Cells[idx:idx+max.X], src.Ug.Cells[idxsrc:idxsrc+max.X])
 	}
 	return max
 }
