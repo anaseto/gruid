@@ -622,18 +622,19 @@ func (app *App) computeFrame(gd Grid, exposed bool) Frame {
 	if exposed {
 		return app.refresh(gd)
 	}
-	max := gd.Size()
-	min := gd.Rg.Min
-	for y := 0; y < max.Y; y++ {
-		idx := (min.Y+y)*gd.Ug.Width + min.X
-		for x := 0; x < max.X; x++ {
-			idx := idx + x
-			c := gd.Ug.Cells[idx]
-			if c == app.grid.Ug.Cells[idx] {
+	w := gd.Ug.Width
+	cells := gd.Ug.Cells
+	pcells := app.grid.Ug.Cells // previous cells
+	yimax := gd.Rg.Max.Y * w
+	for y, yi := 0, gd.Rg.Min.Y*w; yi < yimax; y, yi = y+1, yi+w {
+		ximax := yi + gd.Rg.Max.X
+		for x, xi := 0, yi+gd.Rg.Min.X; xi < ximax; x, xi = x+1, xi+1 {
+			c := cells[xi]
+			if c == pcells[xi] {
 				continue
 			}
-			app.grid.Ug.Cells[idx] = c
-			p := idxToPos(idx, gd.Ug.Width)
+			app.grid.Ug.Cells[xi] = c
+			p := Point{X: x, Y: y}
 			cdraw := FrameCell{Cell: c, P: p}
 			app.frame.Cells = append(app.frame.Cells, cdraw)
 		}
