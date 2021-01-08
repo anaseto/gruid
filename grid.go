@@ -633,7 +633,7 @@ func (app *App) computeFrame(gd Grid, exposed bool) Frame {
 			if c == pcells[xi] {
 				continue
 			}
-			app.grid.Ug.Cells[xi] = c
+			pcells[xi] = c
 			p := Point{X: x, Y: y}
 			cdraw := FrameCell{Cell: c, P: p}
 			app.frame.Cells = append(app.frame.Cells, cdraw)
@@ -645,8 +645,9 @@ func (app *App) computeFrame(gd Grid, exposed bool) Frame {
 // refresh forces a complete redraw of the screen, even for cells that did not
 // change.
 func (app *App) refresh(gd Grid) Frame {
+	pcells := app.grid.Ug.Cells // previous cells
 	for i, c := range gd.Ug.Cells {
-		app.grid.Ug.Cells[i] = c
+		pcells[i] = c
 		p := idxToPos(i, gd.Ug.Width)
 		cdraw := FrameCell{Cell: c, P: p}
 		app.frame.Cells = append(app.frame.Cells, cdraw)
