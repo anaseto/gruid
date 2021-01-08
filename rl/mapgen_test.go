@@ -104,6 +104,7 @@ func BenchmarkMapGenRandomWalkCave(b *testing.B) {
 	wlk := walker{rand: rd}
 	wlk.neighbors = &paths.Neighbors{}
 	for i := 0; i < b.N; i++ {
+		mgen.Grid.Fill(Cell(0))
 		mgen.RandomWalkCave(wlk, ground, 0.5, 1)
 	}
 }
