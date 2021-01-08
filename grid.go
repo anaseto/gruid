@@ -334,7 +334,11 @@ func NewGrid(w, h int) Grid {
 	if w < 0 || h < 0 {
 		panic(fmt.Sprintf("negative dimensions: NewGrid(%d,%d)", w, h))
 	}
-	gd = gd.Resize(w, h)
+	gd.Rg.Max = Point{w, h}
+	gd.Ug.Width = w
+	gd.Ug.Height = h
+	gd.Ug.Cells = make([]Cell, w*h)
+	gd.Fill(Cell{Rune: ' '})
 	return gd
 }
 
@@ -401,28 +405,10 @@ func (gd Grid) Resize(w, h int) Grid {
 		gd.Ug = &grid{}
 	}
 	gd.Rg.Max = gd.Rg.Min.Shift(w, h)
-	uw := gd.Ug.Width
-	uh := gd.Ug.Height
-	grow := false
-	if w+gd.Rg.Min.X > uw {
-		gd.Ug.Width = w + gd.Rg.Min.X
-		grow = true
-	}
-	if h+gd.Rg.Min.Y > uh {
-		gd.Ug.Height = h + gd.Rg.Min.Y
-		grow = true
-	}
-	if grow {
-		newBuf := make([]Cell, gd.Ug.Width*gd.Ug.Height)
-		for i := range newBuf {
-			newBuf[i] = Cell{Rune: ' '}
-		}
-		for i := range gd.Ug.Cells {
-			p := idxToPos(i, uw)         // old absolute position
-			idx := p.X + gd.Ug.Width*p.Y // new index
-			newBuf[idx] = gd.Ug.Cells[i]
-		}
-		gd.Ug.Cells = newBuf
+	if w+gd.Rg.Min.X > gd.Ug.Width || h+gd.Rg.Min.Y > gd.Ug.Height {
+		ngd := NewGrid(w+gd.Rg.Min.X, h+gd.Rg.Min.Y)
+		ngd.Copy(Grid{innerGrid{Ug: gd.Ug, Rg: NewRange(0, 0, gd.Ug.Width, gd.Ug.Height)}})
+		*gd.Ug = *ngd.Ug
 	}
 	return gd
 }
