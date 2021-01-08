@@ -244,8 +244,8 @@ func (gd Grid) fill(c Cell) {
 func (gd Grid) fillv(c Cell) {
 	w := gd.Ug.Width
 	cells := gd.Ug.Cells
-	yimax := gd.Rg.Max.Y*w + gd.Rg.Min.X
-	for xi := gd.Rg.Min.Y*w + gd.Rg.Min.X; xi < yimax; xi += w {
+	ximax := gd.Rg.Max.Y*w + gd.Rg.Min.X
+	for xi := gd.Rg.Min.Y*w + gd.Rg.Min.X; xi < ximax; xi += w {
 		cells[xi] = c
 	}
 }
