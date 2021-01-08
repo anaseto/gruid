@@ -35,7 +35,8 @@ type innerGrid struct {
 	Rg gruid.Range // range within the whole grid
 }
 
-// Cell represents a cell in a rl.Grid.
+// Cell represents a cell in a map Grid, commonly a terrain type or other
+// information associated with a map position.
 type Cell int
 
 type grid struct {

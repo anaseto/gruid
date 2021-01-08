@@ -1,8 +1,7 @@
 // This example program shows how to implement movement on a grid either on
 // keyboard or mouse input. It implements both single-step movement and
 // automatic movement in a direction or path, and provides some simple map
-// generation and field of vision (the map is considered already explored to
-// simplify).
+// generation and field of vision.
 package main
 
 import (
@@ -75,10 +74,20 @@ const (
 )
 
 // Those constants represent the different types of terrains in the map grid.
+// We use the second bit for marking a cell explored or not.
 const (
 	Wall rl.Cell = iota
 	Ground
+	Explored rl.Cell = 0b10
 )
+
+func cell(c rl.Cell) rl.Cell {
+	return c &^ Explored
+}
+
+func explored(c rl.Cell) bool {
+	return c&Explored != 0
+}
 
 // models represents our main application state.
 type model struct {
@@ -142,7 +151,7 @@ func (m *model) InitializeMap() {
 	for {
 		// find an empty starting position for the player
 		p = gruid.Point{m.rand.Intn(max.X), m.rand.Intn(max.Y)}
-		if m.mapgd.At(p) != Wall {
+		if cell(m.mapgd.At(p)) != Wall {
 			break
 		}
 	}
@@ -159,6 +168,18 @@ func (m *model) MovePlayer(to gruid.Point) {
 	m.playerPos = to
 	lt := &lighter{mapgd: m.mapgd}
 	m.fov.VisionMap(lt, m.playerPos, maxLOS)
+	rg := m.fov.Range()
+	// We mark cells in field of view as explored.
+	m.fov.Iter(func(ln rl.LightNode) {
+		if ln.Cost >= maxLOS {
+			return
+		}
+		p := ln.P.Add(rg.Min)
+		c := m.mapgd.At(p)
+		if !explored(c) {
+			m.mapgd.Set(p, c|Explored)
+		}
+	})
 }
 
 func (m *model) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
@@ -186,7 +207,7 @@ func (m *model) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
 	}
 	if pdelta.X != 0 || pdelta.Y != 0 {
 		np := m.playerPos.Add(pdelta) //
-		if m.grid.Contains(np) && m.mapgd.At(np) != Wall {
+		if m.grid.Contains(np) && cell(m.mapgd.At(np)) != Wall {
 			m.MovePlayer(np)
 			if msg.Mod&gruid.ModShift != 0 || strings.ToUpper(string(msg.Key)) == string(msg.Key) {
 				// activate automatic movement in that direction
@@ -228,7 +249,7 @@ func (m *model) updateMsgAutomove(msg msgAutoMove) gruid.Effect {
 		}
 	} else {
 		np := m.playerPos.Add(msg.delta)
-		if m.grid.Contains(np) && m.mapgd.At(np) != Wall {
+		if m.grid.Contains(np) && cell(m.mapgd.At(np)) != Wall {
 			m.path = nil // remove path highlighting if any
 			m.MovePlayer(np)
 			// continue automatic movement in the same direction
@@ -290,7 +311,11 @@ type playerPath struct {
 
 func (pp *playerPath) Neighbors(p gruid.Point) []gruid.Point {
 	return pp.neighbors.Cardinal(p, func(q gruid.Point) bool {
-		return pp.mapgd.Contains(q) && pp.mapgd.At(q) != Wall
+		if !pp.mapgd.Contains(q) {
+			return false
+		}
+		c := pp.mapgd.At(q)
+		return explored(c) && cell(c) != Wall
 	})
 }
 
@@ -330,10 +355,10 @@ type lighter struct {
 	mapgd rl.Grid
 }
 
-const maxLOS = 9
+const maxLOS = 10
 
 func (lt *lighter) Cost(src, from, to gruid.Point) int {
-	if lt.mapgd.At(from) == Wall || lt.diagonalWalls(from, to) {
+	if cell(lt.mapgd.At(from)) == Wall || lt.diagonalWalls(from, to) {
 		return maxLOS
 	}
 	if src == from {
@@ -352,8 +377,8 @@ func (lt *lighter) diagonalWalls(from, to gruid.Point) bool {
 		return false
 	}
 	step := to.Sub(from)
-	return lt.mapgd.At(from.Add(gruid.Point{X: step.X})) == Wall &&
-		lt.mapgd.At(from.Add(gruid.Point{Y: step.Y})) == Wall
+	return cell(lt.mapgd.At(from.Add(gruid.Point{X: step.X}))) == Wall &&
+		cell(lt.mapgd.At(from.Add(gruid.Point{Y: step.Y}))) == Wall
 }
 
 // diagonalStep reports whether it is a diagonal step.
@@ -382,12 +407,15 @@ func (m *model) Draw() gruid.Grid {
 			} else {
 				st = st.WithBg(ColorDark)
 			}
+			c := m.mapgd.At(p)
 			switch {
 			case p == m.playerPos:
 				m.grid.Set(p, gruid.Cell{Rune: '@', Style: st.WithFg(ColorPlayer)})
-			case m.mapgd.At(p) == Wall:
+			case !explored(c):
+				m.grid.Set(p, gruid.Cell{Rune: ' ', Style: st})
+			case cell(c) == Wall:
 				m.grid.Set(p, gruid.Cell{Rune: '#', Style: st})
-			case m.mapgd.At(p) == Ground:
+			case cell(c) == Ground:
 				m.grid.Set(p, gruid.Cell{Rune: '.', Style: st})
 			}
 		}

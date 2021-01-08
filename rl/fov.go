@@ -15,14 +15,13 @@ import (
 // blind diagonal corners, simple octant-based geometry, fast computation.
 //
 // The default algorithm works in a way that can remind of the Dijkstra
-// algorithm, but within each cone between a diagonal and an orthogonal line
+// algorithm, but within each cone between a diagonal and an orthogonal axis
 // (an octant), only movements along those two directions are allowed. This
 // allows the algorithm to be a simple pass on squares around the player,
 // starting from radius 1 until line of sight range.
 //
-// Going from a gruid.Point from to a gruid.Point pos has a cost, which depends
-// essentially on the type of terrain in from. Some circumstances, such as
-// being on top of a tree, can influence the cost of terrains.
+// Going from a gruid.Point p to a gruid.Point q has a cost, which depends
+// essentially on the type of terrain in p, and is determined by a Lighter.
 //
 // The obtained light rays are lines formed using at most two adjacent
 // directions: a diagonal and an orthogonal one (for example north east and
@@ -112,7 +111,7 @@ func (fov *FOV) At(p gruid.Point) (int, bool) {
 
 func (fov *FOV) idx(p gruid.Point) int {
 	p = p.Sub(fov.Rg.Min)
-	w := fov.Rg.Size().X
+	w := fov.Rg.Max.X - fov.Rg.Min.X
 	return p.Y*w + p.X
 }
 
@@ -277,7 +276,7 @@ type LightNode struct {
 // returned.
 //
 // The returned slice is cached for efficiency, so results will be invalidated
-// by further calls.
+// by future calls.
 func (fov *FOV) Ray(lt Lighter, from, to gruid.Point) []LightNode {
 	_, okFrom := fov.At(from)
 	_, okTo := fov.At(to)
