@@ -397,29 +397,24 @@ func abs(x int) int {
 // Draw implements gruid.Model.Draw. It draws a simple map that spans the whole
 // grid.
 func (m *model) Draw() gruid.Grid {
-	max := m.grid.Size()
-	for y := 0; y < max.Y; y++ {
-		for x := 0; x < max.X; x++ {
-			p := gruid.Point{x, y}
-			st := gruid.Style{}
-			if cost, ok := m.fov.At(p); ok && cost < maxLOS {
-				st = st.WithFg(ColorLOS)
-			} else {
-				st = st.WithBg(ColorDark)
-			}
-			c := m.mapgd.At(p)
-			switch {
-			case p == m.playerPos:
-				m.grid.Set(p, gruid.Cell{Rune: '@', Style: st.WithFg(ColorPlayer)})
-			case !explored(c):
-				m.grid.Set(p, gruid.Cell{Rune: ' ', Style: st})
-			case cell(c) == Wall:
-				m.grid.Set(p, gruid.Cell{Rune: '#', Style: st})
-			case cell(c) == Ground:
-				m.grid.Set(p, gruid.Cell{Rune: '.', Style: st})
-			}
+	m.mapgd.Iter(func(p gruid.Point, c rl.Cell) {
+		st := gruid.Style{}
+		if cost, ok := m.fov.At(p); ok && cost < maxLOS {
+			st = st.WithFg(ColorLOS)
+		} else {
+			st = st.WithBg(ColorDark)
 		}
-	}
+		switch {
+		case p == m.playerPos:
+			m.grid.Set(p, gruid.Cell{Rune: '@', Style: st.WithFg(ColorPlayer)})
+		case !explored(c):
+			m.grid.Set(p, gruid.Cell{Rune: ' ', Style: st})
+		case cell(c) == Wall:
+			m.grid.Set(p, gruid.Cell{Rune: '#', Style: st})
+		case cell(c) == Ground:
+			m.grid.Set(p, gruid.Cell{Rune: '.', Style: st})
+		}
+	})
 	for _, p := range m.path {
 		c := m.grid.At(p)
 		m.grid.Set(p, c.WithStyle(c.Style.WithAttrs(AttrReverse)))
