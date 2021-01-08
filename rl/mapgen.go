@@ -210,23 +210,19 @@ func (mg MapGen) countWalls(p gruid.Point, w Cell, radius int, countOut bool) in
 // bidirectional. It returns the number of cells in the remaining connected
 // component.
 func (mg MapGen) KeepCC(pr *paths.PathRange, p gruid.Point, wall Cell) int {
-	max := mg.Grid.Size()
-	count := 0
 	id := pr.CCAt(p)
 	if id == -1 {
 		mg.Grid.Fill(wall)
 		return 0
 	}
-	for y := 0; y < max.Y; y++ {
-		for x := 0; x < max.X; x++ {
-			q := gruid.Point{x, y}
-			if pr.CCAt(q) != id {
-				mg.Grid.Set(q, wall)
-			} else {
-				count++
-			}
+	count := 0
+	mg.Grid.Map(func(q gruid.Point, c Cell) Cell {
+		if pr.CCAt(q) != id {
+			return wall
 		}
-	}
+		count++
+		return c
+	})
 	return count
 }
 
