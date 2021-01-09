@@ -168,16 +168,14 @@ func (m *model) MovePlayer(to gruid.Point) {
 	m.playerPos = to
 	lt := &lighter{mapgd: m.mapgd}
 	m.fov.VisionMap(lt, m.playerPos, maxLOS)
-	rg := m.fov.Range()
 	// We mark cells in field of view as explored.
 	m.fov.Iter(func(ln rl.LightNode) {
 		if ln.Cost >= maxLOS {
 			return
 		}
-		p := ln.P.Add(rg.Min)
-		c := m.mapgd.At(p)
+		c := m.mapgd.At(ln.P)
 		if !explored(c) {
-			m.mapgd.Set(p, c|Explored)
+			m.mapgd.Set(ln.P, c|Explored)
 		}
 	})
 }

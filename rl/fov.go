@@ -122,7 +122,7 @@ func (fov *FOV) Iter(fn func(LightNode)) {
 	w := fov.Rg.Size().X
 	for i, n := range fov.LMap {
 		if n.Idx == fov.Idx {
-			fn(LightNode{P: idxToPos(i, w), Cost: n.Cost})
+			fn(LightNode{P: idxToPos(i, w).Add(fov.Rg.Min), Cost: n.Cost})
 		}
 	}
 }
