@@ -636,3 +636,64 @@ func TestBounds(t *testing.T) {
 		t.Errorf("bad Bounds %v", slice.Bounds())
 	}
 }
+
+func BenchmarkGridRangeIterSet(b *testing.B) {
+	gd := NewGrid(80, 24)
+	for i := 0; i < b.N; i++ {
+		gd.Range().Iter(func(p Point) {
+			gd.Set(p, Cell{}.WithRune('x'))
+		})
+	}
+}
+
+func BenchmarkGridLoopSet(b *testing.B) {
+	gd := NewGrid(80, 24)
+	for i := 0; i < b.N; i++ {
+		max := gd.Size()
+		for y := 0; y < max.Y; y++ {
+			for x := 0; x < max.X; x++ {
+				p := Point{x, y}
+				gd.Set(p, Cell{}.WithRune('x'))
+			}
+		}
+	}
+}
+
+func BenchmarkGridIteratorSet(b *testing.B) {
+	gd := NewGrid(80, 24)
+	for i := 0; i < b.N; i++ {
+		it := gd.Iterator()
+		for it.Next() {
+			it.SetCell(Cell{}.WithRune('x'))
+		}
+	}
+}
+
+func BenchmarkGridCopy(b *testing.B) {
+	gd := NewGrid(80, 24)
+	gd2 := NewGrid(80, 24)
+	for i := 0; i < b.N; i++ {
+		gd.Copy(gd2)
+	}
+}
+
+func BenchmarkGridFill(b *testing.B) {
+	gd := NewGrid(80, 24)
+	for i := 0; i < b.N; i++ {
+		gd.Fill(Cell{}.WithRune('x'))
+	}
+}
+
+func BenchmarkGridMap(b *testing.B) {
+	gd := NewGrid(80, 24)
+	for i := 0; i < b.N; i++ {
+		gd.Map(func(p Point, c Cell) Cell { return Cell{}.WithRune('x') })
+	}
+}
+
+func BenchmarkGridFillVertical(b *testing.B) {
+	gd := NewGrid(1, 24*80)
+	for i := 0; i < b.N; i++ {
+		gd.Fill(Cell{}.WithRune('x'))
+	}
+}
