@@ -673,7 +673,7 @@ func (it *GridIterator) SetCell(c Cell) {
 
 // computeFrame computes next frame minimal changes and returns them.
 func (app *App) computeFrame(gd Grid, exposed bool) Frame {
-	if gd.Ug == nil || gd.Rg.Empty() {
+	if gd.Ug == nil || gd.Rg.Empty() && !exposed {
 		return Frame{}
 	}
 	if app.grid.Ug == nil {

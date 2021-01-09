@@ -14,9 +14,7 @@ import (
 	"strings"
 
 	"github.com/anaseto/gruid"
-	"github.com/anaseto/gruid/drivers/tcell"
 	"github.com/anaseto/gruid/ui"
-	tc "github.com/gdamore/tcell/v2"
 )
 
 func main() {
@@ -37,11 +35,9 @@ func main() {
 	}
 
 	gd := gruid.NewGrid(80, 24)
-	st := styler{}
-	dr := tcell.NewDriver(tcell.Config{StyleManager: st})
 	pager := newPager(gd, lines, args[0])
 	app := gruid.NewApp(gruid.AppConfig{
-		Driver: dr,
+		Driver: driver,
 		Model:  pager,
 	})
 	if err := app.Start(context.Background()); err != nil {
@@ -55,20 +51,6 @@ const (
 	ColorTitle gruid.Color = 1 + iota // skip zero value ColorDefault
 	ColorLnum
 )
-
-// styler implements the tcell.StyleManager interface.
-type styler struct{}
-
-func (sty styler) GetStyle(st gruid.Style) tc.Style {
-	ts := tc.StyleDefault
-	switch st.Fg {
-	case ColorTitle:
-		ts = ts.Foreground(tc.ColorOlive)
-	case ColorLnum:
-		ts = ts.Foreground(tc.ColorNavy)
-	}
-	return ts
-}
 
 // newPager returns an ui.Pager with the given lines as content and filename as
 // title. The result can be used as the main model of the application.
