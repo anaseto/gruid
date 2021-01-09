@@ -216,13 +216,14 @@ func (mg MapGen) KeepCC(pr *paths.PathRange, p gruid.Point, wall Cell) int {
 		return 0
 	}
 	count := 0
-	mg.Grid.Map(func(q gruid.Point, c Cell) Cell {
-		if pr.CCAt(q) != id {
-			return wall
+	it := mg.Grid.Iterator()
+	for it.Next() {
+		if pr.CCAt(it.P()) != id {
+			it.SetCell(wall)
+		} else {
+			count++
 		}
-		count++
-		return c
-	})
+	}
 	return count
 }
 
