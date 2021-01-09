@@ -23,7 +23,7 @@ import (
 //	}
 //
 // Most iterations can be performed using the Slice, Fill, Copy, Map and Iter
-// methods. An alternative choice, is to use the Iterator method.
+// methods. An alternative choice is to use the Iterator method.
 //
 // Grid elements must be created with NewGrid.
 //
