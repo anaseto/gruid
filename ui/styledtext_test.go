@@ -153,3 +153,27 @@ func TestSizeMarkup(t *testing.T) {
 		t.Errorf("bad size: %v", stt.Size())
 	}
 }
+
+func BenchmarkDraw(b *testing.B) {
+	gd := gruid.NewGrid(80, 24)
+	stt := NewStyledText(strings.Repeat("A test sentence that says nothing interesting\n", 20))
+	for i := 0; i < b.N; i++ {
+		stt.Draw(gd)
+	}
+}
+
+func BenchmarkFormat(b *testing.B) {
+	stt := NewStyledText(strings.Repeat("A test sentence that says nothing interesting\n", 20))
+	for i := 0; i < b.N; i++ {
+		stt.Format(30)
+	}
+}
+
+func BenchmarkDrawWithMarkup(b *testing.B) {
+	gd := gruid.NewGrid(80, 24)
+	st := gruid.Style{}
+	stt := NewStyledText(strings.Repeat("A test sentence that says nothing interesting\n", 20)).WithMarkup('t', st)
+	for i := 0; i < b.N; i++ {
+		stt.Draw(gd)
+	}
+}
