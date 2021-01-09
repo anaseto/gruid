@@ -1,5 +1,5 @@
-// Package rl will provide some facilities for common roguelike programming
-// needs.
+// Package rl provides some facilities for common roguelike programming needs:
+// event queue, field of view and map generation.
 package rl
 
 import (
