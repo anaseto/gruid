@@ -1,6 +1,7 @@
 package gruid
 
 import (
+	//"log"
 	"math/rand"
 	"testing"
 )
@@ -488,6 +489,47 @@ func TestResize(t *testing.T) {
 			t.Error("bad new content")
 		}
 	})
+}
+
+func TestIterator(t *testing.T) {
+	gd := NewGrid(10, 10)
+	slice := gd.Slice(NewRange(2, 2, 5, 5))
+	it := slice.Iterator()
+	for it.Next() {
+		//log.Printf("pos: %v, i: %d, c: %c", it.P(), it.i, it.Cell())
+		if it.Cell().Rune != ' ' {
+			t.Errorf("not space rune: %c", it.Cell().Rune)
+		}
+		it.SetCell(it.Cell().WithRune('x'))
+		if it.Cell().Rune != 'x' {
+			t.Errorf("not x rune: %c", it.Cell().Rune)
+		}
+		if slice.At(it.P()).Rune != 'x' {
+			t.Errorf("not x rune at %v: %c", it.P(), slice.At(it.P()).Rune)
+		}
+	}
+	gd.Iter(func(p Point, c Cell) {
+		if p.In(slice.Bounds()) {
+			if c.Rune != 'x' {
+				t.Errorf("bad rune at %v: %c", p, c.Rune)
+			}
+		} else if c.Rune != ' ' {
+			t.Errorf("not space rune at %v: %c", p, c.Rune)
+		}
+
+	})
+	it.SetP(Point{1, 1})
+	if it.P().X != 1 || it.P().Y != 1 {
+		t.Errorf("bad SetP: %v", it.P())
+	}
+	it.SetCell(it.Cell().WithRune('z'))
+	if slice.At(Point{1, 1}).Rune != 'z' {
+		t.Errorf("not z: %c", slice.At(Point{1, 1}).Rune)
+	}
+	it.Reset()
+	for it.Next() {
+		it.SetCell(it.Cell().WithRune('y'))
+	}
 }
 
 func TestCell(t *testing.T) {

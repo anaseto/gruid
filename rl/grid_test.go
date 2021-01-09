@@ -175,14 +175,46 @@ func TestCount(t *testing.T) {
 	}
 }
 
+func BenchmarkGridCount(b *testing.B) {
+	gd := NewGrid(80, 24)
+	gd.Fill(Cell(1))
+	for i := 0; i < b.N; i++ {
+		gd.Count(Cell(1))
+	}
+}
+
+func BenchmarkGridCountFunc(b *testing.B) {
+	gd := NewGrid(80, 24)
+	gd.Fill(Cell(1))
+	for i := 0; i < b.N; i++ {
+		gd.CountFunc(func(c Cell) bool { return c == Cell(1) })
+	}
+}
+
 func BenchmarkGridIter(b *testing.B) {
 	gd := NewGrid(80, 24)
 	gd.Fill(Cell(1))
 	for i := 0; i < b.N; i++ {
-		n := Cell(0)
+		n := 0
 		gd.Iter(func(p gruid.Point, c Cell) {
-			n += c
+			if c == Cell(1) {
+				n++
+			}
 		})
+	}
+}
+
+func BenchmarkGridIterator(b *testing.B) {
+	gd := NewGrid(80, 24)
+	gd.Fill(Cell(1))
+	for i := 0; i < b.N; i++ {
+		n := 0
+		it := gd.Iterator()
+		for it.Next() {
+			if it.Cell() == Cell(1) {
+				n++
+			}
+		}
 	}
 }
 
@@ -231,6 +263,17 @@ func BenchmarkGridLoopSet(b *testing.B) {
 				p := gruid.Point{x, y}
 				gd.Set(p, Cell(2))
 			}
+		}
+	}
+}
+
+func BenchmarkGridIteratorSet(b *testing.B) {
+	gd := NewGrid(80, 24)
+	gd.Fill(Cell(1))
+	for i := 0; i < b.N; i++ {
+		it := gd.Iterator()
+		for it.Next() {
+			it.SetCell(Cell(2))
 		}
 	}
 }

@@ -293,7 +293,9 @@ func (rg Range) Iter(fn func(Point)) {
 //	}
 //
 // Most iterations can be performed using the Slice, Fill, Copy, Map and Iter
-// methods.
+// methods. An alternative choice, is to use the Iterator method.
+//
+// Grid elements must be created with NewGrid.
 type Grid struct {
 	innerGrid
 }
@@ -421,27 +423,23 @@ func (gd Grid) Contains(p Point) bool {
 // Set draws cell content and styling at a given position in the grid. If the
 // position is out of range, the function does nothing.
 func (gd Grid) Set(p Point, c Cell) {
-	if !gd.Contains(p) {
+	q := p.Add(gd.Rg.Min)
+	if !q.In(gd.Rg) {
 		return
 	}
-	i := gd.getIdx(p)
+	i := q.Y*gd.Ug.Width + q.X
 	gd.Ug.Cells[i] = c
 }
 
 // At returns the cell content and styling at a given position. If the position
 // is out of range, it returns the zero value.
 func (gd Grid) At(p Point) Cell {
-	if !gd.Contains(p) {
+	q := p.Add(gd.Rg.Min)
+	if !q.In(gd.Rg) {
 		return Cell{}
 	}
-	i := gd.getIdx(p)
+	i := q.Y*gd.Ug.Width + q.X
 	return gd.Ug.Cells[i]
-}
-
-// getIdx returns the buffer index of a relative position.
-func (gd Grid) getIdx(p Point) int {
-	p = p.Add(gd.Rg.Min)
-	return p.Y*gd.Ug.Width + p.X
 }
 
 // idxToPos returns a grid position given an index and the width of the grid.
@@ -587,6 +585,89 @@ func (gd Grid) cprev(src Grid) Point {
 		copy(gd.Ug.Cells[idx:idx+max.X], src.Ug.Cells[idxsrc:idxsrc+max.X])
 	}
 	return max
+}
+
+// GridIterator represents a stateful iterator for the grid.
+type GridIterator struct {
+	p      Point  // iterator's current position
+	max    Point  // last position
+	i      int    // current position's index
+	w      int    // underlying grid's width
+	c      Cell   // current cell
+	nlstep int    // newline step
+	cells  []Cell // grid cells
+	rg     Range  // grid range
+}
+
+// Iterator returns an iterator that can be used to iterate on the grid. It may
+// be convenient when more flexibility than the provided by the other iteration
+// functions is needed. It is used as follows:
+//
+// 	it := gd.Iterator()
+// 	for it.Next() {
+// 		// call it.P() or it.Cell() or it.SetCell() as appropiate
+// 	}
+func (gd Grid) Iterator() *GridIterator {
+	w := gd.Ug.Width
+	it := &GridIterator{
+		w:      w,
+		cells:  gd.Ug.Cells,
+		max:    gd.Size().Shift(-1, -1),
+		rg:     gd.Rg,
+		nlstep: gd.Rg.Min.X + (w - gd.Rg.Max.X + 1),
+	}
+	it.Reset()
+	return it
+}
+
+// Reset resets the iterator's state so that it can be used again.
+func (it *GridIterator) Reset() {
+	it.p = Point{-1, 0}
+	it.i = it.rg.Min.Y*it.w + it.rg.Min.X - 1
+}
+
+// Next advances the iterator the next position in the grid.
+func (it *GridIterator) Next() bool {
+	if it.p.X < it.max.X {
+		it.p.X++
+		it.i++
+		return true
+	}
+	if it.p.Y < it.max.Y {
+		it.p.Y++
+		it.p.X = 0
+		it.i += it.nlstep
+		return true
+	}
+	return false
+}
+
+// P returns the iterator's current position.
+func (it *GridIterator) P() Point {
+	return it.p
+}
+
+// SetP sets the iterator's current position. It returns false if the position
+// is out of range, true otherwise.
+func (it *GridIterator) SetP(p Point) bool {
+	q := p.Add(it.rg.Min)
+	if !q.In(it.rg) {
+		return false
+	}
+	it.p = p
+	it.i = q.Y*it.w + q.X
+	return true
+}
+
+// Cell returns the Cell in the grid at the iterator's current position.
+func (it *GridIterator) Cell() Cell {
+	return it.cells[it.i]
+}
+
+// SetCell updates the grid cell at the iterator's current position. It's
+// faster than calling Set on the grid.
+func (it *GridIterator) SetCell(c Cell) {
+	it.cells[it.i] = c
 }
 
 // computeFrame computes next frame minimal changes and returns them.
