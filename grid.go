@@ -587,7 +587,8 @@ func (gd Grid) cprev(src Grid) Point {
 	return max
 }
 
-// GridIterator represents a stateful iterator for the grid.
+// GridIterator represents a stateful iterator for a grid. They are created
+// with the Iterator method.
 type GridIterator struct {
 	p      Point  // iterator's current position
 	max    Point  // last position
