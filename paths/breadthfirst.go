@@ -6,18 +6,18 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-// CostAt returns the cost associated to a position in the last computed
-// breadth first map. It returns the last maxCost + 1 if the position is out of
-// range, the same as in-range unreachable positions.  CostAt uses a cached
-// breadth first map, that will be invalidated in case a new one is computed
-// using the same PathFinder.
-func (pr *PathRange) CostAt(p gruid.Point) int {
-	if !p.In(pr.Rg) || pr.Bfmap == nil {
-		return pr.Bfunreachable
+// BreadthFirstMapAt returns the cost associated to a position in the last
+// computed breadth first map. It returns the last maxCost + 1 if the position
+// is out of range, the same as in-range unreachable positions.
+// BreadthFirstMapAt uses a cached breadth first map, that will be invalidated
+// in case a new one is computed using the same PathFinder.
+func (pr *PathRange) BreadthFirstMapAt(p gruid.Point) int {
+	if !p.In(pr.Rg) || pr.BfMap == nil {
+		return pr.BfUnreachable
 	}
-	node := pr.Bfmap[pr.idx(p)]
-	if node.Idx != pr.Bfidx {
-		return pr.Bfunreachable
+	node := pr.BfMap[pr.idx(p)]
+	if node.Idx != pr.BfIdx {
+		return pr.BfUnreachable
 	}
 	return node.Cost
 }
@@ -30,62 +30,63 @@ type bfNode struct {
 // BreadthFirstMap efficiently computes a map of minimal distance costs from
 // source positions to all the positions in the PathFinder range up to a
 // maximal cost. Other positions will have the value maxCost+1, including
-// unreachable ones. It can be viewed as a particular case of DijkstraMap built
-// with a cost function that returns 1 for all neighbors, but it is more
-// efficient.
-func (pr *PathRange) BreadthFirstMap(nb Pather, sources []gruid.Point, maxCost int) {
+// unreachable ones. It returns a cached slice of map nodes in increasing cost
+// order.
+//
+// It can be viewed as a particular case of DijkstraMap built with a cost
+// function that returns 1 for all neighbors, but it is more efficient.
+func (pr *PathRange) BreadthFirstMap(nb Pather, sources []gruid.Point, maxCost int) []Node {
 	max := pr.Rg.Size()
 	w, h := max.X, max.Y
-	if pr.Bfmap == nil {
-		pr.Bfmap = make([]bfNode, w*h)
-		pr.Bfqueue = make([]int, w*h)
+	if pr.BfMap == nil {
+		pr.BfMap = make([]bfNode, w*h)
+		pr.BfQueue = make([]Node, w*h)
 	}
-	pr.Bfidx++
+	pr.BfIdx++
 	var qstart, qend int
-	pr.Bfunreachable = maxCost + 1
+	pr.BfUnreachable = maxCost + 1
 	for _, p := range sources {
 		if !p.In(pr.Rg) {
 			continue
 		}
-		idx := pr.idx(p)
-		pr.Bfmap[idx].Cost = 0
-		pr.Bfmap[idx].Idx = pr.Bfidx
-		pr.Bfqueue[qend] = idx
+		pr.BfMap[pr.idx(p)] = bfNode{Idx: pr.BfIdx, Cost: 0}
+		pr.BfQueue[qend] = Node{P: p, Cost: 0}
 		qend++
 	}
 	for qstart < qend {
-		cidx := pr.Bfqueue[qstart]
+		n := pr.BfQueue[qstart]
 		qstart++
-		if pr.Bfmap[cidx].Cost >= maxCost {
+		if n.Cost >= maxCost {
 			continue
 		}
-		cpos := idxToPos(cidx, w)
-		for _, q := range nb.Neighbors(cpos) {
+		cidx := pr.idx(n.P)
+		for _, q := range nb.Neighbors(n.P) {
 			if !q.In(pr.Rg) {
 				continue
 			}
 			nidx := pr.idx(q)
-			if pr.Bfmap[nidx].Idx != pr.Bfidx {
-				pr.Bfqueue[qend] = nidx
+			if pr.BfMap[nidx].Idx != pr.BfIdx {
+				c := 1 + pr.BfMap[cidx].Cost
+				pr.BfMap[nidx] = bfNode{Idx: pr.BfIdx, Cost: c}
+				pr.BfQueue[qend] = Node{P: q, Cost: c}
 				qend++
-				pr.Bfmap[nidx].Cost = 1 + pr.Bfmap[cidx].Cost
-				pr.Bfmap[nidx].Idx = pr.Bfidx
 			}
 		}
 	}
 	pr.checkBfIdx()
+	return pr.BfQueue[0:qend]
 }
 
 func (pr *PathRange) checkBfIdx() {
-	if pr.Bfidx < math.MaxInt32 {
+	if pr.BfIdx < math.MaxInt32 {
 		return
 	}
-	for i, n := range pr.Bfmap {
+	for i, n := range pr.BfMap {
 		idx := 0
-		if n.Idx == pr.Bfidx {
+		if n.Idx == pr.BfIdx {
 			idx = 1
 		}
-		pr.Bfmap[i] = bfNode{Cost: n.Cost, Idx: idx}
+		pr.BfMap[i] = bfNode{Cost: n.Cost, Idx: idx}
 	}
-	pr.Bfidx = 1
+	pr.BfIdx = 1
 }

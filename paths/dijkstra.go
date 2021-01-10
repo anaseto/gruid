@@ -18,18 +18,30 @@ type Dijkstra interface {
 	Cost(gruid.Point, gruid.Point) int
 }
 
+// DijkstraMapAt returns the cost associated to a position in the last computed
+// Dijkstra map. It returns maxCost + 1 if the position is out of range.
+func (pr *PathRange) DijkstraMapAt(p gruid.Point) int {
+	n := pr.DijkstraNodes.at(pr, p)
+	if n == nil {
+		return pr.DijkstraUnreachable
+	}
+	return n.Cost
+}
+
 // DijkstraMap computes a dijkstra map given a list of source positions and a
-// maximal cost from those sources. The resulting map can then be iterated with
-// Iter.
-func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost int) {
+// maximal cost from those sources. It returns a slice with the nodes of the
+// map, in cost increasing order. The resulting slice is cached for efficiency,
+// so future calls to DijkstraMap will invalidate its contents.
+func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost int) []Node {
 	if pr.DijkstraNodes == nil {
 		pr.DijkstraNodes = &nodeMap{}
 		max := pr.Rg.Size()
 		pr.DijkstraNodes.Nodes = make([]node, max.X*max.Y)
 		pr.DijkstraQueue = make(priorityQueue, 0, max.X*max.Y)
-		pr.IterNodeCache = []Node{}
+		pr.DijkstraIterNodes = []Node{}
 	}
-	pr.IterNodeCache = pr.IterNodeCache[:0]
+	pr.DijkstraUnreachable = maxCost + 1
+	pr.DijkstraIterNodes = pr.DijkstraIterNodes[:0]
 	nm := pr.DijkstraNodes
 	nm.Idx++
 	defer checkNodesIdx(nm)
@@ -46,18 +58,21 @@ func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost in
 	}
 	for {
 		if nq.Len() == 0 {
-			return
+			return pr.DijkstraIterNodes
 		}
 		n := heap.Pop(nq).(*node)
 		n.Open = false
 		n.Closed = true
-		pr.IterNodeCache = append(pr.IterNodeCache, Node{P: n.P, Cost: n.Cost})
+		pr.DijkstraIterNodes = append(pr.DijkstraIterNodes, Node{P: n.P, Cost: n.Cost})
 
 		for _, nb := range dij.Neighbors(n.P) {
 			if !nb.In(pr.Rg) {
 				continue
 			}
 			cost := n.Cost + dij.Cost(n.P, nb)
+			if cost > maxCost {
+				continue
+			}
 			nbNode := nm.get(pr, nb)
 			if cost < nbNode.Cost {
 				if nbNode.Open {
@@ -68,11 +83,9 @@ func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost in
 			}
 			if !nbNode.Open && !nbNode.Closed {
 				nbNode.Cost = cost
-				if cost <= maxCost {
-					nbNode.Open = true
-					nbNode.Rank = cost
-					heap.Push(nq, nbNode)
-				}
+				nbNode.Open = true
+				nbNode.Rank = cost
+				heap.Push(nq, nbNode)
 			}
 		}
 	}
@@ -83,19 +96,4 @@ func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost in
 type Node struct {
 	P    gruid.Point
 	Cost int
-}
-
-// idxToPos returns a grid position given an index and the width of the grid.
-func idxToPos(i, w int) gruid.Point {
-	return gruid.Point{X: i % w, Y: i / w}
-}
-
-// MapIter iterates a function on the nodes of the last computed dijkstra map,
-// in cost increasing order.  Note that you should not call the MapIter or
-// DijkstraMap methods on the same PathFinder within the iteration function, as
-// that could invalidate the iteration state.
-func (pr *PathRange) MapIter(f func(Node)) {
-	for _, n := range pr.IterNodeCache {
-		f(n)
-	}
 }

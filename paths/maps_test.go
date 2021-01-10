@@ -37,21 +37,29 @@ func TestPathMaps(t *testing.T) {
 		{gruid.Point{5, 1}, 4},
 		{gruid.Point{6, 1}, 4},
 	}
-	for i := 0; i < 2; i++ {
-		pr.BreadthFirstMap(nb, []gruid.Point{{X: 2, Y: 0}, {X: 2, Y: 2}}, 3)
+	pr.BreadthFirstMap(nb, []gruid.Point{{X: 2, Y: 0}, {X: 2, Y: 2}}, 3)
+	pr.DijkstraMap(nb, []gruid.Point{{X: 2, Y: 0}, {X: 2, Y: 2}}, 6)
+	for _, pc := range poscosts {
+		if pc.cost != pr.BreadthFirstMapAt(pc.p) {
+			t.Errorf("bad bf cost %d for %+v", pr.BreadthFirstMapAt(pc.p), pc.p)
+		}
+		if 2*pc.cost != pr.DijkstraMapAt(pc.p) && pc.cost < 4 || pc.cost >= 4 && pr.DijkstraMapAt(pc.p) != 7 {
+			t.Errorf("bad dijkstra cost %d for %+v", pr.DijkstraMapAt(pc.p), pc.p)
+		}
+	}
+	for _, n := range pr.DijkstraMap(nb, []gruid.Point{{X: 2, Y: 0}, {X: 2, Y: 2}}, 9) {
 		for _, pc := range poscosts {
-			if pc.cost != pr.CostAt(pc.p) {
-				t.Errorf("bad cost %d for %+v", pc.cost, pc.p)
+			if pc.p == n.P && 2*pc.cost != n.Cost {
+				t.Errorf("bad dijkstra cost %d for %+v", n.Cost, n.P)
 			}
 		}
-		pr.DijkstraMap(nb, []gruid.Point{{X: 2, Y: 0}, {X: 2, Y: 2}}, 9)
-		pr.MapIter(func(n Node) {
-			for _, pc := range poscosts {
-				if pc.p == n.P && 2*pc.cost != n.Cost {
-					t.Errorf("bad cost %d for %+v", n.Cost, n.P)
-				}
+	}
+	for _, n := range pr.BreadthFirstMap(nb, []gruid.Point{{X: 2, Y: 0}, {X: 2, Y: 2}}, 4) {
+		for _, pc := range poscosts {
+			if pc.p == n.P && pc.cost != n.Cost {
+				t.Errorf("bad bf cost %d for %+v", n.Cost, n.P)
 			}
-		})
+		}
 	}
 }
 

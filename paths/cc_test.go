@@ -77,13 +77,13 @@ func TestGob(t *testing.T) {
 func TestCCBf(t *testing.T) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 10, 5))
 	nb := npath{}
-	pr.ComputeCCAll(nb)
+	pr.CCMapAll(nb)
 	rg := pr.Rg
 	p := gruid.Point{X: rg.Min.X, Y: rg.Min.Y}
-	id := pr.CCAt(p)
+	id := pr.CCMapAt(p)
 	for y := rg.Min.Y + 1; y < rg.Max.Y; y++ {
 		p := gruid.Point{X: rg.Min.X, Y: y}
-		nid := pr.CCAt(p)
+		nid := pr.CCMapAt(p)
 		if id == nid {
 			t.Errorf("same id on different lines: %d, %d", id, nid)
 		}
@@ -92,24 +92,23 @@ func TestCCBf(t *testing.T) {
 		}
 		id = nid
 	}
-	id = pr.CCAt(p)
+	id = pr.CCMapAt(p)
 	for y := rg.Min.Y; y < rg.Max.Y; y++ {
 		p := gruid.Point{X: rg.Min.X, Y: y}
-		id := pr.CCAt(p)
+		id := pr.CCMapAt(p)
 		for x := rg.Min.X; x < rg.Max.X; x++ {
-			if id != pr.CCAt(gruid.Point{X: x, Y: y}) {
-				t.Errorf("different id on same line: %d, %d", id, pr.CCAt(gruid.Point{X: x, Y: y}))
+			if id != pr.CCMapAt(gruid.Point{X: x, Y: y}) {
+				t.Errorf("different id on same line: %d, %d", id, pr.CCMapAt(gruid.Point{X: x, Y: y}))
 			}
 		}
 	}
-	pr.ComputeCC(nb, gruid.Point{X: 1, Y: 1})
 	count := 0
-	pr.CCIter(func(p gruid.Point) {
+	for _, p := range pr.CCMap(nb, gruid.Point{X: 1, Y: 1}) {
 		count++
 		if p.Y != 1 {
 			t.Errorf("bad id on line 1: %d", id)
 		}
-	})
+	}
 	if count != 10 {
 		t.Errorf("bad count: %d", count)
 	}
@@ -119,19 +118,19 @@ func TestCCBfOutOfRange(t *testing.T) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 10, 5))
 	nb := npath{}
 	p := gruid.Point{-1, -1}
-	pr.ComputeCCAll(nb)
-	pr.ComputeCC(nb, p)
-	if pr.CCAt(p) != -1 {
-		t.Errorf("bad out of range value: %v", pr.CCAt(p))
+	pr.CCMapAll(nb)
+	pr.CCMap(nb, p)
+	if pr.CCMapAt(p) != -1 {
+		t.Errorf("bad out of range value: %v", pr.CCMapAt(p))
 	}
 	p = gruid.Point{4, 0}
-	if pr.CCAt(p) != -1 {
-		t.Errorf("bad unreachable value: %v", pr.CCAt(p))
+	if pr.CCMapAt(p) != -1 {
+		t.Errorf("bad unreachable value: %v", pr.CCMapAt(p))
 	}
 	q := gruid.Point{6, 2}
-	pr.ComputeCC(nb, p)
-	if pr.CCAt(q) != -1 {
-		t.Errorf("bad unreachable value: %v", pr.CCAt(q))
+	pr.CCMap(nb, p)
+	if pr.CCMapAt(q) != -1 {
+		t.Errorf("bad unreachable value: %v", pr.CCMapAt(q))
 	}
 }
 
@@ -154,18 +153,18 @@ func (nb bpath) Estimation(p, q gruid.Point) int {
 	return abs(p.X) + abs(p.Y)
 }
 
-func BenchmarkCCAll(b *testing.B) {
+func BenchmarkCCMapAll(b *testing.B) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
 	nb := bpath{&Neighbors{}}
 	for i := 0; i < b.N; i++ {
-		pr.ComputeCCAll(nb)
+		pr.CCMapAll(nb)
 	}
 }
 
-func BenchmarkCC(b *testing.B) {
+func BenchmarkCCMap(b *testing.B) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
 	nb := bpath{&Neighbors{}}
 	for i := 0; i < b.N; i++ {
-		pr.ComputeCC(nb, gruid.Point{5, 5})
+		pr.CCMap(nb, gruid.Point{5, 5})
 	}
 }

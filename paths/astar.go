@@ -83,7 +83,7 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 				if pn.Parent == nil {
 					break
 				}
-				pn, _ = nm.at(pr, *pn.Parent)
+				pn = nm.at(pr, *pn.Parent)
 			}
 			for i := range path[:len(path)/2] {
 				path[i], path[len(path)-i-1] = path[len(path)-i-1], path[i]

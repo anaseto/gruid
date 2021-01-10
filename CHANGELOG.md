@@ -1,5 +1,25 @@
 This changelog file only lists important changes.
 
+## v0.8.0 - 2020-01-10
+
++ New Iterator method for grids that allows for more flexible grid iterations. 
+
+A few API changes in paths packages to make it more intuitive, consistent and
+idiomatic.  Incompatible changes are mentioned as such below.
+
++ Make DijktraMap return the slice to be iterated and remove redundant MapIter
+  (incompatible change).
++ Add DijktraMapAt method to get the cost at a specific point.
++ Rename CostAt into BreadthFirstMapAt for consistency (incompatible change).
++ Make BreadthFirstMap return a list of nodes to be iterated too, so that it's
+  consistent with DijktraMap.
++ Rename ComputeCC and ComputeCCAll into CCMap and CCMapAll, and make CCMap
+  return a slice of connected component points instead of requiring CCIter for
+  iteration (incompatible change).
++ Fix maxCost checking in DijktraMap (nodes with cost = maxCost - 1 +
+  dij.Cost(...) could be in the result map with Cost functions that return
+  values > 1).
+
 ## v0.7.0 - 2020-01-08
 
 + New Vault parsing and manipulation utility in rl package.
