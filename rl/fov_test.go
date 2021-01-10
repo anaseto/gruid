@@ -50,3 +50,11 @@ func BenchmarkFOVBig(b *testing.B) {
 		fov.VisionMap(lt, gruid.Point{20, 10}, maxLOS)
 	}
 }
+
+func BenchmarkFOVBigBig(b *testing.B) {
+	fov := NewFOV(gruid.NewRange(0, 0, 80, 24))
+	lt := &lighter{}
+	for i := 0; i < b.N; i++ {
+		fov.VisionMap(lt, gruid.Point{40, 10}, 50)
+	}
+}
