@@ -439,16 +439,14 @@ func (it *GridIterator) P() gruid.Point {
 	return it.p
 }
 
-// SetP sets the iterator's current position. It returns false if the position
-// is out of range, true otherwise.
-func (it *GridIterator) SetP(p gruid.Point) bool {
+// SetP sets the iterator's current position.
+func (it *GridIterator) SetP(p gruid.Point) {
 	q := p.Add(it.rg.Min)
 	if !q.In(it.rg) {
-		return false
+		return
 	}
 	it.p = p
 	it.i = q.Y*it.w + q.X
-	return true
 }
 
 // Cell returns the Cell in the grid at the iterator's current position.
