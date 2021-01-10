@@ -167,17 +167,16 @@ func (m *model) MovePlayer(to gruid.Point) {
 	m.fov.SetRange(m.fov.Range().Add(to.Sub(m.playerPos)))
 	m.playerPos = to
 	lt := &lighter{mapgd: m.mapgd}
-	m.fov.VisionMap(lt, m.playerPos, maxLOS)
 	// We mark cells in field of view as explored.
-	m.fov.Iter(func(ln rl.LightNode) {
+	for _, ln := range m.fov.VisionMap(lt, m.playerPos, maxLOS) {
 		if ln.Cost >= maxLOS {
-			return
+			continue
 		}
 		c := m.mapgd.At(ln.P)
 		if !explored(c) {
 			m.mapgd.Set(ln.P, c|Explored)
 		}
-	})
+	}
 }
 
 func (m *model) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {

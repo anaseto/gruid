@@ -665,8 +665,7 @@ func (it *GridIterator) Cell() Cell {
 	return it.cells[it.i]
 }
 
-// SetCell updates the grid cell at the iterator's current position. It's
-// faster than calling Set on the grid.
+// SetCell updates the grid cell at the iterator's current position.
 func (it *GridIterator) SetCell(c Cell) {
 	it.cells[it.i] = c
 }

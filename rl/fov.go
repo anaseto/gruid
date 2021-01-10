@@ -40,6 +40,7 @@ type fovNode struct {
 
 type innerFOV struct {
 	LMap     []fovNode
+	Lighted  []LightNode
 	Idx      int         // light map number (for caching)
 	Rg       gruid.Range // range of valid positions
 	RayCache []LightNode
@@ -115,15 +116,11 @@ func (fov *FOV) idx(p gruid.Point) int {
 	return p.Y*w + p.X
 }
 
-// Iter iterates the whole map range on the nodes lighted in last VisionMap or
-// LightMap. This may not be efficient if the FOV range is much larger than the
-// lighted region.
+// Iter iterates fov's range on the nodes lighted in the last VisionMap or
+// LightMap.
 func (fov *FOV) Iter(fn func(LightNode)) {
-	w := fov.Rg.Size().X
-	for i, n := range fov.LMap {
-		if n.Idx == fov.Idx {
-			fn(LightNode{P: idxToPos(i, w).Add(fov.Rg.Min), Cost: n.Cost})
-		}
+	for _, n := range fov.Lighted {
+		fn(n)
 	}
 }
 
@@ -186,11 +183,12 @@ type Lighter interface {
 }
 
 // VisionMap builds a field of vision map for a viewer at src that has a
-// radius reach. Values can then be consulted with At.
-func (fov *FOV) VisionMap(lt Lighter, src gruid.Point, radius int) {
+// radius reach. It returns a cached slice of lighted nodes. Values can also be
+// consulted individually with At.
+func (fov *FOV) VisionMap(lt Lighter, src gruid.Point, radius int) []LightNode {
 	fov.Idx++
 	if !src.In(fov.Rg) {
-		return
+		return fov.Lighted
 	}
 	fov.LMap[fov.idx(src)] = fovNode{Cost: 0, Idx: fov.Idx}
 	for d := 1; d <= radius; d++ {
@@ -204,6 +202,8 @@ func (fov *FOV) VisionMap(lt Lighter, src gruid.Point, radius int) {
 		}
 	}
 	fov.checkIdx()
+	fov.computeLighted()
+	return fov.Lighted
 }
 
 func (fov *FOV) visionUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
@@ -215,8 +215,9 @@ func (fov *FOV) visionUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
 }
 
 // LightMap builds a lighting map with given light sources that have a radius
-// reach. Values can then be consulted with At.
-func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point, radius int) {
+// reach. It returs a cached slice of lighted nodes. Values can also be
+// consulted with At.
+func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point, radius int) []LightNode {
 	fov.Idx++
 	for _, src := range srcs {
 		if !src.In(fov.Rg) {
@@ -235,6 +236,8 @@ func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point, radius int) {
 		}
 	}
 	fov.checkIdx()
+	fov.computeLighted()
+	return fov.Lighted
 }
 
 func (fov *FOV) lightUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
@@ -247,6 +250,16 @@ func (fov *FOV) lightUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
 		return
 	}
 	fov.LMap[fov.idx(to)] = fovNode{Cost: c, Idx: fov.Idx}
+}
+
+func (fov *FOV) computeLighted() {
+	fov.Lighted = fov.Lighted[:0]
+	w := fov.Rg.Max.X - fov.Rg.Min.X
+	for i, n := range fov.LMap {
+		if n.Idx == fov.Idx {
+			fov.Lighted = append(fov.Lighted, LightNode{P: idxToPos(i, w).Add(fov.Rg.Min), Cost: n.Cost})
+		}
+	}
 }
 
 func (fov *FOV) checkIdx() {
