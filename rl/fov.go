@@ -116,7 +116,7 @@ func (fov *FOV) idx(p gruid.Point) int {
 	return p.Y*w + p.X
 }
 
-// Iter iterates fov's range on the nodes lighted in the last VisionMap or
+// Iter iterates a function on the nodes lighted in the last VisionMap or
 // LightMap.
 func (fov *FOV) Iter(fn func(LightNode)) {
 	for _, n := range fov.Lighted {
