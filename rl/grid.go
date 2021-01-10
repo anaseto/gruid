@@ -397,7 +397,7 @@ type GridIterator struct {
 //
 // 	it := gd.Iterator()
 // 	for it.Next() {
-// 		// call it.P() or it.Cell() or it.SetCell() as appropiate
+// 		// call it.P() or it.Cell() or it.SetCell() as appropriate
 // 	}
 func (gd Grid) Iterator() *GridIterator {
 	w := gd.Ug.Width
