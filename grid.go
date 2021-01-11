@@ -306,16 +306,16 @@ type innerGrid struct {
 }
 
 type grid struct {
+	Cells  []Cell
 	Width  int
 	Height int
-	Cells  []Cell
 }
 
 // Frame contains the necessary information to draw the frame changes from a
 // frame to the next. One is sent to the driver after every Draw.
 type Frame struct {
-	Cells  []FrameCell // cells that changed from previous frame
 	Time   time.Time   // time of frame drawing: used for replay
+	Cells  []FrameCell // cells that changed from previous frame
 	Width  int         // width of the whole grid when the frame was issued
 	Height int         // height of the whole grid when the frame was issued
 }
@@ -590,13 +590,13 @@ func (gd Grid) cprev(src Grid) Point {
 // GridIterator represents a stateful iterator for a grid. They are created
 // with the Iterator method.
 type GridIterator struct {
+	cells  []Cell // grid cells
 	p      Point  // iterator's current position
 	max    Point  // last position
 	i      int    // current position's index
 	w      int    // underlying grid's width
 	c      Cell   // current cell
 	nlstep int    // newline step
-	cells  []Cell // grid cells
 	rg     Range  // grid range
 }
 

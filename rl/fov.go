@@ -41,9 +41,9 @@ type fovNode struct {
 type innerFOV struct {
 	LMap     []fovNode
 	Lighted  []LightNode
+	RayCache []LightNode
 	Idx      int         // light map number (for caching)
 	Rg       gruid.Range // range of valid positions
-	RayCache []LightNode
 }
 
 // NewFOV returns new ready to use field of view with a given range of valid

@@ -42,9 +42,9 @@ type innerGrid struct {
 type Cell int
 
 type grid struct {
+	Cells  []Cell
 	Width  int
 	Height int
-	Cells  []Cell
 }
 
 // NewGrid returns a new grid with given width and height in cells. The width
@@ -382,12 +382,12 @@ func (gd Grid) cprev(src Grid) gruid.Point {
 // GridIterator represents a stateful iterator for a grid. They are created
 // with the Iterator method.
 type GridIterator struct {
+	cells  []Cell      // grid cells
 	p      gruid.Point // iterator's current position
 	max    gruid.Point // last position
 	i      int         // current position's index
 	w      int         // underlying grid's width
 	nlstep int         // newline step
-	cells  []Cell      // grid cells
 	rg     gruid.Range // grid range
 }
 

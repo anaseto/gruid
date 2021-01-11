@@ -231,8 +231,8 @@ func (mg MapGen) KeepCC(pr *paths.PathRange, p gruid.Point, wall Cell) int {
 // description using Parse.
 type Vault struct {
 	content string
-	size    gruid.Point
 	runes   string
+	size    gruid.Point
 }
 
 // Content returns the vault's textual content.

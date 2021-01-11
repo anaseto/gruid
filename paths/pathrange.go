@@ -17,22 +17,22 @@ type PathRange struct {
 }
 
 type pathRange struct {
-	Rg                  gruid.Range
 	AstarNodes          *nodeMap
-	AstarQueue          priorityQueue
 	DijkstraNodes       *nodeMap // dijkstra map
-	DijkstraQueue       priorityQueue
-	DijkstraUnreachable int
 	DijkstraIterNodes   []Node
 	BfMap               []bfNode // breadth first map
 	BfQueue             []Node   // map numbers for caching
-	BfIdx               int      // map number (for caching)
-	BfUnreachable       int      // last maxcost + 1
-	BfEnd               int      // bf map last index
 	CC                  []ccNode // connected components
 	CCStack             []int
-	CCIdx               int // cc map number
 	CCIterCache         []gruid.Point
+	AstarQueue          priorityQueue
+	DijkstraQueue       priorityQueue
+	Rg                  gruid.Range
+	DijkstraUnreachable int
+	BfIdx               int // map number (for caching)
+	BfUnreachable       int // last maxcost + 1
+	BfEnd               int // bf map last index
+	CCIdx               int // cc map number
 }
 
 // GobDecode implements gob.GobDecoder.
@@ -106,12 +106,12 @@ func (nm nodeMap) at(pr *PathRange, p gruid.Point) *node {
 }
 
 type node struct {
-	P          gruid.Point
-	Cost       int
-	Rank       int
 	Parent     *gruid.Point
 	Open       bool
 	Closed     bool
+	P          gruid.Point
+	Cost       int
+	Rank       int
 	Idx        int
 	Num        int
 	CacheIndex int
