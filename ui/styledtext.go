@@ -9,9 +9,9 @@ import (
 
 // StyledText is a simple text formatter and styler.
 type StyledText struct {
+	markups map[rune]gruid.Style
 	text    string
 	style   gruid.Style
-	markups map[rune]gruid.Style
 }
 
 // NewStyledText returns a new styled text with the default style.
