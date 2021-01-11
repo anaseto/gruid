@@ -138,17 +138,13 @@ func sign(n int) int {
 func (fov *FOV) octantParents(ps []gruid.Point, src, p gruid.Point) []gruid.Point {
 	q := src.Sub(p)
 	r := gruid.Point{sign(q.X), sign(q.Y)}
+	ps = append(ps, p.Add(gruid.Point{r.X, r.Y}))
 	switch {
-	case q.Y == 0:
-		ps = append(ps, p.Add(gruid.Point{r.X, 0}))
-	case q.X == 0:
-		ps = append(ps, p.Add(gruid.Point{0, r.Y}))
-	case abs(q.X) == abs(q.Y):
-		ps = append(ps, p.Add(gruid.Point{r.X, r.Y}))
+	case q.X == 0 || q.Y == 0 || abs(q.X) == abs(q.Y):
 	case abs(q.X) > abs(q.Y):
-		ps = append(ps, p.Add(gruid.Point{r.X, 0}), p.Add(gruid.Point{r.X, r.Y}))
+		ps = append(ps, p.Add(gruid.Point{r.X, 0}))
 	default:
-		ps = append(ps, p.Add(gruid.Point{0, r.Y}), p.Add(gruid.Point{r.X, r.Y}))
+		ps = append(ps, p.Add(gruid.Point{0, r.Y}))
 	}
 	return ps
 }
