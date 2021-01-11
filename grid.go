@@ -11,11 +11,11 @@ import (
 //
 // It may be used as a bitmask, like terminal attributes, or as a generic
 // value for constants.
-type AttrMask uint
+type AttrMask uint32
 
 // Color is a generic value for representing colors. Those have to be mapped to
 // concrete foreground and background colors for each driver, as appropriate.
-type Color uint
+type Color uint32
 
 // ColorDefault should get special treatment by drivers and be mapped, when it
 // makes sense, to a default color, both for foreground and background.
