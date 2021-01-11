@@ -138,17 +138,17 @@ type bpath struct {
 	nb *Neighbors
 }
 
-func (nb bpath) Neighbors(p gruid.Point) []gruid.Point {
-	return nb.nb.All(p, func(q gruid.Point) bool {
+func (bp bpath) Neighbors(p gruid.Point) []gruid.Point {
+	return bp.nb.All(p, func(q gruid.Point) bool {
 		return true
 	})
 }
 
-func (nb bpath) Cost(p, q gruid.Point) int {
+func (bp bpath) Cost(p, q gruid.Point) int {
 	return 1
 }
 
-func (nb bpath) Estimation(p, q gruid.Point) int {
+func (bp bpath) Estimation(p, q gruid.Point) int {
 	p = p.Sub(q)
 	return abs(p.X) + abs(p.Y)
 }
