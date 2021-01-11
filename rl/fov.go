@@ -124,15 +124,20 @@ func (fov *FOV) Iter(fn func(LightNode)) {
 	}
 }
 
+func sign(n int) int {
+	var i int
+	switch {
+	case n > 0:
+		i = 1
+	case n < 0:
+		i = -1
+	}
+	return i
+}
+
 func (fov *FOV) octantParents(ps []gruid.Point, src, p gruid.Point) []gruid.Point {
 	q := src.Sub(p)
-	r := q
-	if q.X != 0 {
-		r.X /= abs(q.X)
-	}
-	if q.Y != 0 {
-		r.Y /= abs(q.Y)
-	}
+	r := gruid.Point{sign(q.X), sign(q.Y)}
 	switch {
 	case q.Y == 0:
 		ps = append(ps, p.Add(gruid.Point{r.X, 0}))
@@ -153,10 +158,16 @@ func (fov *FOV) bestParent(lt Lighter, src, p gruid.Point) (gruid.Point, int) {
 	ps := psa[:0]
 	ps = fov.octantParents(ps, src, p)
 	q := ps[0]
-	if len(ps) > 1 && fov.LMap[fov.idx(ps[1])].Cost+lt.Cost(src, ps[1], p) < fov.LMap[fov.idx(q)].Cost+lt.Cost(src, q, p) {
-		q = ps[1]
+	cost0 := fov.LMap[fov.idx(q)].Cost + lt.Cost(src, q, p)
+	if len(ps) < 2 {
+		return q, cost0
 	}
-	return q, fov.LMap[fov.idx(q)].Cost + lt.Cost(src, q, p)
+	cost1 := fov.LMap[fov.idx(ps[1])].Cost + lt.Cost(src, ps[1], p)
+	if cost1 < cost0 {
+		q = ps[1]
+		return q, cost1
+	}
+	return q, cost0
 }
 
 // Lighter is the interface that captures the requirements for light ray
@@ -192,13 +203,26 @@ func (fov *FOV) VisionMap(lt Lighter, src gruid.Point, radius int) []LightNode {
 	}
 	fov.LMap[fov.idx(src)] = fovNode{Cost: 0, Idx: fov.Idx}
 	for d := 1; d <= radius; d++ {
-		for x := -d + src.X; x <= d+src.X; x++ {
-			fov.visionUpdate(lt, src, gruid.Point{x, src.Y + d})
-			fov.visionUpdate(lt, src, gruid.Point{x, src.Y - d})
+		rg := fov.Rg.Intersect(gruid.NewRange(src.X-d, src.Y-d+1, src.X+d+1, src.Y+d))
+		if src.Y+d < fov.Rg.Max.Y {
+			for x := rg.Min.X; x < rg.Max.X; x++ {
+				fov.visionUpdate(lt, src, gruid.Point{x, src.Y + d})
+			}
 		}
-		for y := -d + 1 + src.Y; y <= d-1+src.Y; y++ {
-			fov.visionUpdate(lt, src, gruid.Point{src.X + d, y})
-			fov.visionUpdate(lt, src, gruid.Point{src.X - d, y})
+		if src.Y-d >= fov.Rg.Min.Y {
+			for x := rg.Min.X; x < rg.Max.X; x++ {
+				fov.visionUpdate(lt, src, gruid.Point{x, src.Y - d})
+			}
+		}
+		if src.X+d < fov.Rg.Max.X {
+			for y := rg.Min.Y; y < rg.Max.Y; y++ {
+				fov.visionUpdate(lt, src, gruid.Point{src.X + d, y})
+			}
+		}
+		if src.X-d >= fov.Rg.Min.X {
+			for y := rg.Min.Y; y < rg.Max.Y; y++ {
+				fov.visionUpdate(lt, src, gruid.Point{src.X - d, y})
+			}
 		}
 	}
 	fov.checkIdx()
@@ -207,9 +231,6 @@ func (fov *FOV) VisionMap(lt Lighter, src gruid.Point, radius int) []LightNode {
 }
 
 func (fov *FOV) visionUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
-	if !to.In(fov.Rg) {
-		return
-	}
 	_, c := fov.bestParent(lt, src, to)
 	fov.LMap[fov.idx(to)] = fovNode{Cost: c, Idx: fov.Idx}
 }
@@ -225,13 +246,26 @@ func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point, radius int) []LightNode
 		}
 		fov.LMap[fov.idx(src)] = fovNode{Cost: 0, Idx: fov.Idx}
 		for d := 1; d <= radius; d++ {
-			for x := -d + src.X; x <= d+src.X; x++ {
-				fov.lightUpdate(lt, src, gruid.Point{x, src.Y + d})
-				fov.lightUpdate(lt, src, gruid.Point{x, src.Y - d})
+			rg := fov.Rg.Intersect(gruid.NewRange(src.X-d, src.Y-d+1, src.X+d+1, src.Y+d))
+			if src.Y+d < fov.Rg.Max.Y {
+				for x := rg.Min.X; x < rg.Max.X; x++ {
+					fov.lightUpdate(lt, src, gruid.Point{x, src.Y + d})
+				}
 			}
-			for y := -d + 1 + src.Y; y <= d-1+src.Y; y++ {
-				fov.lightUpdate(lt, src, gruid.Point{src.X + d, y})
-				fov.lightUpdate(lt, src, gruid.Point{src.X - d, y})
+			if src.Y-d >= fov.Rg.Min.Y {
+				for x := rg.Min.X; x < rg.Max.X; x++ {
+					fov.lightUpdate(lt, src, gruid.Point{x, src.Y - d})
+				}
+			}
+			if src.X+d < fov.Rg.Max.X {
+				for y := rg.Min.Y; y < rg.Max.Y; y++ {
+					fov.lightUpdate(lt, src, gruid.Point{src.X + d, y})
+				}
+			}
+			if src.X-d >= fov.Rg.Min.X {
+				for y := rg.Min.Y; y < rg.Max.Y; y++ {
+					fov.lightUpdate(lt, src, gruid.Point{src.X - d, y})
+				}
 			}
 		}
 	}
@@ -241,12 +275,9 @@ func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point, radius int) []LightNode
 }
 
 func (fov *FOV) lightUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
-	if !to.In(fov.Rg) {
-		return
-	}
 	_, c := fov.bestParent(lt, src, to)
-	oc, ok := fov.At(to)
-	if ok && oc <= c {
+	n := fov.LMap[fov.idx(to)]
+	if n.Idx == fov.Idx && n.Cost <= c {
 		return
 	}
 	fov.LMap[fov.idx(to)] = fovNode{Cost: c, Idx: fov.Idx}
