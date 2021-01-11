@@ -4,3 +4,4 @@
 *.prof
 *.tar.gz
 *.out
+*.test
