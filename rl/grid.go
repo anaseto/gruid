@@ -291,9 +291,7 @@ func (gd Grid) CountFunc(fn func(c Cell) bool) int {
 		ximax := yi + gd.Rg.Max.X
 		for xi := yi + gd.Rg.Min.X; xi < ximax; xi++ {
 			c := cells[xi]
-			if fn(c) {
-				count++
-			}
+			count += bool2int(fn(c))
 		}
 	}
 	return count
@@ -309,12 +307,20 @@ func (gd Grid) Count(c Cell) int {
 		ximax := yi + gd.Rg.Max.X
 		for xi := yi + gd.Rg.Min.X; xi < ximax; xi++ {
 			cc := cells[xi]
-			if c == cc {
-				count++
-			}
+			count += bool2int(cc == c)
 		}
 	}
 	return count
+}
+
+func bool2int(b bool) int {
+	var i int
+	if b {
+		i = 1
+	} else {
+		i = 0
+	}
+	return i
 }
 
 // Copy copies elements from a source grid src into the destination grid gd,
