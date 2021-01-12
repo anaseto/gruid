@@ -185,6 +185,28 @@ func TestGridSlice4(t *testing.T) {
 	}
 }
 
+func TestGridSlice5(t *testing.T) {
+	gd := NewGrid(80, 24)
+	max := gd.Size()
+	w, h := max.X, max.Y
+	gd.Fill(Cell{Rune: '.'})
+	slice := gd.Slice(NewRange(5, 5, 15, 15))
+	slice.Fill(Cell{Rune: 's'})
+	for y := 0; y < h; y++ {
+		for x := 0; x < w; x++ {
+			p := Point{x, y}
+			c := gd.At(p)
+			if p.In(slice.Bounds()) {
+				if c.Rune != 's' {
+					t.Errorf("bad slice cell: %c at %+v", c.Rune, p)
+				}
+			} else if c.Rune != '.' {
+				t.Errorf("bad grid non-slice cell: %c at %+v", c.Rune, p)
+			}
+		}
+	}
+}
+
 func TestIterMap(t *testing.T) {
 	gd := NewGrid(10, 10)
 	gd.Map(func(p Point, c Cell) Cell { return Cell{Rune: '+'} })
@@ -693,6 +715,13 @@ func BenchmarkGridMap(b *testing.B) {
 
 func BenchmarkGridFillVertical(b *testing.B) {
 	gd := NewGrid(1, 24*80)
+	for i := 0; i < b.N; i++ {
+		gd.Fill(Cell{}.WithRune('x'))
+	}
+}
+
+func BenchmarkGridFillVertical8(b *testing.B) {
+	gd := NewGrid(8, 24*10)
 	for i := 0; i < b.N; i++ {
 		gd.Fill(Cell{}.WithRune('x'))
 	}

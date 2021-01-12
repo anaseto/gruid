@@ -209,7 +209,7 @@ func (gd Grid) fillcp(c Cell) {
 	for xi := ymin + gd.Rg.Min.X; xi < ymin+gd.Rg.Max.X; xi++ {
 		cells[xi] = c
 	}
-	idxmax := (gd.Rg.Max.Y-1)*gdw + gd.Rg.Max.X
+	idxmax := (gd.Rg.Max.Y-1)*w + gd.Rg.Max.X
 	for idx := ymin + w + gd.Rg.Min.X; idx < idxmax; idx += w {
 		copy(cells[idx:idx+gdw], cells[ymin+gd.Rg.Min.X:ymin+gd.Rg.Max.X])
 	}
