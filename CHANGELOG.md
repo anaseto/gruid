@@ -2,11 +2,11 @@ This changelog file only lists important changes.
 
 ## v0.9.0 - 2020-01-12
 
-This releases brings the module quite closer to a stable release. Test coverage
+This release brings the module quite closer to a stable release. Test coverage
 is now around 70-90% for gruid, paths and rl packages.
 
 + Make Color and AttrMask types always be uint32, as relying on the exact size
-  of uint would have been an error. This changes also makes gruid.Grid use half
+  of uint would have been an error. This change also makes gruid.Grid use half
   memory and avoid 32 bits of padding in 64 bit systems and improves speed of
   some operations, like Copy. This change should not be incompatible in
   practice.
