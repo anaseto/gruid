@@ -101,9 +101,6 @@ func (gd Grid) Range() gruid.Range {
 // the grid. If the range is out of bounds of the parent grid, it will be
 // reduced to fit to the available space. The returned grid shares memory with
 // the parent.
-//
-// This makes it easy to use relative coordinates when working with UI
-// elements.
 func (gd Grid) Slice(rg gruid.Range) Grid {
 	if rg.Min.X < 0 {
 		rg.Min.X = 0
