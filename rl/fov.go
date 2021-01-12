@@ -44,6 +44,7 @@ type innerFOV struct {
 	RayCache []LightNode
 	Idx      int         // light map number (for caching)
 	Rg       gruid.Range // range of valid positions
+	Src      gruid.Point
 }
 
 // NewFOV returns new ready to use field of view with a given range of valid
@@ -197,6 +198,7 @@ func (fov *FOV) VisionMap(lt Lighter, src gruid.Point, radius int) []LightNode {
 	if !src.In(fov.Rg) {
 		return fov.Lighted
 	}
+	fov.Src = src
 	fov.LMap[fov.idx(src)] = fovNode{Cost: 0, Idx: fov.Idx}
 	for d := 1; d <= radius; d++ {
 		rg := fov.Rg.Intersect(gruid.NewRange(src.X-d, src.Y-d+1, src.X+d+1, src.Y+d))
@@ -272,11 +274,11 @@ func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point, radius int) []LightNode
 
 func (fov *FOV) lightUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
 	_, c := fov.bestParent(lt, src, to)
-	n := fov.LMap[fov.idx(to)]
+	n := &fov.LMap[fov.idx(to)]
 	if n.Idx == fov.Idx && n.Cost <= c {
 		return
 	}
-	fov.LMap[fov.idx(to)] = fovNode{Cost: c, Idx: fov.Idx}
+	*n = fovNode{Cost: c, Idx: fov.Idx}
 }
 
 func (fov *FOV) computeLighted() {
@@ -310,27 +312,25 @@ type LightNode struct {
 	Cost int         // light cost
 }
 
-// Ray returns a single light ray from a position to another. It should be
-// preceded by a VisionMap or LightMap call. If either the from or to positions
-// are not within the max distance from the source, a nil slice will be
-// returned.
+// Ray returns a single light ray from the source (viewer) position to another.
+// It should be preceded by a VisionMap call. If the destination position is
+// not within the max distance from the source, a nil slice will be returned.
 //
 // The returned slice is cached for efficiency, so results will be invalidated
 // by future calls.
-func (fov *FOV) Ray(lt Lighter, from, to gruid.Point) []LightNode {
-	_, okFrom := fov.At(from)
+func (fov *FOV) Ray(lt Lighter, to gruid.Point) []LightNode {
 	_, okTo := fov.At(to)
-	if !okFrom || !okTo {
+	if !okTo {
 		return nil
 	}
 	fov.RayCache = fov.RayCache[:0]
 	var c int
-	for to != from {
+	for to != fov.Src {
 		oto := to
-		to, c = fov.bestParent(lt, from, oto)
+		to, c = fov.bestParent(lt, fov.Src, oto)
 		fov.RayCache = append(fov.RayCache, LightNode{P: oto, Cost: c})
 	}
-	fov.RayCache = append(fov.RayCache, LightNode{P: from, Cost: 0})
+	fov.RayCache = append(fov.RayCache, LightNode{P: fov.Src, Cost: 0})
 	for i := range fov.RayCache[:len(fov.RayCache)/2] {
 		fov.RayCache[i], fov.RayCache[len(fov.RayCache)-i-1] = fov.RayCache[len(fov.RayCache)-i-1], fov.RayCache[i]
 	}

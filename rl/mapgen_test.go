@@ -97,6 +97,69 @@ const (
 	ground
 )
 
+// playerPath implements paths.Astar interface.
+type playerPath struct {
+	neighbors *paths.Neighbors
+	mapgd     Grid
+}
+
+func (pp *playerPath) Neighbors(p gruid.Point) []gruid.Point {
+	if pp.mapgd.At(p) == wall {
+		return nil
+	}
+	return pp.neighbors.Cardinal(p, func(q gruid.Point) bool {
+		if !pp.mapgd.Contains(q) {
+			return false
+		}
+		c := pp.mapgd.At(q)
+		return c != wall
+	})
+}
+
+func TestRandomWalkCave(t *testing.T) {
+	mapgd := NewGrid(80, 24)
+	rd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	mgen := MapGen{Rand: rd, Grid: mapgd}
+	wlk := walker{rand: rd}
+	wlk.neighbors = &paths.Neighbors{}
+	n := mgen.RandomWalkCave(wlk, ground, 0.5, 1)
+	if n != mgen.Grid.Count(ground) {
+		t.Errorf("bad count %d vs %d", n, mgen.Grid.Count(ground))
+	}
+	if n < 80*24/2 || n > 80*24/2+1 {
+		t.Errorf("bad fill count: %d", n)
+	}
+}
+
+func TestCellularAutomataCave(t *testing.T) {
+	mapgd := NewGrid(80, 24)
+	rd := rand.New(rand.NewSource(time.Now().UnixNano()))
+	mgen := MapGen{Rand: rd, Grid: mapgd}
+	rules := []CellularAutomataRule{
+		{WCutoff1: 5, WCutoff2: 2, Reps: 4, WallsOutOfRange: true},
+		{WCutoff1: 5, WCutoff2: 25, Reps: 3, WallsOutOfRange: true},
+	}
+	n := mgen.CellularAutomataCave(wall, ground, 0.40, rules)
+	if n != mgen.Grid.Count(ground) {
+		t.Errorf("bad count %d vs %d", n, mgen.Grid.Count(ground))
+	}
+	pr := paths.NewPathRange(mapgd.Range())
+	pp := &playerPath{}
+	pp.neighbors = &paths.Neighbors{}
+	pp.mapgd = mgen.Grid
+	pr.CCMapAll(pp)
+	it := mgen.Grid.Iterator()
+	for it.Next() {
+		if it.Cell() == ground {
+			m := mgen.KeepCC(pr, it.P(), wall)
+			if m > n {
+				t.Errorf("bad number of ground cells: %d vs %d (KeepCC from %v)", m, n, it.P())
+			}
+			break
+		}
+	}
+}
+
 func BenchmarkMapGenRandomWalkCave(b *testing.B) {
 	mapgd := NewGrid(80, 24)
 	rd := rand.New(rand.NewSource(time.Now().UnixNano()))

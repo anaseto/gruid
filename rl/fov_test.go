@@ -15,6 +15,17 @@ func TestFOV(t *testing.T) {
 	if len(lns) != (2*maxLOS+1)*(2*maxLOS+1) {
 		t.Errorf("bad length: %d vs %d", len(lns), (2*maxLOS+1)*(2*maxLOS+1))
 	}
+	ray := fov.Ray(lt, gruid.Point{5, 0})
+	if len(ray) != 6 {
+		t.Errorf("bad ray length: %d", len(ray))
+	}
+	if ray[2].P.X != 2 {
+		t.Errorf("bad position in ray: %d", ray[2].P.X)
+	}
+	lns = fov.LightMap(lt, []gruid.Point{{-5, 0}, {5, 0}}, 4)
+	if len(lns) != 2*(2*4+1)*(2*4+1) {
+		t.Errorf("bad length: %d vs %d", len(lns), 2*(2*4+1)*(2*4+1))
+	}
 }
 
 type lighter struct {
@@ -48,6 +59,14 @@ func BenchmarkFOVBig(b *testing.B) {
 	lt := &lighter{}
 	for i := 0; i < b.N; i++ {
 		fov.VisionMap(lt, gruid.Point{20, 10}, maxLOS)
+	}
+}
+
+func BenchmarkFOVBigLights(b *testing.B) {
+	fov := NewFOV(gruid.NewRange(0, 0, 80, 24))
+	lt := &lighter{}
+	for i := 0; i < b.N; i++ {
+		fov.LightMap(lt, []gruid.Point{{20, 10}, {40, 10}, {70, 15}}, 7)
 	}
 }
 
