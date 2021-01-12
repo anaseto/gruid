@@ -242,6 +242,7 @@ func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point, radius int) []LightNode
 		if !src.In(fov.Rg) {
 			continue
 		}
+		fov.Src = src
 		fov.LMap[fov.idx(src)] = fovNode{Cost: 0, Idx: fov.Idx}
 		for d := 1; d <= radius; d++ {
 			rg := fov.Rg.Intersect(gruid.NewRange(src.X-d, src.Y-d+1, src.X+d+1, src.Y+d))
