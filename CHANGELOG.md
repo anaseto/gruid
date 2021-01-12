@@ -1,5 +1,25 @@
 This changelog file only lists important changes.
 
+## v0.9.0 - 2020-01-12
+
+This releases brings the module quite closer to a stable release. Test coverage
+is now around 70-90% for gruid, paths and rl packages.
+
++ Make Color and AttrMask types always be uint32, as relying on the exact size
+  of uint would have been an error. This changes also makes gruid.Grid use half
+  memory and avoid 32 bits of padding in 64 bit systems and improves speed of
+  some operations, like Copy. This change should not be incompatible in
+  practice.
++ The Ray function in rl package took a “from” argument, but this had to
+  necessary be the src argument in last VisionMap call, so FOV keeps now that
+  information around and Ray has one less parameter now (incompatible change).
++ Field of view functions return now an iterable slice of light nodes, in the
+  same spirit as functions do in the paths package.
++ Performance improvements in field of view computation (simple benchmarks show
+  between 1.5 and 2 times improvement)
++ Remove useless return value in GridIterator.SetP (potentially incompatible
+  change).
+
 ## v0.8.0 - 2020-01-10
 
 + New Iterator method for grids that allows for more flexible grid iterations. 
