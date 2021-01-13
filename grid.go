@@ -91,7 +91,7 @@ func (p Point) Sub(q Point) Point {
 
 // In reports whether the position is within the given range.
 func (p Point) In(rg Range) bool {
-	return p.X >= rg.Min.X && p.Y >= rg.Min.Y && p.X < rg.Max.X && p.Y < rg.Max.Y
+	return p.X >= rg.Min.X && p.X < rg.Max.X && p.Y >= rg.Min.Y && p.Y < rg.Max.Y
 }
 
 // Mul returns the vector p*k.
@@ -189,10 +189,7 @@ func (rg Range) Empty() bool {
 // Eq reports whether the two ranges containt the same set of points. All empty
 // ranges are considered equal.
 func (rg Range) Eq(r Range) bool {
-	if rg.Empty() && r.Empty() {
-		return true
-	}
-	return rg == r
+	return rg == r || rg.Empty() && r.Empty()
 }
 
 // Sub returns a range of same size translated by -p.
@@ -235,7 +232,7 @@ func (rg Range) Intersect(r Range) Range {
 	if rg.Min.Y < r.Min.Y {
 		rg.Min.Y = r.Min.Y
 	}
-	if rg.Empty() {
+	if rg.Min.X >= rg.Max.X || rg.Min.Y >= rg.Max.Y {
 		return Range{}
 	}
 	return rg
