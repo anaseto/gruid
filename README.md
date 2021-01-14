@@ -75,3 +75,7 @@ As gruid only provides a few map generation algorithms, you may be interested
 in the [dngn](https://github.com/SolarLune/dngn) module, which provides map
 generation algorithms too, though its conventions for representing positions
 are somewhat different.
+
+You may also want to look into some examples of gruid programs:
+
++ [gospeedr](https://github.com/anaseto/gospeedr) : a simple speed reading program.
