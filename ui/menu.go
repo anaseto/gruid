@@ -142,7 +142,7 @@ func NewMenu(cfg MenuConfig) *Menu {
 	if m.keys.Quit == nil {
 		m.keys.Quit = []gruid.Key{gruid.KeyEscape, "q", "Q"}
 	}
-	m.computeItems()
+	m.placeItems()
 	m.cursorAtFirstChoice()
 	m.dirty = true
 	return m
@@ -161,7 +161,7 @@ func (m *Menu) Action() MenuAction {
 // SetEntries updates the list of menu entries.
 func (m *Menu) SetEntries(entries []MenuEntry) {
 	m.entries = entries
-	m.computeItems()
+	m.placeItems()
 	if !m.contains(m.active) {
 		m.cursorAtLastChoice()
 	}
@@ -171,7 +171,7 @@ func (m *Menu) SetEntries(entries []MenuEntry) {
 // SetBox updates the menu surrounding box.
 func (m *Menu) SetBox(b *Box) {
 	m.box = b
-	m.computeItems()
+	m.placeItems()
 	m.dirty = true
 }
 
@@ -432,20 +432,12 @@ func (m *Menu) updateLayout() {
 	}
 }
 
-func (m *Menu) computeItems() {
-	m.updateLayout()
-	grid := m.drawGrid()
-	rg := grid.Bounds()
-	if m.box != nil {
-		grid = grid.Slice(rg.Shift(1, 1, -1, -1))
-	}
-	m.size = grid.Size()
-	w, h := m.size.X, m.size.Y
+func (m *Menu) getLayout(w, h int) (ml mlayout, columns int) {
 	lines := m.layout.Y
 	if lines <= 0 {
 		lines = len(m.entries)
 	}
-	columns := m.layout.X
+	columns = m.layout.X
 	if columns <= 0 {
 		if lines == len(m.entries) {
 			columns = 1
@@ -456,7 +448,6 @@ func (m *Menu) computeItems() {
 	if lines*columns > len(m.entries) {
 		columns = len(m.entries) / lines
 	}
-	var ml mlayout
 	if columns > 1 && lines > 1 {
 		ml = table
 		w = w / columns
@@ -465,6 +456,10 @@ func (m *Menu) computeItems() {
 	} else {
 		ml = column
 	}
+	return ml, columns
+}
+
+func (m *Menu) resetPositions() {
 	if m.table == nil {
 		m.table = make(map[gruid.Point]item)
 	} else {
@@ -472,75 +467,104 @@ func (m *Menu) computeItems() {
 			delete(m.table, k)
 		}
 	}
+	m.points = m.points[:0]
+}
+
+func (m *Menu) placeItems() {
+	m.updateLayout()
+	grid := m.drawGrid()
+	rg := grid.Bounds()
+	if m.box != nil {
+		grid = grid.Slice(rg.Shift(1, 1, -1, -1))
+	}
+	m.size = grid.Size()
+	w, h := m.size.X, m.size.Y
+	ml, columns := m.getLayout(w, h)
+	m.resetPositions()
 	if w <= 0 {
 		w = 1
 	}
 	if h <= 0 {
 		h = 1
 	}
-	m.points = m.points[:0]
 	switch ml {
 	case column:
-		alt := true
-		for i, e := range m.entries {
-			if e.Disabled {
-				alt = false
-			}
-			p := gruid.Point{0, i}
-			m.table[p] = item{
-				grid: grid.Slice(gruid.NewRange(0, i%h, w, (i%h)+1)),
-				i:    i,
-				alt:  alt,
-				page: gruid.Point{0, i / h},
-			}
-			if !e.Disabled {
-				alt = !alt
-			}
-			m.points = append(m.points, p)
-		}
+		m.columnArrangement(grid, w, h)
 	case line:
-		var to, hpage int
-		alt := true
-		for i, e := range m.entries {
-			if e.Disabled {
-				alt = false
-			}
-			from := to
-			tw := m.stt.WithText(e.Text).Size().X
-			to += tw
-			if from > 0 && to > w {
-				from = 0
-				to = tw
-				hpage++
-			}
-			p := gruid.Point{i, 0}
-			m.table[p] = item{
-				grid: grid.Slice(gruid.NewRange(from, 0, to, 1)),
-				i:    i,
-				page: gruid.Point{hpage, 0},
-				alt:  alt,
-			}
-			if !e.Disabled {
-				alt = !alt
-			}
-			m.points = append(m.points, p)
-		}
+		m.lineArrangement(grid, w)
 	case table:
-		for i := range m.entries {
-			page := i / (columns * h)
-			pageidx := i % (columns * h)
-			ln := pageidx % h
-			col := pageidx / h
-			p := gruid.Point{col, ln + page*h}
-			m.table[p] = item{
-				grid: grid.Slice(gruid.NewRange(col*w, ln%h, (col+1)*w, (ln%h)+1)),
-				i:    i,
-				page: gruid.Point{0, page},
-				alt:  (col+ln)%h == 0,
-			}
-			m.points = append(m.points, p)
-		}
+		m.tableArrangement(grid, w, h, columns)
 	}
+	m.updatePages()
+}
+
+func (m *Menu) columnArrangement(grid gruid.Grid, w, h int) {
+	alt := true
+	for i, e := range m.entries {
+		if e.Disabled {
+			alt = false
+		}
+		p := gruid.Point{0, i}
+		m.table[p] = item{
+			grid: grid.Slice(gruid.NewRange(0, i%h, w, (i%h)+1)),
+			i:    i,
+			alt:  alt,
+			page: gruid.Point{0, i / h},
+		}
+		if !e.Disabled {
+			alt = !alt
+		}
+		m.points = append(m.points, p)
+	}
+}
+
+func (m *Menu) lineArrangement(grid gruid.Grid, w int) {
+	var to, hpage int
+	alt := true
+	for i, e := range m.entries {
+		if e.Disabled {
+			alt = false
+		}
+		from := to
+		tw := m.stt.WithText(e.Text).Size().X
+		to += tw
+		if from > 0 && to > w {
+			from = 0
+			to = tw
+			hpage++
+		}
+		p := gruid.Point{i, 0}
+		m.table[p] = item{
+			grid: grid.Slice(gruid.NewRange(from, 0, to, 1)),
+			i:    i,
+			page: gruid.Point{hpage, 0},
+			alt:  alt,
+		}
+		if !e.Disabled {
+			alt = !alt
+		}
+		m.points = append(m.points, p)
+	}
+}
+
+func (m *Menu) tableArrangement(grid gruid.Grid, w, h, columns int) {
+	for i := range m.entries {
+		page := i / (columns * h)
+		pageidx := i % (columns * h)
+		ln := pageidx % h
+		col := pageidx / h
+		p := gruid.Point{col, ln + page*h}
+		m.table[p] = item{
+			grid: grid.Slice(gruid.NewRange(col*w, ln%h, (col+1)*w, (ln%h)+1)),
+			i:    i,
+			page: gruid.Point{0, page},
+			alt:  (col+ln)%h == 0,
+		}
+		m.points = append(m.points, p)
+	}
+}
+
+func (m *Menu) updatePages() {
 	for _, p := range m.points {
 		pg := m.table[p].page
 		if pg.X > m.pages.X {
