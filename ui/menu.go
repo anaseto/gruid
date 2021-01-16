@@ -224,6 +224,9 @@ func (m *Menu) moveTo(p gruid.Point) {
 		case gruid.Point{0, -1}, gruid.Point{-1, 0}:
 			m.cursorAtLastChoice()
 		}
+		if m.active != q {
+			m.action = MenuMove
+		}
 	}
 }
 
