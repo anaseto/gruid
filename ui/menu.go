@@ -349,24 +349,12 @@ func (m *Menu) updateMouse(msg gruid.MsgMouse) {
 		crg = crg.Shift(1, 1, -1, -1)
 	}
 	p := msg.P
-	page := gruid.Point{}
-	if it, ok := m.table[m.active]; ok {
-		page = it.page
-	}
 	switch msg.Action {
 	case gruid.MouseMove:
 		if !p.In(crg) {
 			break
 		}
-		for q, it := range m.table {
-			if it.page == page && p.In(it.grid.Bounds()) {
-				if q == m.active {
-					break
-				}
-				m.active = q
-				m.action = MenuMove
-			}
-		}
+		m.moveToPoint(p)
 	case gruid.MouseWheelDown:
 		if !p.In(crg) {
 			break
@@ -385,14 +373,38 @@ func (m *Menu) updateMouse(msg gruid.MsgMouse) {
 		if !p.In(crg) {
 			break
 		}
-		for q, it := range m.table {
-			if it.page == page && p.In(it.grid.Bounds()) {
-				m.active = q
-				if m.entries[it.i].Disabled {
-					m.action = MenuMove
-				} else {
-					m.action = MenuInvoke
-				}
+		m.invokePoint(p)
+	}
+}
+
+func (m *Menu) moveToPoint(p gruid.Point) {
+	page := gruid.Point{}
+	if it, ok := m.table[m.active]; ok {
+		page = it.page
+	}
+	for q, it := range m.table {
+		if it.page == page && p.In(it.grid.Bounds()) {
+			if q == m.active {
+				break
+			}
+			m.active = q
+			m.action = MenuMove
+		}
+	}
+}
+
+func (m *Menu) invokePoint(p gruid.Point) {
+	page := gruid.Point{}
+	if it, ok := m.table[m.active]; ok {
+		page = it.page
+	}
+	for q, it := range m.table {
+		if it.page == page && p.In(it.grid.Bounds()) {
+			m.active = q
+			if m.entries[it.i].Disabled {
+				m.action = MenuMove
+			} else {
+				m.action = MenuInvoke
 			}
 		}
 	}
@@ -432,8 +444,9 @@ func (m *Menu) updateLayout() {
 	}
 }
 
-func (m *Menu) getLayout(w, h int) (ml mlayout, columns int) {
+func (m *Menu) getLayout(w, h int) (ml mlayout, nw, columns int) {
 	lines := m.layout.Y
+	nw = w
 	if lines <= 0 {
 		lines = len(m.entries)
 	}
@@ -450,13 +463,13 @@ func (m *Menu) getLayout(w, h int) (ml mlayout, columns int) {
 	}
 	if columns > 1 && lines > 1 {
 		ml = table
-		w = w / columns
+		nw = nw / columns
 	} else if columns > 1 {
 		ml = line
 	} else {
 		ml = column
 	}
-	return ml, columns
+	return ml, nw, columns
 }
 
 func (m *Menu) resetPositions() {
@@ -479,7 +492,7 @@ func (m *Menu) placeItems() {
 	}
 	m.size = grid.Size()
 	w, h := m.size.X, m.size.Y
-	ml, columns := m.getLayout(w, h)
+	ml, w, columns := m.getLayout(w, h)
 	m.resetPositions()
 	if w <= 0 {
 		w = 1
