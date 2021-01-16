@@ -7,7 +7,7 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-func TestMenu(t *testing.T) {
+func TestMenuColumns(t *testing.T) {
 	gd := gruid.NewGrid(10, 10)
 	entries := []MenuEntry{
 		{Text: "one"},
@@ -54,7 +54,7 @@ func TestMenu(t *testing.T) {
 	check(draw.Size().Y == 7, "size")
 }
 
-func TestTable(t *testing.T) {
+func TestMenuTable(t *testing.T) {
 	gd := gruid.NewGrid(10, 10)
 	entries := []MenuEntry{
 		{Text: "one"},
@@ -100,7 +100,7 @@ func TestTable(t *testing.T) {
 	check(menu.Active() == 0, "active 4")
 }
 
-func TestStatus(t *testing.T) {
+func TestMenuLine(t *testing.T) {
 	gd := gruid.NewGrid(10, 10)
 	entries := []MenuEntry{
 		{Text: "one"},
