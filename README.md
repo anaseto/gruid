@@ -8,7 +8,7 @@ applications in Go.  The library abstracts rendering and input for different
 platforms. The module provides drivers for terminal apps (driver/tcell), native
 graphical apps (driver/sdl) and browser apps (driver/js). The original
 application for the library was creating grid-based games, but it's also
-well-suited for any full-window grid-based application.
+well-suited for any grid-based application.
 
 The core **gruid** *package* uses a convenient and flexible architecture of
 updating a model in response to messages strongly inspired from the
@@ -16,7 +16,7 @@ updating a model in response to messages strongly inspired from the
 terminal apps, which in turn is based on the functional [Elm
 Architecture](https://guide.elm-lang.org/architecture/). The architecture has
 been adapted to be more idiomatic in Go in the context of grid-based
-applications, and more efficient.
+applications: less functional and more efficient.
 
 You can find there [annotated examples](examples/) and the
 [documentation](https://pkg.go.dev/github.com/anaseto/gruid).
@@ -36,6 +36,15 @@ The **ui** package defines common UI widgets and utilities: menu/table widget,
 pager, text input, label, styled text drawing facilities and replay
 functionality.
 
+The **tcell**, **js**, and **sdl** packages in the [drivers
+sub-directory](drivers/) provide specific rendering and input implementations
+satisfying gruid's package Driver interface. The provided terminal driver only
+handles full-window applications. See the README.md files in their respective
+folders for specific build and deployment instructions. *Note that until lazy
+module loading comes (hopefully with Go 1.16), unless you manually remove the
+sdl dependency, you will probably need to install SDL2 even if you only want to
+use tcell for the terminal.*
+
 The **tiles** package contains helpers for drawing fonts on images, which can
 be used to manage character tiles using a Driver from either drivers/sdl or
 drivers/js.
@@ -52,13 +61,13 @@ grid-based games such as roguelikes. The package provides an event priority
 queue, a field of view algorithm, map generation algorithms, as well as vault
 parsing and manipulation utilities.
 
-The **tcell**, **js**, and **sdl** packages in the [drivers
-sub-directory](drivers/) provide specific rendering and input implementations
-satisfying gruid's package Driver interface. See the README.md files in their
-respective folders for specific build and deployment instructions. *Note that
-until lazy module loading comes (hopefully with Go 1.16), unless you manually
-remove the sdl dependency, you will probably need to install SDL2 even if you
-only want to use tcell for the terminal.*
+# Examples
+
+In addition of the [annotated examples](examples/) that come within the gruid
+module, you may want to look also into some real world examples of gruid
+programs:
+
++ [gospeedr](https://github.com/anaseto/gospeedr) : a simple speed reading program.
 
 # See also
 
@@ -73,9 +82,4 @@ there's at least one fork that does.
 
 As gruid only provides a few map generation algorithms, you may be interested
 in the [dngn](https://github.com/SolarLune/dngn) module, which provides map
-generation algorithms too, though its conventions for representing positions
-are somewhat different.
-
-You may also want to look into some examples of gruid programs:
-
-+ [gospeedr](https://github.com/anaseto/gospeedr) : a simple speed reading program.
+generation algorithms too, though its representations of maps is different.
