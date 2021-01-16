@@ -265,6 +265,7 @@ func (m *Menu) nextPage(p gruid.Point) (gruid.Point, bool) {
 // user input messages. It considers mouse message coordinates to be absolute in
 // its grid.
 func (m *Menu) Update(msg gruid.Msg) gruid.Effect {
+	m.action = MenuPass
 	switch msg := msg.(type) {
 	case gruid.MsgKeyDown:
 		m.updateKeyDown(msg)
