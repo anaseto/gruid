@@ -478,7 +478,7 @@ func (m *Menu) computeItems() {
 	if h <= 0 {
 		h = 1
 	}
-	m.points = m.points[0:]
+	m.points = m.points[:0]
 	switch ml {
 	case column:
 		alt := true
