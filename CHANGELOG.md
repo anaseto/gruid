@@ -5,6 +5,7 @@ This changelog file only lists important changes.
 + A few changes in Menu, Pager and TextInput configuration in order to make
   styling more flexible, and simplify configuration too (some incompatible
   changes).
++ Add method versions with formatted text for StyledText.
 + Add more tests in ui package, and fix a couple of issues.
 
 ## v0.9.0 - 2020-01-12
