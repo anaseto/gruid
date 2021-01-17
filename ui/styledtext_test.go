@@ -154,7 +154,22 @@ func TestSizeMarkup(t *testing.T) {
 	}
 }
 
-func BenchmarkDraw(b *testing.B) {
+func BenchmarkTextSize(b *testing.B) {
+	stt := Text(strings.Repeat("A test sentence that says nothing interesting\n", 20))
+	for i := 0; i < b.N; i++ {
+		stt.Size()
+	}
+}
+
+func BenchmarkTextSizeWithMarkup(b *testing.B) {
+	st := gruid.Style{}
+	stt := Text(strings.Repeat("A test sentence that says nothing interesting\n", 20)).WithMarkup('t', st)
+	for i := 0; i < b.N; i++ {
+		stt.Size()
+	}
+}
+
+func BenchmarkTextDraw(b *testing.B) {
 	gd := gruid.NewGrid(80, 24)
 	stt := Text(strings.Repeat("A test sentence that says nothing interesting\n", 20))
 	for i := 0; i < b.N; i++ {
@@ -162,14 +177,14 @@ func BenchmarkDraw(b *testing.B) {
 	}
 }
 
-func BenchmarkFormat(b *testing.B) {
+func BenchmarkTextFormat(b *testing.B) {
 	stt := Text(strings.Repeat("A test sentence that says nothing interesting\n", 20))
 	for i := 0; i < b.N; i++ {
 		stt.Format(30)
 	}
 }
 
-func BenchmarkDrawWithMarkup(b *testing.B) {
+func BenchmarkTextDrawWithMarkup(b *testing.B) {
 	gd := gruid.NewGrid(80, 24)
 	st := gruid.Style{}
 	stt := Text(strings.Repeat("A test sentence that says nothing interesting\n", 20)).WithMarkup('t', st)

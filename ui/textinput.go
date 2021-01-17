@@ -8,18 +8,17 @@ import (
 
 // TextInputConfig describes configuration options for creating a text input.
 type TextInputConfig struct {
-	Grid       gruid.Grid    // grid slice where the text input is drawn
-	StyledText StyledText    // styled text with initial text input text content
-	Prompt     string        // optional prompt text
-	Box        *Box          // draw optional box around the text input
-	Keys       TextInputKeys // optional custom key bindings for the text input
-	Style      TextInputStyle
+	Grid   gruid.Grid    // grid slice where the text input is drawn
+	Text   StyledText    // styled text with initial text input content
+	Prompt StyledText    // optional prompt text
+	Box    *Box          // draw optional box around the text input
+	Keys   TextInputKeys // optional custom key bindings for the text input
+	Style  TextInputStyle
 }
 
 // TextInputStyle describes styling options for a TextInput.
 type TextInputStyle struct {
 	Cursor gruid.Style // cursor style
-	Prompt gruid.Style // prompt style, if any
 }
 
 // TextInputKeys contains key bindings configuration for the text input.
@@ -36,7 +35,7 @@ type TextInput struct {
 	grid      gruid.Grid
 	stt       StyledText
 	box       *Box
-	prompt    string
+	prompt    StyledText
 	content   []rune
 	style     TextInputStyle
 	cursorMin int
@@ -63,17 +62,19 @@ const (
 func NewTextInput(cfg TextInputConfig) *TextInput {
 	ti := &TextInput{
 		grid:   cfg.Grid,
-		stt:    cfg.StyledText.WithMarkups(nil),
+		stt:    cfg.Text.WithMarkups(nil),
 		box:    cfg.Box,
 		prompt: cfg.Prompt,
 		style:  cfg.Style,
 		keys:   cfg.Keys,
 	}
-	if ti.style.Cursor == ti.stt.Style() {
+	stdefault := gruid.Style{}
+	if ti.style.Cursor == stdefault {
 		// not true reverse with terminal driver, but good enough as a default
+		ti.style.Cursor = cfg.Text.Style()
 		ti.style.Cursor.Bg, ti.style.Cursor.Fg = ti.style.Cursor.Fg, ti.style.Cursor.Bg
 	}
-	ti.cursorMin = utf8.RuneCountInString(ti.prompt)
+	ti.cursorMin = ti.prompt.Size().X
 	ti.content = []rune(ti.stt.Text())
 	ti.cursor = len(ti.content)
 	if ti.keys.Quit == nil {
@@ -239,7 +240,7 @@ func (ti *TextInput) Draw() gruid.Grid {
 		cgrid = ti.grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
 	cgrid.Fill(gruid.Cell{Rune: ' ', Style: ti.stt.Style()})
-	ti.stt.With(ti.prompt, ti.style.Prompt).Draw(cgrid)
+	ti.prompt.Draw(cgrid)
 	crg := cgrid.Range()
 	start := ti.start()
 	ti.stt.WithText(string(ti.content[start:])).Draw(cgrid.Slice(crg.Shift(ti.cursorMin, 0, 0, 0)))

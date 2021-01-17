@@ -153,7 +153,9 @@ func (stt StyledText) Iter(fn func(gruid.Point, gruid.Cell)) gruid.Point {
 			continue
 		}
 		c.Rune = r
-		fn(gruid.Point{X: x, Y: y}, c)
+		if fn != nil {
+			fn(gruid.Point{X: x, Y: y}, c)
+		}
 		x++
 	}
 	if x > xmax {
@@ -167,7 +169,7 @@ func (stt StyledText) Iter(fn func(gruid.Point, gruid.Cell)) gruid.Point {
 
 // Size returns the minimum (w, h) size in cells which can fit the text.
 func (stt StyledText) Size() gruid.Point {
-	return stt.Iter(func(p gruid.Point, c gruid.Cell) {})
+	return stt.Iter(nil)
 }
 
 // Format formats the text so that lines longer than a certain width get

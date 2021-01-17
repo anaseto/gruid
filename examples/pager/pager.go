@@ -59,12 +59,15 @@ func newPager(grid gruid.Grid, lines []string, fname string) *ui.Pager {
 	style := ui.PagerStyle{
 		LineNum: st.WithFg(ColorLnum),
 	}
+	plines := make([]ui.StyledText, len(lines))
+	for i, s := range lines {
+		plines[i] = ui.Text(s)
+	}
 	pager := ui.NewPager(ui.PagerConfig{
-		Grid:       grid,
-		StyledText: ui.StyledText{},
-		Lines:      lines,
-		Box:        &ui.Box{Title: ui.Text(fname).WithStyle(st.WithFg(ColorTitle))},
-		Style:      style,
+		Grid:  grid,
+		Lines: plines,
+		Box:   &ui.Box{Title: ui.Text(fname).WithStyle(st.WithFg(ColorTitle))},
+		Style: style,
 	})
 	return pager
 }

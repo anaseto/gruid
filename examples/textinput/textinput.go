@@ -66,12 +66,11 @@ func newModel(gd gruid.Grid) *model {
 	st := gruid.Style{}
 	style := ui.TextInputStyle{
 		Cursor: st.WithFg(ColorCursor),
-		Prompt: st.WithFg(ColorPrompt),
 	}
 	input := ui.NewTextInput(ui.TextInputConfig{
 		Grid:   gruid.NewGrid(20, 3),
 		Box:    &ui.Box{Title: ui.Text("Text Input").WithStyle(st.WithFg(ColorTitle))},
-		Prompt: "> ",
+		Prompt: ui.Text("> ").WithStyle(st.WithFg(ColorPrompt)),
 		Style:  style,
 	})
 	m.input = input

@@ -8,12 +8,11 @@ import (
 
 // PagerConfig describes configuration options for creating a pager.
 type PagerConfig struct {
-	Grid       gruid.Grid // grid slice where the viewable content is drawn
-	StyledText StyledText // styled text for markup rendering
-	Lines      []string   // content lines to be read
-	Box        *Box       // draw optional box around the  label
-	Keys       PagerKeys  // optional custom key bindings for the pager
-	Style      PagerStyle
+	Grid  gruid.Grid   // grid slice where the viewable content is drawn
+	Lines []StyledText // content lines to be read
+	Box   *Box         // draw optional box around the  label
+	Keys  PagerKeys    // optional custom key bindings for the pager
+	Style PagerStyle
 }
 
 // PagerStyle describes styling options for a Pager.
@@ -43,9 +42,8 @@ type PagerKeys struct {
 // application.
 type Pager struct {
 	grid   gruid.Grid
-	stt    StyledText
 	box    *Box
-	lines  []string
+	lines  []StyledText
 	style  PagerStyle
 	index  int // current index
 	x      int // x position
@@ -76,7 +74,6 @@ const (
 func NewPager(cfg PagerConfig) *Pager {
 	pg := &Pager{
 		grid:  cfg.Grid,
-		stt:   cfg.StyledText,
 		box:   cfg.Box,
 		lines: cfg.Lines,
 		style: cfg.Style,
@@ -129,7 +126,7 @@ func (pg *Pager) SetBox(b *Box) {
 }
 
 // SetLines updates the pager text lines.
-func (pg *Pager) SetLines(lines []string) {
+func (pg *Pager) SetLines(lines []StyledText) {
 	nlines := pg.nlines()
 	pg.lines = lines
 	if pg.index+nlines-1 >= len(pg.lines) {
@@ -338,9 +335,7 @@ func (pg *Pager) Draw() gruid.Grid {
 		grid = grid.Slice(gruid.NewRange(0, 0, w, h))
 	}
 	if pg.init {
-		pg.grid.Fill(gruid.Cell{Rune: ' ', Style: pg.stt.Style()})
-	} else {
-		grid.Fill(gruid.Cell{Rune: ' ', Style: pg.stt.Style()})
+		pg.grid.Fill(gruid.Cell{Rune: ' '})
 	}
 	cgrid := grid
 	if pg.box != nil {
@@ -353,14 +348,15 @@ func (pg *Pager) Draw() gruid.Grid {
 		} else {
 			lnumtext = fmt.Sprintf("%d-%d/%d", pg.index, pg.index+h-bh-1, len(pg.lines)-1)
 		}
-		pg.stt.With(lnumtext, pg.style.LineNum).Draw(line)
+		NewStyledText(lnumtext, pg.style.LineNum).Draw(line)
 		cgrid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
 	rg := cgrid.Range()
 	for i := 0; i < h-bh; i++ {
 		line := cgrid.Slice(rg.Line(i))
-		s := pg.lines[i+pg.index]
-		pg.stt.WithText(s).Iter(func(p gruid.Point, c gruid.Cell) {
+		stt := pg.lines[i+pg.index]
+		line.Fill(gruid.Cell{Rune: ' ', Style: stt.Style()})
+		stt.Iter(func(p gruid.Point, c gruid.Cell) {
 			p = p.Shift(-pg.x, 0)
 			if p.X >= 0 {
 				line.Set(p, c)

@@ -8,11 +8,11 @@ import (
 
 func TestPager(t *testing.T) {
 	gd := gruid.NewGrid(10, 6)
-	lines := []string{
-		"line one",
-		"line two",
-		"line three",
-		"line four",
+	lines := []StyledText{
+		Text("line one"),
+		Text("line two"),
+		Text("line three"),
+		Text("line four"),
 	}
 	pager := NewPager(PagerConfig{
 		Grid:  gd,
@@ -37,7 +37,7 @@ func TestPager(t *testing.T) {
 	check(pager.Action() == PagerMove, "move down")
 	check(pager.View().Size().Y == 6, "size")
 	check(pager.View().Max.Y == 7, "max")
-	pager.SetLines([]string{})
+	pager.SetLines([]StyledText{})
 	check(pager.View().Size().Y == 0, "size zero")
 	sendKey(gruid.KeyArrowDown)
 	check(pager.Action() == PagerPass, "pass")
