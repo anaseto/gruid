@@ -2,13 +2,14 @@ package ui
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/anaseto/gruid"
 )
 
 // StyledText is a simple text formatter and styler. The zero value can be
-// used, but you may prefer using Text and NewStyledText.
+// used, but you may prefer using Text and Textf.
 type StyledText struct {
 	markups map[rune]gruid.Style
 	text    string
@@ -19,6 +20,11 @@ type StyledText struct {
 // with the given text and the default style.
 func Text(text string) StyledText {
 	return StyledText{text: text}
+}
+
+// Textf returns a new styled text with the given formatted text, and default style.
+func Textf(format string, a ...interface{}) StyledText {
+	return StyledText{text: fmt.Sprintf(format, a...)}
 }
 
 // NewStyledText returns a new styled text with the given text and style. It is
@@ -35,6 +41,12 @@ func (stt StyledText) Text() string {
 // WithText returns a derived styled text with updated text.
 func (stt StyledText) WithText(text string) StyledText {
 	stt.text = text
+	return stt
+}
+
+// WithText returns a derived styled text with updated formatted text.
+func (stt StyledText) WithTextf(format string, a ...interface{}) StyledText {
+	stt.text = fmt.Sprintf(format, a...)
 	return stt
 }
 
