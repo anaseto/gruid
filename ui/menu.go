@@ -200,6 +200,7 @@ func (m *Menu) idxToPos(i int) gruid.Point {
 }
 
 func (m *Menu) moveTo(p gruid.Point) {
+	oactive := m.active
 	q := m.active
 	for {
 		q = q.Add(p)
@@ -224,7 +225,7 @@ func (m *Menu) moveTo(p gruid.Point) {
 		case gruid.Point{0, -1}, gruid.Point{-1, 0}:
 			m.cursorAtLastChoice()
 		}
-		if m.active != q {
+		if m.active != oactive {
 			m.action = MenuMove
 		}
 	}
