@@ -154,6 +154,53 @@ func TestSizeMarkup(t *testing.T) {
 	}
 }
 
+func TestDrawLine(t *testing.T) {
+	gd := gruid.NewGrid(5, 2)
+	Text("xxxx").Draw(gd)
+	gd.Iter(func(p gruid.Point, c gruid.Cell) {
+		if p.Y == 0 && p.X < 4 {
+			if c.Rune != 'x' {
+				t.Errorf("not x")
+			}
+		} else if c.Rune == 'x' {
+			t.Errorf("unexpected x at %v", p)
+		}
+	})
+	gd.Fill(gruid.Cell{Rune: ' '})
+	Text("xxxxx").Draw(gd)
+	gd.Iter(func(p gruid.Point, c gruid.Cell) {
+		if p.Y == 0 {
+			if c.Rune != 'x' {
+				t.Errorf("not x")
+			}
+		} else if c.Rune == 'x' {
+			t.Errorf("unexpected x")
+		}
+	})
+}
+
+func TestDrawPar(t *testing.T) {
+	gd := gruid.NewGrid(5, 2)
+	Text("xxxxxx\nx").Draw(gd)
+	gd.Iter(func(p gruid.Point, c gruid.Cell) {
+		if p.Y == 0 && c.Rune != 'x' {
+			t.Errorf("not x")
+		}
+		if p.Y == 1 && p.X > 0 && c.Rune == 'x' {
+			t.Errorf("unexpected x")
+		}
+		if p.Y == 1 && p.X == 0 && c.Rune != 'x' {
+			t.Errorf("not x")
+		}
+	})
+	Text("xxxxxx\nxxxxxxxxx").Draw(gd)
+	gd.Iter(func(p gruid.Point, c gruid.Cell) {
+		if c.Rune != 'x' {
+			t.Errorf("not x")
+		}
+	})
+}
+
 func BenchmarkTextSize(b *testing.B) {
 	stt := Text(strings.Repeat("A test sentence that says nothing interesting\n", 20))
 	for i := 0; i < b.N; i++ {
@@ -169,9 +216,59 @@ func BenchmarkTextSizeWithMarkup(b *testing.B) {
 	}
 }
 
-func BenchmarkTextDraw(b *testing.B) {
+func BenchmarkTextDrawShort(b *testing.B) {
+	gd := gruid.NewGrid(80, 24)
+	stt := Text("A short sentence\n")
+	for i := 0; i < b.N; i++ {
+		stt.Draw(gd)
+	}
+}
+
+func BenchmarkTextDrawMedium(b *testing.B) {
+	gd := gruid.NewGrid(80, 24)
+	stt := Text("A short sentence but not so short than the other\n")
+	for i := 0; i < b.N; i++ {
+		stt.Draw(gd)
+	}
+}
+
+func BenchmarkTextDrawLong(b *testing.B) {
 	gd := gruid.NewGrid(80, 24)
 	stt := Text(strings.Repeat("A test sentence that says nothing interesting\n", 20))
+	for i := 0; i < b.N; i++ {
+		stt.Draw(gd)
+	}
+}
+
+func BenchmarkTextDrawLongWithMarkup(b *testing.B) {
+	gd := gruid.NewGrid(80, 24)
+	st := gruid.Style{}
+	stt := Text(strings.Repeat("A test sentence that says nothing interesting\n", 20)).WithMarkup('t', st)
+	for i := 0; i < b.N; i++ {
+		stt.Draw(gd)
+	}
+}
+
+func BenchmarkTextDrawLongThinGrid(b *testing.B) {
+	gd := gruid.NewGrid(10, 24)
+	stt := Text(strings.Repeat("A test sentence that says nothing interesting\n", 20))
+	for i := 0; i < b.N; i++ {
+		stt.Draw(gd)
+	}
+}
+
+func BenchmarkTextDrawLongShortGrid(b *testing.B) {
+	gd := gruid.NewGrid(80, 5)
+	stt := Text(strings.Repeat("A test sentence that says nothing interesting\n", 20))
+	for i := 0; i < b.N; i++ {
+		stt.Draw(gd)
+	}
+}
+
+func BenchmarkTextDrawMediumWithMarkup(b *testing.B) {
+	gd := gruid.NewGrid(80, 24)
+	st := gruid.Style{}
+	stt := Text("A short sentence but not so short than the other\n").WithMarkup('t', st)
 	for i := 0; i < b.N; i++ {
 		stt.Draw(gd)
 	}
@@ -181,14 +278,5 @@ func BenchmarkTextFormat(b *testing.B) {
 	stt := Text(strings.Repeat("A test sentence that says nothing interesting\n", 20))
 	for i := 0; i < b.N; i++ {
 		stt.Format(30)
-	}
-}
-
-func BenchmarkTextDrawWithMarkup(b *testing.B) {
-	gd := gruid.NewGrid(80, 24)
-	st := gruid.Style{}
-	stt := Text(strings.Repeat("A test sentence that says nothing interesting\n", 20)).WithMarkup('t', st)
-	for i := 0; i < b.N; i++ {
-		stt.Draw(gd)
 	}
 }

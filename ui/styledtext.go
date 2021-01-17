@@ -129,14 +129,7 @@ func (stt StyledText) Iter(fn func(gruid.Point, gruid.Cell)) gruid.Point {
 			if procm {
 				procm = false
 				if r != '@' {
-					if r == 'N' {
-						c.Style = stt.style
-						continue
-					}
-					st, ok := stt.markups[r]
-					if ok {
-						c.Style = st
-					}
+					c.Style = stt.markupStyle(r)
 					continue
 				}
 			} else if r == '@' {
@@ -265,11 +258,75 @@ func (stt StyledText) Format(width int) StyledText {
 	return stt
 }
 
+func (stt StyledText) markupStyle(r rune) gruid.Style {
+	if r == 'N' {
+		return stt.style
+	}
+	st, ok := stt.markups[r]
+	if ok {
+		return st
+	}
+	return stt.style
+}
+
 // Draw displays the styled text in a given grid. It returns the smallest grid
 // slice containing the drawn part. Note that the grid is not cleared with
 // spaces beforehand by this function, not even the returned one, you should
 // use the styled text with a label for this.
 func (stt StyledText) Draw(gd gruid.Grid) gruid.Grid {
-	max := stt.Iter(gd.Set)
+	it := gd.Iterator()
+	if !it.Next() {
+		return gd
+	}
+	x, y := 0, 0
+	xmax := 0
+	c := gruid.Cell{Style: stt.style}
+	markup := stt.markups != nil // whether markup is activated
+	procm := false               // processing markup
+	for _, r := range stt.text {
+		if markup {
+			if procm {
+				procm = false
+				if r != '@' {
+					c.Style = stt.markupStyle(r)
+					continue
+				}
+			} else if r == '@' {
+				procm = true
+				continue
+			}
+		}
+		p := it.P()
+		if r == '\n' {
+			if x > xmax {
+				xmax = x
+			}
+			x = 0
+			y++
+			if p.Y < y {
+				it.SetP(gruid.Point{x, y})
+				if it.P().Y != y {
+					break
+				}
+			}
+			continue
+		}
+		x++
+		if p.Y > y {
+			continue
+		}
+		c.Rune = r
+		it.SetCell(c)
+		if !it.Next() {
+			break
+		}
+	}
+	if x > xmax {
+		xmax = x
+	}
+	if xmax > 0 || y > 0 {
+		y++ // at least one line
+	}
+	max := gruid.Point{X: xmax, Y: y}
 	return gd.Slice(gruid.NewRange(0, 0, max.X, max.Y))
 }
