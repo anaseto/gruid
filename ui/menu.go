@@ -8,19 +8,18 @@ import (
 
 // MenuConfig contains configuration options for creating a menu.
 type MenuConfig struct {
-	Grid       gruid.Grid  // grid slice where the menu is drawn
-	Entries    []MenuEntry // menu entries
-	StyledText StyledText  // default styled text formatter for content
-	Keys       MenuKeys    // optional custom key bindings
-	Box        *Box        // draw optional box around the menu
-	Style      MenuStyle
+	Grid    gruid.Grid  // grid slice where the menu is drawn
+	Entries []MenuEntry // menu entries
+	Keys    MenuKeys    // optional custom key bindings
+	Box     *Box        // draw optional box around the menu
+	Style   MenuStyle
 }
 
 // MenuEntry represents an entry in the menu. By default they behave much like
 // a button and can be activated and invoked.
 type MenuEntry struct {
-	// Text is the text displayed on the entry line.
-	Text string
+	// Text is the styled text displayed on the entry line.
+	Text StyledText
 
 	// Disabled means that the entry is not invokable. It may represent a
 	// header or an unavailable choice, for example.
@@ -46,11 +45,9 @@ type MenuKeys struct {
 
 // MenuStyle describes styling options for a menu.
 type MenuStyle struct {
-	Layout   gruid.Point // menu layout in (columns, lines); 0 means any
-	BgAlt    gruid.Color // alternate background on even choice lines
-	Active   gruid.Color // foreground for active entry
-	Disabled gruid.Style // disabled entry style
-	PageNum  gruid.Style // page num display style (for boxed menu)
+	Layout  gruid.Point // menu layout in (columns, lines); 0 means any
+	Active  gruid.Style // specific styling for active entry (no change if default)
+	PageNum gruid.Style // page num display style (for boxed menu)
 }
 
 // Menu is a widget that displays a list of entries to the user. It allows to
@@ -81,7 +78,6 @@ type Menu struct {
 type item struct {
 	grid gruid.Grid  // its grid slice (may be empty)
 	i    int         // index of corresponding entry in menu entries
-	alt  bool        // even position (alternate background)
 	page gruid.Point // page number (x,y)
 }
 
@@ -114,7 +110,6 @@ func NewMenu(cfg MenuConfig) *Menu {
 		grid:    cfg.Grid,
 		entries: cfg.Entries,
 		box:     cfg.Box,
-		stt:     cfg.StyledText,
 		style:   cfg.Style,
 		keys:    cfg.Keys,
 	}
@@ -213,10 +208,8 @@ func (m *Menu) moveTo(p gruid.Point) {
 		}
 	}
 	if m.contains(q) {
-		m.action = MenuMove
 		m.active = q
 	} else if q, ok := m.nextPage(p); ok {
-		m.action = MenuMove
 		m.active = q
 	} else {
 		switch p {
@@ -225,9 +218,9 @@ func (m *Menu) moveTo(p gruid.Point) {
 		case gruid.Point{0, -1}, gruid.Point{-1, 0}:
 			m.cursorAtLastChoice()
 		}
-		if m.active != oactive {
-			m.action = MenuMove
-		}
+	}
+	if m.active != oactive {
+		m.action = MenuMove
 	}
 }
 
@@ -513,20 +506,12 @@ func (m *Menu) placeItems() {
 }
 
 func (m *Menu) columnArrangement(grid gruid.Grid, w, h int) {
-	alt := true
-	for i, e := range m.entries {
-		if e.Disabled {
-			alt = false
-		}
+	for i, _ := range m.entries {
 		p := gruid.Point{0, i}
 		m.table[p] = item{
 			grid: grid.Slice(gruid.NewRange(0, i%h, w, (i%h)+1)),
 			i:    i,
-			alt:  alt,
 			page: gruid.Point{0, i / h},
-		}
-		if !e.Disabled {
-			alt = !alt
 		}
 		m.points = append(m.points, p)
 	}
@@ -534,13 +519,9 @@ func (m *Menu) columnArrangement(grid gruid.Grid, w, h int) {
 
 func (m *Menu) lineArrangement(grid gruid.Grid, w int) {
 	var to, hpage int
-	alt := true
 	for i, e := range m.entries {
-		if e.Disabled {
-			alt = false
-		}
 		from := to
-		tw := m.stt.WithText(e.Text).Size().X
+		tw := e.Text.Size().X
 		to += tw
 		if from > 0 && to > w {
 			from = 0
@@ -552,10 +533,6 @@ func (m *Menu) lineArrangement(grid gruid.Grid, w int) {
 			grid: grid.Slice(gruid.NewRange(from, 0, to, 1)),
 			i:    i,
 			page: gruid.Point{hpage, 0},
-			alt:  alt,
-		}
-		if !e.Disabled {
-			alt = !alt
 		}
 		m.points = append(m.points, p)
 	}
@@ -572,7 +549,6 @@ func (m *Menu) tableArrangement(grid gruid.Grid, w, h, columns int) {
 			grid: grid.Slice(gruid.NewRange(col*w, ln%h, (col+1)*w, (ln%h)+1)),
 			i:    i,
 			page: gruid.Point{0, page},
-			alt:  (col+ln)%h == 0,
 		}
 		m.points = append(m.points, p)
 	}
@@ -632,7 +608,7 @@ func (m *Menu) Draw() gruid.Grid {
 		} else {
 			lnumtext = fmt.Sprintf("%d,%d/%d,%d", pg.X, pg.Y, m.pages.X, m.pages.Y)
 		}
-		m.stt.With(lnumtext, m.style.PageNum).Draw(line)
+		NewStyledText(lnumtext, m.style.PageNum).Draw(line)
 	}
 	activeItem := m.table[m.active]
 	for p, it := range m.table {
@@ -641,22 +617,26 @@ func (m *Menu) Draw() gruid.Grid {
 		}
 		i := it.i
 		c := m.entries[i]
+		st := c.Text.Style()
 		if !c.Disabled {
-			st := m.stt.Style()
-			if it.alt {
-				st.Bg = m.style.BgAlt
-			}
 			if p == m.active {
-				st.Fg = m.style.Active
+				if m.style.Active.Fg != gruid.ColorDefault {
+					st.Fg = m.style.Active.Fg
+				}
+				if m.style.Active.Bg != gruid.ColorDefault {
+					st.Bg = m.style.Active.Bg
+				}
+				if m.style.Active.Attrs != gruid.AttrsDefault {
+					st.Attrs = m.style.Active.Attrs
+				}
 			}
 			cell := gruid.Cell{Rune: ' ', Style: st}
 			it.grid.Fill(cell)
-			m.stt.With(c.Text, st).Draw(it.grid)
+			c.Text.WithStyle(st).Draw(it.grid)
 		} else {
-			st := m.style.Disabled
 			cell := gruid.Cell{Rune: ' ', Style: st}
 			it.grid.Fill(cell)
-			m.stt.With(c.Text, st).Draw(it.grid)
+			c.Text.Draw(it.grid)
 		}
 	}
 	m.dirty = false

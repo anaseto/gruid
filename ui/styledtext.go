@@ -7,16 +7,24 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-// StyledText is a simple text formatter and styler.
+// StyledText is a simple text formatter and styler. The zero value can be
+// used, but you may prefer using Text and NewStyledText.
 type StyledText struct {
 	markups map[rune]gruid.Style
 	text    string
 	style   gruid.Style
 }
 
-// NewStyledText returns a new styled text with the default style.
-func NewStyledText(text string) StyledText {
+// Text is a shorthand for StyledText{}.WithText and creates a new styled text
+// with the given text and the default style.
+func Text(text string) StyledText {
 	return StyledText{text: text}
+}
+
+// NewStyledText returns a new styled text with the given text and style. It is
+// a shorthand for StyledText{}.With.
+func NewStyledText(text string, st gruid.Style) StyledText {
+	return StyledText{text: text, style: st}
 }
 
 // Text returns the current styled text as a string.

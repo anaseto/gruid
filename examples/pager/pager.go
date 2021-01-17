@@ -63,7 +63,7 @@ func newPager(grid gruid.Grid, lines []string, fname string) *ui.Pager {
 		Grid:       grid,
 		StyledText: ui.StyledText{},
 		Lines:      lines,
-		Box:        &ui.Box{Title: ui.NewStyledText(fname).WithStyle(st.WithFg(ColorTitle))},
+		Box:        &ui.Box{Title: ui.Text(fname).WithStyle(st.WithFg(ColorTitle))},
 		Style:      style,
 	})
 	return pager

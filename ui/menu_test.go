@@ -10,10 +10,10 @@ import (
 func TestMenuColumns(t *testing.T) {
 	gd := gruid.NewGrid(10, 10)
 	entries := []MenuEntry{
-		{Text: "one"},
-		{Text: "two"},
-		{Text: "three"},
-		{Text: "four", Disabled: true},
+		{Text: Text("one")},
+		{Text: Text("two")},
+		{Text: Text("three")},
+		{Text: Text("four"), Disabled: true},
 	}
 	menu := NewMenu(MenuConfig{
 		Grid:    gd,
@@ -46,7 +46,7 @@ func TestMenuColumns(t *testing.T) {
 	check(menu.Active() == 1, "active 1 (quit)")
 	draw := menu.Draw()
 	check(draw.Size().Y == 4, "size")
-	menu.SetEntries(append(entries, MenuEntry{Text: "five"}))
+	menu.SetEntries(append(entries, MenuEntry{Text: Text("five")}))
 	draw = menu.Draw()
 	check(draw.Size().Y == 5, "size")
 	menu.SetBox(&Box{})
@@ -57,11 +57,11 @@ func TestMenuColumns(t *testing.T) {
 func TestMenuTable(t *testing.T) {
 	gd := gruid.NewGrid(10, 10)
 	entries := []MenuEntry{
-		{Text: "one"},
-		{Text: "two"},
-		{Text: "three"},
-		{Text: "four", Disabled: true},
-		{Text: "five"},
+		{Text: Text("one")},
+		{Text: Text("two")},
+		{Text: Text("three")},
+		{Text: Text("four"), Disabled: true},
+		{Text: Text("five")},
 	}
 	menu := NewMenu(MenuConfig{
 		Grid:    gd,
@@ -89,7 +89,7 @@ func TestMenuTable(t *testing.T) {
 	menu.Update(keymsg(gruid.KeyArrowLeft))
 	check(menu.Action() == MenuMove, "move left 0")
 	check(menu.Active() == 1, "active 0")
-	menu.SetEntries(append(entries, MenuEntry{Text: "six"}))
+	menu.SetEntries(append(entries, MenuEntry{Text: Text("six")}))
 	menu.Update(keymsg(gruid.KeyPageDown))
 	check(menu.Action() == MenuMove, "move page down")
 	check(len(menu.entries) == 6, "entries")
@@ -103,10 +103,10 @@ func TestMenuTable(t *testing.T) {
 func TestMenuLine(t *testing.T) {
 	gd := gruid.NewGrid(10, 10)
 	entries := []MenuEntry{
-		{Text: "one"},
-		{Text: "two"},
-		{Text: "three"},
-		{Text: "four", Disabled: true},
+		{Text: Text("one")},
+		{Text: Text("two")},
+		{Text: Text("three")},
+		{Text: Text("four"), Disabled: true},
 	}
 	menu := NewMenu(MenuConfig{
 		Grid:    gd,

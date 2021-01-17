@@ -65,32 +65,35 @@ type model struct {
 
 func newModel(gd gruid.Grid) *model {
 	m := &model{grid: gd}
-	entries := []ui.MenuEntry{
-		{Disabled: true, Text: "Header"},
-		{Text: "(@kF@N)irst", Keys: []gruid.Key{"f", "F"}},
-		{Text: "(@kS@N)econd", Keys: []gruid.Key{"s", "S"}},
-		{Text: "(@kT@N)hird", Keys: []gruid.Key{"t", "T"}},
-		{Text: "(@kL@N)ast", Keys: []gruid.Key{"l", "L"}},
-	}
 	st := gruid.Style{}
+	stt := ui.Text("").WithMarkup('k', st.WithFg(ColorKey))
+	entries := []ui.MenuEntry{
+		{Disabled: true, Text: stt.With("Header", st.WithFg(ColorHeader))},
+		{Text: stt.WithText("(@kF@N)irst"), Keys: []gruid.Key{"f", "F"}},
+		{Text: stt.WithText("(@kS@N)econd"), Keys: []gruid.Key{"s", "S"}},
+		{Text: stt.WithText("(@kT@N)hird"), Keys: []gruid.Key{"t", "T"}},
+		{Text: stt.WithText("(@kL@N)ast"), Keys: []gruid.Key{"l", "L"}},
+	}
+	for i := range entries {
+		if i%2 == 1 {
+			entries[i].Text = entries[i].Text.WithStyle(st.WithBg(ColorAltBg))
+		}
+	}
 	style := ui.MenuStyle{
 		//Layout: gruid.Point{0, 1}, // one-line layout (with two pages)
 		//Layout:   gruid.Point{2, 2}, // tabular layout (with two pages)
-		BgAlt:    ColorAltBg,
-		Active:   ColorActive,
-		Disabled: st.WithFg(ColorHeader),
+		Active: st.WithFg(ColorActive),
 	}
 	menu := ui.NewMenu(ui.MenuConfig{
-		Grid:       gruid.NewGrid(30, len(entries)+2),
-		Entries:    entries,
-		StyledText: ui.NewStyledText("").WithMarkup('k', st.WithFg(ColorKey)),
-		Box:        &ui.Box{Title: ui.NewStyledText("Menu").WithStyle(st.WithFg(ColorTitle))},
-		Style:      style,
+		Grid:    gruid.NewGrid(30, len(entries)+2),
+		Entries: entries,
+		Box:     &ui.Box{Title: ui.Text("Menu").WithStyle(st.WithFg(ColorTitle))},
+		Style:   style,
 	})
 	m.menu = menu
 	label := &ui.Label{
-		Box:         &ui.Box{Title: ui.NewStyledText("Menu Last Action").WithStyle(st.WithFg(ColorHeader))},
-		StyledText:  ui.NewStyledText("Nothing done yet!"),
+		Box:         &ui.Box{Title: ui.Text("Menu Last Action").WithStyle(st.WithFg(ColorHeader))},
+		StyledText:  ui.Text("Nothing done yet!"),
 		AdjustWidth: true,
 	}
 	m.label = label

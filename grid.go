@@ -13,6 +13,9 @@ import (
 // value for constants.
 type AttrMask uint32
 
+// AttrsDefault represents the default styling attributes.
+const AttrsDefault AttrMask = 0
+
 // Color is a generic value for representing colors. Those have to be mapped to
 // concrete foreground and background colors for each driver, as appropriate.
 type Color uint32

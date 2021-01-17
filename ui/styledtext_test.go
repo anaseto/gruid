@@ -9,7 +9,7 @@ import (
 
 func TestSize(t *testing.T) {
 	text := ""
-	stt := NewStyledText(text)
+	stt := Text(text)
 	max := stt.Size()
 	if max.X != 0 || max.Y != 0 {
 		t.Errorf("bad text size: %v", max)
@@ -28,7 +28,7 @@ func TestSize(t *testing.T) {
 
 func TestFormat(t *testing.T) {
 	text := "word word word word word"
-	stt := NewStyledText(text)
+	stt := Text(text)
 	max := stt.Size()
 	if max.X != 4*5+4 || max.Y != 1 {
 		t.Errorf("bad text size: %v", max)
@@ -50,7 +50,7 @@ func TestFormat(t *testing.T) {
 
 func TestFormat2(t *testing.T) {
 	text := "word word word word word"
-	stt := NewStyledText(text)
+	stt := Text(text)
 	stt = stt.Format(8)
 	max := stt.Size()
 	newlines := strings.Count(stt.Text(), "\n")
@@ -64,7 +64,7 @@ func TestFormat2(t *testing.T) {
 
 func TestFormat3(t *testing.T) {
 	text := "word word word word word"
-	stt := NewStyledText(text)
+	stt := Text(text)
 	stt = stt.Format(10)
 	max := stt.Size()
 	newlines := strings.Count(stt.Text(), "\n")
@@ -78,7 +78,7 @@ func TestFormat3(t *testing.T) {
 
 func TestFormat4(t *testing.T) {
 	text := "word word word word word"
-	stt := NewStyledText(text)
+	stt := Text(text)
 	stt = stt.Format(1)
 	max := stt.Size()
 	newlines := strings.Count(stt.Text(), "\n")
@@ -92,7 +92,7 @@ func TestFormat4(t *testing.T) {
 
 func TestFormat5(t *testing.T) {
 	text := "word word word word word"
-	stt := NewStyledText(text)
+	stt := Text(text)
 	stt = stt.Format(20)
 	newlines := strings.Count(stt.Text(), "\n")
 	if newlines != 1 {
@@ -106,7 +106,7 @@ func TestFormat5(t *testing.T) {
 
 func TestFormat6(t *testing.T) {
 	text := "word word word word word"
-	stt := NewStyledText(text)
+	stt := Text(text)
 	stt = stt.Format(10)
 	if stt.Text() != stt.Format(10).Text() {
 		t.Errorf("not idempotent:\n[%v]\n[%v]", stt.Text(), stt.Format(10).Text())
@@ -116,7 +116,7 @@ func TestFormat6(t *testing.T) {
 func TestFormatWithMarkup(t *testing.T) {
 	text := "word @cword@N word word word"
 	st := gruid.Style{}
-	stt := NewStyledText(text).WithMarkup('c', st)
+	stt := Text(text).WithMarkup('c', st)
 	max := stt.Size()
 	if max.X != 4*5+4 || max.Y != 1 {
 		t.Errorf("bad text size: %v", max)
@@ -139,7 +139,7 @@ func TestFormatWithMarkup(t *testing.T) {
 
 func TestSizeMarkup(t *testing.T) {
 	st := gruid.Style{}
-	stt := NewStyledText("@t•@N ").WithMarkup('t', st)
+	stt := Text("@t•@N ").WithMarkup('t', st)
 	if stt.Size().X != 2 || stt.Size().Y != 1 {
 		t.Errorf("bad size: %v", stt.Size())
 	}
@@ -156,14 +156,14 @@ func TestSizeMarkup(t *testing.T) {
 
 func BenchmarkDraw(b *testing.B) {
 	gd := gruid.NewGrid(80, 24)
-	stt := NewStyledText(strings.Repeat("A test sentence that says nothing interesting\n", 20))
+	stt := Text(strings.Repeat("A test sentence that says nothing interesting\n", 20))
 	for i := 0; i < b.N; i++ {
 		stt.Draw(gd)
 	}
 }
 
 func BenchmarkFormat(b *testing.B) {
-	stt := NewStyledText(strings.Repeat("A test sentence that says nothing interesting\n", 20))
+	stt := Text(strings.Repeat("A test sentence that says nothing interesting\n", 20))
 	for i := 0; i < b.N; i++ {
 		stt.Format(30)
 	}
@@ -172,7 +172,7 @@ func BenchmarkFormat(b *testing.B) {
 func BenchmarkDrawWithMarkup(b *testing.B) {
 	gd := gruid.NewGrid(80, 24)
 	st := gruid.Style{}
-	stt := NewStyledText(strings.Repeat("A test sentence that says nothing interesting\n", 20)).WithMarkup('t', st)
+	stt := Text(strings.Repeat("A test sentence that says nothing interesting\n", 20)).WithMarkup('t', st)
 	for i := 0; i < b.N; i++ {
 		stt.Draw(gd)
 	}
