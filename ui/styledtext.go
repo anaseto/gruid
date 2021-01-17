@@ -327,6 +327,5 @@ func (stt StyledText) Draw(gd gruid.Grid) gruid.Grid {
 	if xmax > 0 || y > 0 {
 		y++ // at least one line
 	}
-	max := gruid.Point{X: xmax, Y: y}
-	return gd.Slice(gruid.NewRange(0, 0, max.X, max.Y))
+	return gd.Slice(gruid.NewRange(0, 0, xmax, y))
 }
