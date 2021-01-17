@@ -691,6 +691,14 @@ func BenchmarkGridIteratorSet(b *testing.B) {
 	}
 }
 
+func BenchmarkGridIteratorNew(b *testing.B) {
+	gd := NewGrid(80, 24)
+	for i := 0; i < b.N; i++ {
+		it := gd.Iterator()
+		it.Next()
+	}
+}
+
 func BenchmarkGridCopy(b *testing.B) {
 	gd := NewGrid(80, 24)
 	gd2 := NewGrid(80, 24)

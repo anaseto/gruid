@@ -402,9 +402,9 @@ type GridIterator struct {
 // 	for it.Next() {
 // 		// call it.P() or it.Cell() or it.SetCell() as appropriate
 // 	}
-func (gd Grid) Iterator() *GridIterator {
+func (gd Grid) Iterator() GridIterator {
 	w := gd.Ug.Width
-	it := &GridIterator{
+	it := GridIterator{
 		w:      w,
 		cells:  gd.Ug.Cells,
 		max:    gd.Size().Shift(-1, -1),
