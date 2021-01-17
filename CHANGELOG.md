@@ -1,5 +1,12 @@
 This changelog file only lists important changes.
 
+## v0.10.0 - 2020-01-17
+
++ A few changes in Menu, Pager and TextInput configuration in order to make
+  styling more flexible, and simplify configuration too (some incompatible
+  changes).
++ Add more tests in ui package, and fix a couple of issues.
+
 ## v0.9.0 - 2020-01-12
 
 This release brings the module quite closer to a stable release. Test coverage

@@ -44,7 +44,7 @@ func (stt StyledText) WithText(text string) StyledText {
 	return stt
 }
 
-// WithText returns a derived styled text with updated formatted text.
+// WithTextf returns a derived styled text with updated formatted text.
 func (stt StyledText) WithTextf(format string, a ...interface{}) StyledText {
 	stt.text = fmt.Sprintf(format, a...)
 	return stt

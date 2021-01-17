@@ -506,7 +506,7 @@ func (m *Menu) placeItems() {
 }
 
 func (m *Menu) columnArrangement(grid gruid.Grid, w, h int) {
-	for i, _ := range m.entries {
+	for i := range m.entries {
 		p := gruid.Point{0, i}
 		m.table[p] = item{
 			grid: grid.Slice(gruid.NewRange(0, i%h, w, (i%h)+1)),
