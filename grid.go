@@ -595,7 +595,6 @@ type GridIterator struct {
 	max    Point  // last position
 	i      int    // current position's index
 	w      int    // underlying grid's width
-	c      Cell   // current cell
 	nlstep int    // newline step
 	rg     Range  // grid range
 }
