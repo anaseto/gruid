@@ -709,11 +709,12 @@ func (app *App) computeFrame(gd Grid, exposed bool) Frame {
 // refresh forces a complete redraw of the screen, even for cells that did not
 // change.
 func (app *App) refresh(gd Grid) Frame {
-	pcells := app.grid.Ug.Cells // previous cells
-	for i, c := range gd.Ug.Cells {
-		pcells[i] = c
-		p := idxToPos(i, gd.Ug.Width)
-		cdraw := FrameCell{Cell: c, P: p}
+	gd.Rg.Min = Point{0, 0}
+	gd.Rg.Max = gd.Rg.Min.Add(Point{gd.Ug.Width, gd.Ug.Height})
+	app.grid.Copy(gd)
+	it := gd.Iterator()
+	for it.Next() {
+		cdraw := FrameCell{Cell: it.Cell(), P: it.P()}
 		app.frame.Cells = append(app.frame.Cells, cdraw)
 	}
 	return app.frame
