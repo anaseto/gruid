@@ -285,9 +285,14 @@ func (fov *FOV) lightUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
 func (fov *FOV) computeLighted() {
 	fov.Lighted = fov.Lighted[:0]
 	w := fov.Rg.Max.X - fov.Rg.Min.X
-	for i, n := range fov.LMap {
-		if n.Idx == fov.Idx {
-			fov.Lighted = append(fov.Lighted, LightNode{P: idxToPos(i, w).Add(fov.Rg.Min), Cost: n.Cost})
+	h := len(fov.LMap) / w
+	i := 0
+	for y := 0; y < h; y = y + 1 {
+		for x := 0; x < w; x, i = x+1, i+1 {
+			n := fov.LMap[i]
+			if n.Idx == fov.Idx {
+				fov.Lighted = append(fov.Lighted, LightNode{P: gruid.Point{x, y}.Add(fov.Rg.Min), Cost: n.Cost})
+			}
 		}
 	}
 }
