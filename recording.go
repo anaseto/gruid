@@ -34,7 +34,10 @@ func NewFrameDecoder(r io.Reader) (*FrameDecoder, error) {
 // EOF, it returns the error io.EOF.
 func (fd *FrameDecoder) Decode() (Frame, error) {
 	var frame Frame
-	err := fd.gbd.Decode(&frame)
+	var err error
+	for err = fd.gbd.Decode(&frame); err != nil && err != io.EOF; {
+		err = fd.gbd.Decode(&frame)
+	}
 	return frame, err
 }
 
