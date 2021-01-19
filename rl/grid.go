@@ -182,6 +182,9 @@ func (gd Grid) At(p gruid.Point) Cell {
 
 // Fill sets the given cell as content for all the grid positions.
 func (gd Grid) Fill(c Cell) {
+	if gd.Ug == nil {
+		return
+	}
 	w := gd.Rg.Max.X - gd.Rg.Min.X
 	switch {
 	case w > 8:
@@ -244,6 +247,9 @@ func (gd Grid) FillFunc(fn func() Cell) {
 
 // Iter iterates a function on all the grid positions and cells.
 func (gd Grid) Iter(fn func(gruid.Point, Cell)) {
+	if gd.Ug == nil {
+		return
+	}
 	w := gd.Ug.Width
 	yimax := gd.Rg.Max.Y * w
 	cells := gd.Ug.Cells
@@ -259,6 +265,9 @@ func (gd Grid) Iter(fn func(gruid.Point, Cell)) {
 
 // Map updates the grid content using the given mapping function.
 func (gd Grid) Map(fn func(gruid.Point, Cell) Cell) {
+	if gd.Ug == nil {
+		return
+	}
 	w := gd.Ug.Width
 	cells := gd.Ug.Cells
 	yimax := gd.Rg.Max.Y * w
@@ -275,6 +284,9 @@ func (gd Grid) Map(fn func(gruid.Point, Cell) Cell) {
 // CountFunc returns the number of cells for which the given function returns
 // true.
 func (gd Grid) CountFunc(fn func(c Cell) bool) int {
+	if gd.Ug == nil {
+		return 0
+	}
 	w := gd.Ug.Width
 	count := 0
 	yimax := gd.Rg.Max.Y * w
@@ -291,6 +303,9 @@ func (gd Grid) CountFunc(fn func(c Cell) bool) int {
 
 // Count returns the number of cells which are equal to the given one.
 func (gd Grid) Count(c Cell) int {
+	if gd.Ug == nil {
+		return 0
+	}
 	w := gd.Ug.Width
 	count := 0
 	yimax := gd.Rg.Max.Y * w
@@ -320,6 +335,9 @@ func bool2int(b bool) int {
 // for each dimension. The result is independent of whether the two grids
 // referenced memory overlaps or not.
 func (gd Grid) Copy(src Grid) gruid.Point {
+	if gd.Ug == nil {
+		return gruid.Point{}
+	}
 	if gd.Ug != src.Ug {
 		if src.Rg.Max.X-src.Rg.Min.X <= 4 {
 			return gd.cpv(src)
@@ -398,6 +416,9 @@ type GridIterator struct {
 // 		// call it.P() or it.Cell() or it.SetCell() as appropriate
 // 	}
 func (gd Grid) Iterator() GridIterator {
+	if gd.Ug == nil {
+		return GridIterator{}
+	}
 	w := gd.Ug.Width
 	it := GridIterator{
 		w:      w,

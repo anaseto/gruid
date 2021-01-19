@@ -444,6 +444,9 @@ func (gd Grid) At(p Point) Cell {
 
 // Fill sets the given cell as content for all the grid positions.
 func (gd Grid) Fill(c Cell) {
+	if gd.Ug == nil {
+		return
+	}
 	w := gd.Rg.Max.X - gd.Rg.Min.X
 	switch {
 	case w >= 8:
@@ -492,6 +495,9 @@ func (gd Grid) fillv(c Cell) {
 
 // Iter iterates a function on all the grid positions and cells.
 func (gd Grid) Iter(fn func(Point, Cell)) {
+	if gd.Ug == nil {
+		return
+	}
 	w := gd.Ug.Width
 	yimax := gd.Rg.Max.Y * w
 	cells := gd.Ug.Cells
@@ -507,6 +513,9 @@ func (gd Grid) Iter(fn func(Point, Cell)) {
 
 // Map updates the grid content using the given mapping function.
 func (gd Grid) Map(fn func(Point, Cell) Cell) {
+	if gd.Ug == nil {
+		return
+	}
 	w := gd.Ug.Width
 	cells := gd.Ug.Cells
 	yimax := gd.Rg.Max.Y * w
@@ -525,6 +534,9 @@ func (gd Grid) Map(fn func(Point, Cell) Cell) {
 // for each dimension. The result is independent of whether the two grids
 // referenced memory overlaps or not.
 func (gd Grid) Copy(src Grid) Point {
+	if gd.Ug == nil {
+		return Point{}
+	}
 	if gd.Ug != src.Ug {
 		if src.Rg.Max.X-src.Rg.Min.X <= 4 {
 			return gd.cpv(src)
@@ -603,6 +615,9 @@ type GridIterator struct {
 // 		// call it.P() or it.Cell() or it.SetCell() as appropriate
 // 	}
 func (gd Grid) Iterator() GridIterator {
+	if gd.Ug == nil {
+		return GridIterator{}
+	}
 	w := gd.Ug.Width
 	it := GridIterator{
 		w:      w,
