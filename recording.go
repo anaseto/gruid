@@ -31,8 +31,8 @@ func NewFrameDecoder(r io.Reader) (*FrameDecoder, error) {
 	return fd, nil
 }
 
-// Decode retrieves the next frame from the input stream. If the input is at
-// EOF, it returns the error io.EOF.
+// Decode retrieves the next frame from the input stream. The frame pointer
+// should be non nil. If the input is at EOF, it returns the error io.EOF.
 func (fd *FrameDecoder) Decode(framep *Frame) error {
 	if framep == nil {
 		return errors.New("frame decoding: attempt to decode into nil pointer")
