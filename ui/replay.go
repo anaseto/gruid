@@ -65,10 +65,10 @@ func NewReplay(cfg ReplayConfig) *Replay {
 		rep.keys.SpeedLess = []gruid.Key{"-", "<"}
 	}
 	if rep.keys.FrameNext == nil {
-		rep.keys.FrameNext = []gruid.Key{gruid.KeyArrowRight, gruid.KeyArrowDown, gruid.KeyEnter, "j", "n", "f"}
+		rep.keys.FrameNext = []gruid.Key{gruid.KeyArrowRight, gruid.KeyArrowDown, "j", "n", "f"}
 	}
 	if rep.keys.FramePrev == nil {
-		rep.keys.FramePrev = []gruid.Key{gruid.KeyArrowLeft, gruid.KeyArrowUp, gruid.KeyBackspace, "k", "N", "b"}
+		rep.keys.FramePrev = []gruid.Key{gruid.KeyArrowLeft, gruid.KeyArrowUp, "k", "N", "b"}
 	}
 	return rep
 }
