@@ -442,11 +442,6 @@ func (gd Grid) At(p Point) Cell {
 	return gd.Ug.Cells[i]
 }
 
-// idxToPos returns a grid position given an index and the width of the grid.
-func idxToPos(i, w int) Point {
-	return Point{X: i % w, Y: i / w}
-}
-
 // Fill sets the given cell as content for all the grid positions.
 func (gd Grid) Fill(c Cell) {
 	w := gd.Rg.Max.X - gd.Rg.Min.X
