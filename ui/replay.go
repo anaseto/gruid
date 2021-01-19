@@ -88,7 +88,8 @@ type msgTick int // frame number
 
 func (rep *Replay) decodeNext() {
 	if rep.fidx >= len(rep.frames)-1 {
-		frame, err := rep.decoder.Decode()
+		frame := gruid.Frame{}
+		err := rep.decoder.Decode(&frame)
 		if err == nil {
 			rep.frames = append(rep.frames, frame)
 		}

@@ -136,10 +136,11 @@ func TestApp(t *testing.T) {
 		t.Errorf("frame decoding %v", err)
 	}
 	count := 0
-	_, err = dec.Decode()
+	frame := Frame{}
+	err = dec.Decode(&frame)
 	for err == nil {
 		count++
-		_, err = dec.Decode()
+		err = dec.Decode(&frame)
 	}
 	if count != td.count {
 		t.Errorf("bad frame count: %d vs %d", count, td.count)

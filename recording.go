@@ -3,6 +3,7 @@ package gruid
 import (
 	"compress/gzip"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"io"
 )
@@ -32,13 +33,15 @@ func NewFrameDecoder(r io.Reader) (*FrameDecoder, error) {
 
 // Decode retrieves the next frame from the input stream. If the input is at
 // EOF, it returns the error io.EOF.
-func (fd *FrameDecoder) Decode() (Frame, error) {
-	var frame Frame
-	var err error
-	for err = fd.gbd.Decode(&frame); err != nil && err != io.EOF; {
-		err = fd.gbd.Decode(&frame)
+func (fd *FrameDecoder) Decode(framep *Frame) error {
+	if framep == nil {
+		return errors.New("frame decoding: attempt to decode into nil pointer")
 	}
-	return frame, err
+	var err error
+	for err = fd.gbd.Decode(&framep); err != nil && err != io.EOF; {
+		err = fd.gbd.Decode(&framep)
+	}
+	return err
 }
 
 type frameEncoder struct {
