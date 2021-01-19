@@ -1,5 +1,14 @@
 This changelog file only lists important changes.
 
+## ?
+
++ Grid.Iterator method now returns a value instead of a pointer (could be
+  incompatible, though not in practice).
++ FrameDecoder.Decode now properly skips potential extra data that may be
+  present in case encoding was done in separate writes to a same file.
++ FrameDecoder.Decode now takes a pointer to Frame (incompatible change),
+  allowing control over allocations.
+
 ## v0.10.0 - 2020-01-17
 
 + A few changes in Menu, Pager and TextInput configuration in order to make
