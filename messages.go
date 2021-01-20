@@ -106,7 +106,7 @@ type MouseAction int
 // This is the list of supported mouse buttons and actions. It is intentionally
 // short for simplicity and best portability across drivers. Pressing several
 // mouse buttons simultaneously is not reported and, in those cases, only one
-// release event will be send.
+// release event will be sent.
 const (
 	MouseMain      MouseAction = iota // left button
 	MouseAuxiliary                    // middle button

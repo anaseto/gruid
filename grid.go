@@ -2,6 +2,7 @@ package gruid
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -76,6 +77,11 @@ type Point struct {
 	Y int
 }
 
+// String returns a string representation of the form "(x,y)".
+func (p Point) String() string {
+	return fmt.Sprintf("(%d,%d)", p.X, p.Y)
+}
+
 // Shift returns a new point with coordinates shifted by (x,y). It's a
 // shorthand for p.Add(Point{x,y}).
 func (p Point) Shift(x, y int) Point {
@@ -126,6 +132,11 @@ func NewRange(x0, y0, x1, y1 int) Range {
 		y0, y1 = y1, y0
 	}
 	return Range{Min: Point{X: x0, Y: y0}, Max: Point{X: x1, Y: y1}}
+}
+
+// String returns a string representation of the form "(x0,y0)-(x1,y1)".
+func (rg Range) String() string {
+	return fmt.Sprintf("%s-%s", rg.Min, rg.Max)
 }
 
 // Size returns the (width, height) of the range in cells.
@@ -342,6 +353,21 @@ func NewGrid(w, h int) Grid {
 	gd.Ug.Cells = make([]Cell, w*h)
 	gd.Fill(Cell{Rune: ' '})
 	return gd
+}
+
+// String returns a simplified string representation of the grid's runes,
+// without the styling.
+func (gd Grid) String() string {
+	b := strings.Builder{}
+	it := gd.Iterator()
+	for it.Next() {
+		b.WriteRune(it.Cell().Rune)
+		p := it.P()
+		if p.X == gd.Rg.Max.X-1 {
+			b.WriteRune('\n')
+		}
+	}
+	return b.String()
 }
 
 // Bounds returns the range that is covered by this grid slice within the
