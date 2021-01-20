@@ -63,7 +63,6 @@ type Menu struct {
 	pages   gruid.Point
 	size    gruid.Point // view size (w, h) in cells
 	box     *Box
-	stt     StyledText
 	style   MenuStyle
 	active  gruid.Point
 	action  MenuAction
