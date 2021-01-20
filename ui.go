@@ -84,7 +84,7 @@
 //
 // The values of type gruid.Effect returned by Update are optional and
 // represent concurrently executed functions that produce messages. The
-// gruid.Grid type is a convenient 2-dimensional slice type to represent the
+// gruid.Grid type is a convenient 2-dimensional slice type representing the
 // screen logical contents. See the relevant types documentation for details
 // and usage.
 package gruid
