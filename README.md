@@ -1,6 +1,7 @@
 # Gruid
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/anaseto/gruid.svg)](https://pkg.go.dev/github.com/anaseto/gruid)
+[![pkg.go.dev](https://pkg.go.dev/badge/github.com/anaseto/gruid.svg)](https://pkg.go.dev/github.com/anaseto/gruid)
+[![godocs.io](https://godocs.io/github.com/anaseto/gruid?status.svg)](https://godocs.io/github.com/anaseto/gruid)
 [![Go Report Card](https://goreportcard.com/badge/github.com/anaseto/gruid)](https://goreportcard.com/report/github.com/anaseto/gruid)
 
 The **gruid** *module* provides packages for easily building grid-based

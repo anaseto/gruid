@@ -1,6 +1,6 @@
 This changelog file only lists important changes.
 
-## ?
+## v0.11.0 - 2020-01-20
 
 + Grid.Iterator method now returns a value instead of a pointer (could be
   incompatible, though not in practice).
