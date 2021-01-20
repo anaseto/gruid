@@ -9,7 +9,7 @@ import (
 )
 
 func ExampleGrid() {
-	// Create a new 80x24 grid.
+	// Create a new 20x20 grid.
 	gd := gruid.NewGrid(20, 20)
 	// Fill the whole grid with dots.
 	gd.Fill(gruid.Cell{Rune: '.'})
