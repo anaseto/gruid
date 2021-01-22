@@ -142,7 +142,7 @@ func (ma MouseAction) String() string {
 type MsgMouse struct {
 	Action MouseAction // mouse action (click, release, move)
 	P      Point       // mouse position in the grid
-	Mod    ModMask     // modifier keys: not reported in most drivers
+	Mod    ModMask     // modifier keys (unequal driver support)
 	Time   time.Time   // time when the event was generated
 }
 
