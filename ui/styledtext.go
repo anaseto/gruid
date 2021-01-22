@@ -126,14 +126,11 @@ func (stt StyledText) Iter(fn func(gruid.Point, gruid.Cell)) gruid.Point {
 	procm := false               // processing markup
 	for _, r := range stt.text {
 		if markup {
-			if procm {
-				procm = false
-				if r != '@' {
+			if procMarkup(procm, r) {
+				if procm {
 					c.Style = stt.markupStyle(r)
-					continue
 				}
-			} else if r == '@' {
-				procm = true
+				procm = !procm
 				continue
 			}
 		}
@@ -146,8 +143,45 @@ func (stt StyledText) Iter(fn func(gruid.Point, gruid.Cell)) gruid.Point {
 			continue
 		}
 		c.Rune = r
-		if fn != nil {
-			fn(gruid.Point{X: x, Y: y}, c)
+		fn(gruid.Point{X: x, Y: y}, c)
+		x++
+	}
+	if x > xmax {
+		xmax = x
+	}
+	if xmax > 0 || y > 0 {
+		y++ // at least one line
+	}
+	return gruid.Point{X: xmax, Y: y}
+}
+
+func procMarkup(procm bool, r rune) bool {
+	if procm {
+		return r != '@'
+	}
+	return r == '@'
+}
+
+// Size returns the minimum (w, h) size in cells which can fit the text.
+func (stt StyledText) Size() gruid.Point {
+	x, y := 0, 0
+	xmax := 0
+	markup := stt.markups != nil // whether markup is activated
+	procm := false               // processing markup
+	for _, r := range stt.text {
+		if markup {
+			if procMarkup(procm, r) {
+				procm = !procm
+				continue
+			}
+		}
+		if r == '\n' {
+			if x > xmax {
+				xmax = x
+			}
+			x = 0
+			y++
+			continue
 		}
 		x++
 	}
@@ -160,14 +194,9 @@ func (stt StyledText) Iter(fn func(gruid.Point, gruid.Cell)) gruid.Point {
 	return gruid.Point{X: xmax, Y: y}
 }
 
-// Size returns the minimum (w, h) size in cells which can fit the text.
-func (stt StyledText) Size() gruid.Point {
-	return stt.Iter(nil)
-}
-
 // Format formats the text so that lines longer than a certain width get
 // wrapped at word boundaries, if possible. It preserves spaces at the
-// beginning of a line.  It returns the modified style for convenience.
+// beginning of a line.
 func (stt StyledText) Format(width int) StyledText {
 	s := strings.Builder{}
 	wordbuf := bytes.Buffer{}
@@ -179,10 +208,10 @@ func (stt StyledText) Format(width int) StyledText {
 	start := true                // whether at line start
 	for _, r := range stt.text {
 		if markup {
-			if procm {
-				procm = false
+			if procMarkup(procm, r) {
+				procm = !procm
 				switch r {
-				case '@', '\n', ' ':
+				case '\n', ' ':
 				default:
 					if wlen == 0 {
 						s.WriteRune(r)
@@ -191,14 +220,6 @@ func (stt StyledText) Format(width int) StyledText {
 					}
 					continue
 				}
-			} else if r == '@' {
-				procm = true
-				if wlen == 0 {
-					s.WriteRune(r)
-				} else {
-					wordbuf.WriteRune(r)
-				}
-				continue
 			}
 		}
 		if r == ' ' {
@@ -208,12 +229,14 @@ func (stt StyledText) Format(width int) StyledText {
 				col++
 				continue
 			case wlen > 0:
-				if col+wlen+1 > width && wantspace {
-					s.WriteRune('\n')
-					col = 0
-				} else if wantspace {
-					s.WriteRune(' ')
-					col++
+				newline := wlen+col+1 > width
+				if wantspace {
+					addSpace(&s, newline)
+					if newline {
+						col = 0
+					} else {
+						col++
+					}
 				}
 				s.Write(wordbuf.Bytes())
 				col += wlen
@@ -225,10 +248,8 @@ func (stt StyledText) Format(width int) StyledText {
 		}
 		if r == '\n' {
 			if wlen > 0 {
-				if 1+col+wlen > width && wantspace {
-					s.WriteRune('\n')
-				} else if wantspace {
-					s.WriteRune(' ')
+				if wantspace {
+					addSpace(&s, wlen+col+1 > width)
 				}
 				s.Write(wordbuf.Bytes())
 				wordbuf.Reset()
@@ -246,16 +267,20 @@ func (stt StyledText) Format(width int) StyledText {
 	}
 	if wlen > 0 {
 		if wantspace {
-			if wlen+col+1 > width {
-				s.WriteRune('\n')
-			} else {
-				s.WriteRune(' ')
-			}
+			addSpace(&s, wlen+col+1 > width)
 		}
 		s.Write(wordbuf.Bytes())
 	}
 	stt.text = strings.TrimRight(s.String(), " \n")
 	return stt
+}
+
+func addSpace(s *strings.Builder, b bool) {
+	if b {
+		s.WriteRune('\n')
+	} else {
+		s.WriteRune(' ')
+	}
 }
 
 func (stt StyledText) markupStyle(r rune) gruid.Style {
@@ -285,14 +310,11 @@ func (stt StyledText) Draw(gd gruid.Grid) gruid.Grid {
 	procm := false               // processing markup
 	for _, r := range stt.text {
 		if markup {
-			if procm {
-				procm = false
-				if r != '@' {
+			if procMarkup(procm, r) {
+				if procm {
 					c.Style = stt.markupStyle(r)
-					continue
 				}
-			} else if r == '@' {
-				procm = true
+				procm = !procm
 				continue
 			}
 		}

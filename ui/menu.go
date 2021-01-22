@@ -593,10 +593,6 @@ func (m *Menu) Draw() gruid.Grid {
 	}
 	grid := m.drawGrid()
 	if m.box != nil {
-		m.box.Draw(grid)
-		rg := grid.Range()
-		h := grid.Size().Y
-		line := grid.Slice(rg.Line(h-1).Shift(2, 0, -2, 0))
 		pg := m.table[m.active].page
 		var lnumtext string
 		if m.pages.X == 0 && m.pages.Y == 0 {
@@ -607,7 +603,12 @@ func (m *Menu) Draw() gruid.Grid {
 		} else {
 			lnumtext = fmt.Sprintf("%d,%d/%d,%d", pg.X, pg.Y, m.pages.X, m.pages.Y)
 		}
-		NewStyledText(lnumtext, m.style.PageNum).Draw(line)
+		foot := m.box.Footer
+		if foot.Text() == "" {
+			m.box.Footer = NewStyledText(lnumtext, m.style.PageNum)
+		}
+		m.box.Draw(grid)
+		m.box.Footer = foot
 	}
 	activeItem := m.table[m.active]
 	for p, it := range m.table {

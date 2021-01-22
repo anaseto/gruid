@@ -339,16 +339,19 @@ func (pg *Pager) Draw() gruid.Grid {
 	}
 	cgrid := grid
 	if pg.box != nil {
-		pg.box.Draw(grid)
-		rg := grid.Range()
-		line := grid.Slice(rg.Line(h-1).Shift(2, 0, -2, 0))
 		var lnumtext string
 		if pg.x > 0 {
 			lnumtext = fmt.Sprintf("%d-%d/%d+%d", pg.index, pg.index+h-bh-1, len(pg.lines)-1, pg.x)
 		} else {
 			lnumtext = fmt.Sprintf("%d-%d/%d", pg.index, pg.index+h-bh-1, len(pg.lines)-1)
 		}
-		NewStyledText(lnumtext, pg.style.LineNum).Draw(line)
+		foot := pg.box.Footer
+		if pg.box.Footer.Text() == "" {
+			pg.box.Footer = NewStyledText(lnumtext, pg.style.LineNum)
+		}
+		pg.box.Draw(grid)
+		pg.box.Footer = foot
+		rg := grid.Range()
 		cgrid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
 	rg := cgrid.Range()

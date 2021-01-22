@@ -1,16 +1,29 @@
 package ui
 
 import (
-	"unicode/utf8"
-
 	"github.com/anaseto/gruid"
+)
+
+// Alignment represents left, center or right text alignment. It is used to
+// draw text with a given alignment within a grid.
+type Alignment int16
+
+// Those constants represent the possible text alignment options. The default
+// alignment is AlignCenter.
+const (
+	AlignCenter Alignment = iota
+	AlignLeft
+	AlignRight
 )
 
 // Box contains information to draw a rectangle using box characters, with an
 // optional title.
 type Box struct {
-	Style gruid.Style // box style
-	Title StyledText  // optional title
+	Style       gruid.Style // box style
+	Title       StyledText  // optional top text
+	Footer      StyledText  // optional bottom text
+	AlignTitle  Alignment   // title alignment
+	AlignFooter Alignment   // footer alignment
 }
 
 // Draw draws a rectangular box in a grid, taking the whole grid. It does not
@@ -28,20 +41,16 @@ func (b Box) Draw(gd gruid.Grid) gruid.Grid {
 	cell := gruid.Cell{Style: b.Style}
 	cell.Rune = '─'
 	max = crg.Size()
-	if b.Title.Text() != "" {
-		nchars := utf8.RuneCountInString(b.Title.Text())
-		dist := (max.X - nchars) / 2
-		line := cgrid.Slice(crg.Line(0))
-		line.Fill(cell)
-		b.Title.Draw(cgrid.Slice(crg.Line(0).Shift(dist, 0, 0, 0)))
-		line = cgrid.Slice(crg.Line(0).Shift(dist+nchars, 0, 0, 0))
-		line.Fill(cell)
-	} else {
-		line := cgrid.Slice(crg.Line(0))
-		line.Fill(cell)
-	}
-	line := cgrid.Slice(crg.Line(max.Y - 1))
+	line := cgrid.Slice(crg.Line(0))
 	line.Fill(cell)
+	if b.Title.Text() != "" {
+		b.Title.drawTextLine(line, b.AlignTitle)
+	}
+	line = cgrid.Slice(crg.Line(max.Y - 1))
+	line.Fill(cell)
+	if b.Footer.Text() != "" {
+		b.Footer.drawTextLine(line, b.AlignFooter)
+	}
 	max = rg.Size()
 	gd.Set(rg.Min, cell.WithRune('┌'))
 	gd.Set(gruid.Point{X: max.X - 1}, cell.WithRune('┐'))
@@ -53,4 +62,23 @@ func (b Box) Draw(gd gruid.Grid) gruid.Grid {
 	col = gd.Slice(rg.Shift(0, 1, 0, -1).Column(max.X - 1))
 	col.Fill(cell)
 	return gd
+}
+
+func (stt StyledText) drawTextLine(gd gruid.Grid, align Alignment) {
+	switch align {
+	case AlignCenter:
+		tw := stt.Size().X
+		rg := gd.Range()
+		w := rg.Max.X
+		dist := (w - tw) / 2
+		stt.Draw(gd.Slice(rg.Shift(dist, 0, 0, 0)))
+	case AlignLeft:
+		stt.Draw(gd)
+	case AlignRight:
+		tw := stt.Size().X
+		rg := gd.Range()
+		w := rg.Max.X
+		dist := w - tw
+		stt.Draw(gd.Slice(rg.Shift(dist, 0, 0, 0)))
+	}
 }
