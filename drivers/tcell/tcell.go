@@ -92,6 +92,60 @@ func (dr *Driver) Init() error {
 	return nil
 }
 
+func modifiers(mod tcell.ModMask) gruid.ModMask {
+	var m gruid.ModMask
+	if mod&tcell.ModShift != 0 {
+		m |= gruid.ModShift
+	}
+	if mod&tcell.ModCtrl != 0 {
+		m |= gruid.ModCtrl
+	}
+	if mod&tcell.ModAlt != 0 {
+		m |= gruid.ModAlt
+	}
+	if mod&tcell.ModMeta != 0 { // never reported
+		m |= gruid.ModMeta
+	}
+	return m
+}
+
+func key(key tcell.Key) gruid.Key {
+	var k gruid.Key
+	switch key {
+	case tcell.KeyDown:
+		k = gruid.KeyArrowDown
+	case tcell.KeyLeft:
+		k = gruid.KeyArrowLeft
+	case tcell.KeyRight:
+		k = gruid.KeyArrowRight
+	case tcell.KeyUp:
+		k = gruid.KeyArrowUp
+	case tcell.KeyBackspace, tcell.KeyBackspace2:
+		k = gruid.KeyBackspace
+	case tcell.KeyDelete:
+		k = gruid.KeyDelete
+	case tcell.KeyEnd:
+		k = gruid.KeyEnd
+	case tcell.KeyEscape:
+		k = gruid.KeyEscape
+	case tcell.KeyEnter:
+		k = gruid.KeyEnter
+	case tcell.KeyHome:
+		k = gruid.KeyHome
+	case tcell.KeyInsert:
+		k = gruid.KeyInsert
+	case tcell.KeyPgUp:
+		k = gruid.KeyPageUp
+	case tcell.KeyPgDn:
+		k = gruid.KeyPageDown
+	case tcell.KeyTab:
+		k = gruid.KeyTab
+	case tcell.KeyBacktab:
+		k = gruid.KeyTab
+	}
+	return k
+}
+
 // PollMsgs implements gruid.Driver.PollMsgs. It does not report KP_5 keypad
 // key when numlock is off.
 func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
@@ -124,54 +178,15 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			return tev
 		case *tcell.EventKey:
 			msg := gruid.MsgKeyDown{}
-			mod := tev.Modifiers()
-			if mod&tcell.ModShift != 0 {
+			msg.Mod = modifiers(tev.Modifiers())
+			msg.Time = tev.When()
+			tkey := tev.Key()
+			msg.Key = key(tkey)
+			switch tkey {
+			case tcell.KeyBacktab:
 				msg.Mod |= gruid.ModShift
 			}
-			if mod&tcell.ModCtrl != 0 {
-				msg.Mod |= gruid.ModCtrl
-			}
-			if mod&tcell.ModAlt != 0 {
-				msg.Mod |= gruid.ModAlt
-			}
-			if mod&tcell.ModMeta != 0 { // never reported
-				msg.Mod |= gruid.ModMeta
-			}
-			msg.Time = tev.When()
-			switch tev.Key() {
-			case tcell.KeyDown:
-				msg.Key = gruid.KeyArrowDown
-			case tcell.KeyLeft:
-				msg.Key = gruid.KeyArrowLeft
-			case tcell.KeyRight:
-				msg.Key = gruid.KeyArrowRight
-			case tcell.KeyUp:
-				msg.Key = gruid.KeyArrowUp
-			case tcell.KeyBackspace, tcell.KeyBackspace2:
-				msg.Key = gruid.KeyBackspace
-			case tcell.KeyDelete:
-				msg.Key = gruid.KeyDelete
-			case tcell.KeyEnd:
-				msg.Key = gruid.KeyEnd
-			case tcell.KeyEscape:
-				msg.Key = gruid.KeyEscape
-			case tcell.KeyEnter:
-				msg.Key = gruid.KeyEnter
-			case tcell.KeyHome:
-				msg.Key = gruid.KeyHome
-			case tcell.KeyInsert:
-				msg.Key = gruid.KeyInsert
-			case tcell.KeyPgUp:
-				msg.Key = gruid.KeyPageUp
-			case tcell.KeyPgDn:
-				msg.Key = gruid.KeyPageDown
-			case tcell.KeyTab:
-				msg.Key = gruid.KeyTab
-			case tcell.KeyBacktab:
-				msg.Key = gruid.KeyTab
-				msg.Mod = gruid.ModShift
-			}
-			if tev.Rune() != 0 && msg.Key == "" {
+			if tkey == tcell.KeyRune && msg.Key == "" {
 				msg.Key = gruid.Key(tev.Rune())
 			}
 			if msg.Key == "" {
@@ -184,6 +199,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			case tcell.Button1:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
+				msg.Mod = modifiers(tev.Modifiers())
 				msg.P = gruid.Point{X: x, Y: y}
 				if dr.mousedrag {
 					msg.Action = gruid.MouseMove
@@ -195,6 +211,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			case tcell.Button3:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
+				msg.Mod = modifiers(tev.Modifiers())
 				msg.P = gruid.Point{X: x, Y: y}
 				if dr.mousedrag {
 					msg.Action = gruid.MouseMove
@@ -206,6 +223,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			case tcell.Button2:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
+				msg.Mod = modifiers(tev.Modifiers())
 				msg.P = gruid.Point{X: x, Y: y}
 				if dr.mousedrag {
 					msg.Action = gruid.MouseMove
@@ -217,18 +235,21 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 			case tcell.WheelUp:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
+				msg.Mod = modifiers(tev.Modifiers())
 				msg.P = gruid.Point{X: x, Y: y}
 				msg.Action = gruid.MouseWheelUp
 				send(msg)
 			case tcell.WheelDown:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
+				msg.Mod = modifiers(tev.Modifiers())
 				msg.P = gruid.Point{X: x, Y: y}
 				msg.Action = gruid.MouseWheelDown
 				send(msg)
 			case tcell.ButtonNone:
 				msg := gruid.MsgMouse{}
 				msg.Time = tev.When()
+				msg.Mod = modifiers(tev.Modifiers())
 				msg.P = gruid.Point{X: x, Y: y}
 				if dr.mousedrag {
 					dr.mousedrag = false
