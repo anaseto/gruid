@@ -335,7 +335,7 @@ func (m *Menu) updateKeyDown(msg gruid.MsgKeyDown) {
 }
 
 func (m *Menu) updateMouse(msg gruid.MsgMouse) {
-	grid := m.drawGrid()
+	grid := m.pageGrid()
 	rg := grid.Bounds()
 	crg := rg // content range
 	if m.box != nil {
@@ -401,6 +401,28 @@ func (m *Menu) invokePoint(p gruid.Point) {
 			}
 		}
 	}
+}
+
+func (m *Menu) pageGrid() gruid.Grid {
+	if m.layout.Y > 0 && m.layout.X == 0 {
+		return m.drawGrid()
+	}
+	h := 0
+	for p, it := range m.table {
+		if p.X > 0 {
+			continue
+		}
+		activeItem := m.table[m.active]
+		if it.page != activeItem.page {
+			continue
+		}
+		h++
+	}
+	if m.box != nil {
+		h += 2 // borders height
+	}
+	max := m.grid.Size()
+	return m.grid.Slice(gruid.NewRange(0, 0, max.X, h))
 }
 
 func (m *Menu) drawGrid() gruid.Grid {
@@ -591,7 +613,7 @@ func (m *Menu) Draw() gruid.Grid {
 	if !m.dirty {
 		return m.drawn
 	}
-	grid := m.drawGrid()
+	grid := m.pageGrid()
 	if m.box != nil {
 		pg := m.table[m.active].page
 		var lnumtext string
