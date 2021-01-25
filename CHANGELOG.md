@@ -1,5 +1,14 @@
 This changelog file only lists important changes.
 
+## v0.12.0 - 2020-01-25
+
++ Add String methods for Point, Range and Grid types in gruid package.
++ Added a couple of examples in gruid package.
++ New Footer and alignment options for ui.Box.
++ Fix display in ui.Menu last's page: now the menu only takes the necessary
+  space for the items present on the page, which can be less than in previous
+  pages.
+
 ## v0.11.0 - 2020-01-20
 
 + Grid.Iterator method now returns a value instead of a pointer (could be
