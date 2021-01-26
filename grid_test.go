@@ -494,6 +494,23 @@ func TestCopy9(t *testing.T) {
 	}
 }
 
+func TestCopyShiftX(t *testing.T) {
+	gd := NewGrid(80, 10)
+	gd.Fill(Cell{Rune: 'a'})
+	ngd := NewGrid(80, 10)
+	ngd.Fill(Cell{Rune: 'b'})
+	slice := gd.Slice(NewRange(20, 0, 80, 10))
+	slice.Copy(ngd)
+	gd.Iter(func(p Point, c Cell) {
+		if p.X >= 20 && c.Rune != 'b' {
+			t.Errorf("not b")
+		}
+		if p.X < 20 && c.Rune != 'a' {
+			t.Errorf("not a")
+		}
+	})
+}
+
 func TestResize(t *testing.T) {
 	gd := NewGrid(20, 10)
 	gd.Fill(Cell{Rune: '.'})

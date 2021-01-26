@@ -582,8 +582,8 @@ func (gd Grid) cp(src Grid) Point {
 	w := gd.Ug.Width
 	wsrc := src.Ug.Width
 	max := gd.Range().Intersect(src.Range()).Size()
-	idxmin := gd.Rg.Min.Y * w
-	idxsrcmin := src.Rg.Min.Y * w
+	idxmin := gd.Rg.Min.Y*w + gd.Rg.Min.X
+	idxsrcmin := src.Rg.Min.Y*w + src.Rg.Min.X
 	idxmax := (gd.Rg.Min.Y + max.Y) * w
 	for idx, idxsrc := idxmin, idxsrcmin; idx < idxmax; idx, idxsrc = idx+w, idxsrc+wsrc {
 		copy(gd.Ug.Cells[idx:idx+max.X], src.Ug.Cells[idxsrc:idxsrc+max.X])
@@ -611,8 +611,8 @@ func (gd Grid) cprev(src Grid) Point {
 	w := gd.Ug.Width
 	wsrc := src.Ug.Width
 	max := gd.Range().Intersect(src.Range()).Size()
-	idxmax := (gd.Rg.Min.Y + max.Y - 1) * w
-	idxsrcmax := (src.Rg.Min.Y + max.Y - 1) * w
+	idxmax := (gd.Rg.Min.Y+max.Y-1)*w + gd.Rg.Min.X
+	idxsrcmax := (src.Rg.Min.Y+max.Y-1)*w + src.Rg.Min.X
 	idxmin := gd.Rg.Min.Y * w
 	for idx, idxsrc := idxmax, idxsrcmax; idx >= idxmin; idx, idxsrc = idx-w, idxsrc-wsrc {
 		copy(gd.Ug.Cells[idx:idx+max.X], src.Ug.Cells[idxsrc:idxsrc+max.X])
