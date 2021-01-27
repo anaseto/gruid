@@ -133,6 +133,7 @@ func (stt StyledText) Iter(fn func(gruid.Point, gruid.Cell)) gruid.Point {
 				procm = !procm
 				continue
 			}
+			procm = false
 		}
 		if r == '\n' {
 			if x > xmax {
@@ -174,6 +175,7 @@ func (stt StyledText) Size() gruid.Point {
 				procm = !procm
 				continue
 			}
+			procm = false
 		}
 		if r == '\n' {
 			if x > xmax {
@@ -220,6 +222,8 @@ func (stt StyledText) Format(width int) StyledText {
 					}
 					continue
 				}
+			} else {
+				procm = false
 			}
 		}
 		if r == ' ' {
@@ -317,6 +321,7 @@ func (stt StyledText) Draw(gd gruid.Grid) gruid.Grid {
 				procm = !procm
 				continue
 			}
+			procm = false
 		}
 		p := it.P()
 		if r == '\n' {

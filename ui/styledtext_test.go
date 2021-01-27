@@ -154,6 +154,19 @@ func TestSizeMarkup(t *testing.T) {
 	}
 }
 
+func TestMarkupConsecutive(t *testing.T) {
+	st := gruid.Style{}
+	stt := Text("@N@@@t•@N ").WithMarkup('t', st)
+	if stt.Size().X != 3 || stt.Size().Y != 1 {
+		t.Errorf("bad size: %v", stt.Size())
+	}
+	count := 0
+	stt.Iter(func(p gruid.Point, c gruid.Cell) { count++ })
+	if count != 3 {
+		t.Errorf("bad count: %v", count)
+	}
+}
+
 func TestDrawLine(t *testing.T) {
 	gd := gruid.NewGrid(5, 2)
 	Text("xxxx").Draw(gd)
