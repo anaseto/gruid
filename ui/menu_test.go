@@ -129,4 +129,13 @@ func TestMenuLine(t *testing.T) {
 	menu.Update(keymsg(gruid.KeyPageUp))
 	check(menu.Action() == MenuMove, "move page up")
 	check(menu.Active() == 1, fmt.Sprintf("active %d", menu.Active()))
+	gd = menu.Draw()
+	entries = entries[:1]
+	menu.SetEntries(entries)
+	ngd := menu.Draw()
+	if ngd.String() != `one       
+` {
+		t.Errorf("bad content: “%s” length %d", ngd, len(ngd.String()))
+	}
+
 }

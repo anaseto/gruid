@@ -405,7 +405,18 @@ func (m *Menu) invokePoint(p gruid.Point) {
 
 func (m *Menu) pageGrid() gruid.Grid {
 	if m.layout.Y > 0 && m.layout.X == 0 {
-		return m.drawGrid()
+		rg := gruid.Range{}
+		activeItem := m.table[m.active]
+		for _, it := range m.table {
+			if it.page != activeItem.page {
+				continue
+			}
+			rg = rg.Union(it.grid.Bounds())
+		}
+		if m.box != nil {
+			rg = rg.Shift(-1, -1, -1, -1)
+		}
+		return m.grid.Slice(rg)
 	}
 	h := 0
 	for p, it := range m.table {
