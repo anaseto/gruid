@@ -147,8 +147,8 @@ func (m *Menu) Active() int {
 	return m.table[m.active].i
 }
 
-// ActiveRange return the bounds of the the currently active entry grid slice.
-func (m *Menu) ActiveRange() gruid.Range {
+// ActiveBounds return the bounds of the the currently active entry grid slice.
+func (m *Menu) ActiveBounds() gruid.Range {
 	return m.table[m.active].grid.Bounds()
 }
 
