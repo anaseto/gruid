@@ -96,11 +96,14 @@ func (dr *Driver) SetTileManager(tm TileManager) {
 		}
 		if dr.init {
 			dr.ClearCache()
+			scale := false
 			if dr.scaleX > 0.1 && dr.scaleY > 0.1 {
-				dr.renderer.SetScale(dr.scaleX, dr.scaleY)
-				dr.window.SetSize(int32(float32(dr.width*dr.tw)*dr.scaleX), int32(float32(dr.height*dr.th)*dr.scaleY))
-			} else {
-				dr.window.SetSize(dr.width*dr.tw, dr.height*dr.th)
+				scale = dr.setScale(dr.scaleX, dr.scaleY)
+			}
+			if !scale {
+				dr.scaleX = 0
+				dr.scaleY = 0
+				dr.resizeWindow()
 			}
 			select {
 			case dr.reqredraw <- true:
@@ -118,12 +121,31 @@ func (dr *Driver) SetTileManager(tm TileManager) {
 	}
 }
 
+func (dr *Driver) setScale(scaleX, scaleY float32) bool {
+	err := dr.renderer.SetScale(scaleX, scaleY)
+	if err != nil {
+		log.Printf("SetScale: %v", err)
+		return false
+	}
+	dr.scaleX = scaleX
+	dr.scaleY = scaleY
+	dr.resizeWindow()
+	return true
+}
+
+func (dr *Driver) resizeWindow() {
+	if dr.scaleX > 0.1 && dr.scaleY > 0.1 {
+		dr.window.SetSize(int32(float32(dr.width*dr.tw)*dr.scaleX), int32(float32(dr.height*dr.th)*dr.scaleY))
+	} else {
+		dr.window.SetSize(dr.width*dr.tw, dr.height*dr.th)
+	}
+}
+
 // SetScale modifies the rendering scale for rendering, and updates the window
 // size accordingly. Integer values give more accurate results.
 func (dr *Driver) SetScale(scaleX, scaleY float32) {
 	fn := func() {
-		dr.renderer.SetScale(scaleX, scaleY)
-		dr.window.SetSize(int32(float32(dr.width*dr.tw)*dr.scaleX), int32(float32(dr.height*dr.th)*dr.scaleY))
+		dr.setScale(scaleX, scaleY)
 	}
 	dr.scaleX = scaleX
 	dr.scaleY = scaleY
@@ -167,7 +189,7 @@ func (dr *Driver) Init() error {
 	}
 	var err error
 	if dr.init {
-		dr.window.SetSize(dr.width*dr.tw, dr.height*dr.th)
+		dr.resizeWindow()
 	} else {
 		if err = sdl.Init(sdl.INIT_VIDEO); err != nil {
 			return err
@@ -193,8 +215,7 @@ func (dr *Driver) Init() error {
 			}
 		}
 		if dr.scaleX > 0.1 || dr.scaleY > 0.1 {
-			dr.renderer.SetScale(dr.scaleX, dr.scaleY)
-			dr.window.SetSize(int32(float32(dr.width*dr.tw)*dr.scaleX), int32(float32(dr.height*dr.th)*dr.scaleY))
+			dr.setScale(dr.scaleX, dr.scaleY)
 		}
 		err := dr.renderer.Clear()
 		if err != nil {
@@ -527,7 +548,7 @@ actions:
 	if frame.Width != int(dr.width) || frame.Height != int(dr.height) {
 		dr.width = int32(frame.Width)
 		dr.height = int32(frame.Height)
-		dr.window.SetSize(dr.width*dr.tw, dr.height*dr.th)
+		dr.resizeWindow()
 	}
 	for _, fc := range frame.Cells {
 		cs := fc.Cell
