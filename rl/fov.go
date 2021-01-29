@@ -5,7 +5,6 @@ package rl
 import (
 	"bytes"
 	"encoding/gob"
-	"math"
 
 	"github.com/anaseto/gruid"
 )
@@ -298,7 +297,7 @@ func (fov *FOV) computeLighted() {
 }
 
 func (fov *FOV) checkIdx() {
-	if fov.Idx < math.MaxInt32 {
+	if fov.Idx+1 > 0 {
 		return
 	}
 	for i, n := range fov.LMap {

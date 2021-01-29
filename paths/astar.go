@@ -25,7 +25,6 @@ package paths
 
 import (
 	"container/heap"
-	"math"
 
 	"github.com/anaseto/gruid"
 )
@@ -127,7 +126,7 @@ func (pr *PathRange) initAstar() {
 }
 
 func checkNodesIdx(nm *nodeMap) {
-	if nm.Idx < math.MaxInt32 {
+	if nm.Idx+1 > 0 {
 		return
 	}
 	for i, n := range nm.Nodes {

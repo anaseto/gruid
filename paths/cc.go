@@ -1,8 +1,6 @@
 package paths
 
 import (
-	"math"
-
 	"github.com/anaseto/gruid"
 )
 
@@ -116,7 +114,7 @@ func (pr *PathRange) CCMapAt(p gruid.Point) int {
 }
 
 func (pr *PathRange) checkCCIdx() {
-	if pr.CCIdx < math.MaxInt32 {
+	if pr.CCIdx+1 > 0 {
 		return
 	}
 	for i, n := range pr.CC {

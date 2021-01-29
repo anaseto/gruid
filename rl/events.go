@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"container/heap"
 	"encoding/gob"
-	"math"
 )
 
 // Event represents a message or an action.
@@ -73,7 +72,7 @@ func (eq *EventQueue) Push(ev Event, rank int) {
 	evr := event{Event: ev, Rank: rank, Idx: eq.Idx}
 	eq.Idx++
 	heap.Push(eq.Queue, evr)
-	if eq.Idx == math.MaxInt32 {
+	if eq.Idx+1 < 0 {
 		// should not happen in practical situations
 		eq.Filter(func(ev Event) bool { return true })
 	}

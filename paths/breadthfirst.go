@@ -1,8 +1,6 @@
 package paths
 
 import (
-	"math"
-
 	"github.com/anaseto/gruid"
 )
 
@@ -78,7 +76,7 @@ func (pr *PathRange) BreadthFirstMap(nb Pather, sources []gruid.Point, maxCost i
 }
 
 func (pr *PathRange) checkBfIdx() {
-	if pr.BfIdx < math.MaxInt32 {
+	if pr.BfIdx+1 > 0 {
 		return
 	}
 	for i, n := range pr.BfMap {
