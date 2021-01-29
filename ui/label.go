@@ -7,8 +7,8 @@ import (
 // Label represents a bunch of text in a grid. It may be boxed and provided
 // with a title.
 type Label struct {
-	StyledText  StyledText // styled text with initial label text content
-	Box         *Box       // draw optional box around the  label
+	StyledText  StyledText // label styled text content
+	Box         *Box       // draw optional box around the label
 	AdjustWidth bool       // reduce the width of the label if possible
 }
 
