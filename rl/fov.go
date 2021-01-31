@@ -97,8 +97,7 @@ func (fov *FOV) GobEncode() ([]byte, error) {
 }
 
 // At returns the total ray cost at a given position from the last source given
-// to VisionMap. It returns a false boolean if the position was out of reach
-// (distance greater than the radius).
+// to VisionMap. It returns a false boolean if the position was out of reach.
 func (fov *FOV) At(p gruid.Point) (int, bool) {
 	if !p.In(fov.Rg) || fov.LMap == nil {
 		return 0, false
@@ -187,19 +186,23 @@ type Lighter interface {
 	// for diagonals in certain cases with 4-way movement, because two
 	// walls could block vision (for example).
 	Cost(src gruid.Point, from gruid.Point, to gruid.Point) int
+
+	// MaxCost indicates the cost limit at which light cannot propagate
+	// anymore. It should normally be equal to maximum sight distance.
+	MaxCost(src gruid.Point) int
 }
 
-// VisionMap builds a field of vision map for a viewer at src that has a
-// radius reach. It returns a cached slice of lighted nodes. Values can also be
-// consulted individually with At.
-func (fov *FOV) VisionMap(lt Lighter, src gruid.Point, radius int) []LightNode {
+// VisionMap builds a field of vision map for a viewer at src. It returns a
+// cached slice of lighted nodes. Values can also be consulted individually
+// with At.
+func (fov *FOV) VisionMap(lt Lighter, src gruid.Point) []LightNode {
 	fov.Idx++
 	if !src.In(fov.Rg) {
 		return fov.Lighted
 	}
 	fov.Src = src
 	fov.LMap[fov.idx(src)] = fovNode{Cost: 0, Idx: fov.Idx}
-	for d := 1; d <= radius; d++ {
+	for d := 1; d <= lt.MaxCost(src); d++ {
 		rg := fov.Rg.Intersect(gruid.NewRange(src.X-d, src.Y-d+1, src.X+d+1, src.Y+d))
 		if src.Y+d < fov.Rg.Max.Y {
 			for x := rg.Min.X; x < rg.Max.X; x++ {
@@ -232,10 +235,9 @@ func (fov *FOV) visionUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
 	fov.LMap[fov.idx(to)] = fovNode{Cost: c, Idx: fov.Idx}
 }
 
-// LightMap builds a lighting map with given light sources that have a radius
-// reach. It returs a cached slice of lighted nodes. Values can also be
-// consulted with At.
-func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point, radius int) []LightNode {
+// LightMap builds a lighting map with given light sources. It returs a cached
+// slice of lighted nodes. Values can also be consulted with At.
+func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point) []LightNode {
 	fov.Idx++
 	for _, src := range srcs {
 		if !src.In(fov.Rg) {
@@ -243,7 +245,7 @@ func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point, radius int) []LightNode
 		}
 		fov.Src = src
 		fov.LMap[fov.idx(src)] = fovNode{Cost: 0, Idx: fov.Idx}
-		for d := 1; d <= radius; d++ {
+		for d := 1; d <= lt.MaxCost(src); d++ {
 			rg := fov.Rg.Intersect(gruid.NewRange(src.X-d, src.Y-d+1, src.X+d+1, src.Y+d))
 			if src.Y+d < fov.Rg.Max.Y {
 				for x := rg.Min.X; x < rg.Max.X; x++ {

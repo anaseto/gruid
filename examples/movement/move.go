@@ -168,7 +168,7 @@ func (m *model) MovePlayer(to gruid.Point) {
 	m.playerPos = to
 	lt := &lighter{mapgd: m.mapgd}
 	// We mark cells in field of view as explored.
-	for _, ln := range m.fov.VisionMap(lt, m.playerPos, maxLOS) {
+	for _, ln := range m.fov.VisionMap(lt, m.playerPos) {
 		if ln.Cost >= maxLOS {
 			continue
 		}
@@ -365,6 +365,10 @@ func (lt *lighter) Cost(src, from, to gruid.Point) int {
 		return 2
 	}
 	return 1
+}
+
+func (lt *lighter) MaxCost(src gruid.Point) int {
+	return maxLOS
 }
 
 // diagonalWalls checks whether diagonal light has to be blocked (this would
