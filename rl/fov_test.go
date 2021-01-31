@@ -92,6 +92,14 @@ func BenchmarkFOV20x20(b *testing.B) {
 	}
 }
 
+func BenchmarkFOV100x100(b *testing.B) {
+	fov := NewFOV(gruid.NewRange(0, 0, 100, 100))
+	lt := &lighter{max: 20}
+	for i := 0; i < b.N; i++ {
+		fov.VisionMap(lt, gruid.Point{50, 50})
+	}
+}
+
 //func BenchmarkFOV600x600(b *testing.B) {
 //fov := NewFOV(gruid.NewRange(0, 0, 600, 600))
 //lt := &lighter{max: 50}

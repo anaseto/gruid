@@ -134,35 +134,52 @@ func sign(n int) int {
 	return i
 }
 
-func (fov *FOV) octantParents(ps []gruid.Point, src, p gruid.Point) []gruid.Point {
+func (fov *FOV) octantParents(ps []LightNode, src, p gruid.Point) []LightNode {
 	q := src.Sub(p)
 	r := gruid.Point{sign(q.X), sign(q.Y)}
-	ps = append(ps, p.Add(gruid.Point{r.X, r.Y}))
+	p0 := p.Add(gruid.Point{r.X, r.Y})
+	n0 := fov.LMap[fov.idx(p0)]
+	if n0.Idx == fov.Idx {
+		ps = append(ps, LightNode{P: p0, Cost: n0.Cost})
+	}
 	switch {
 	case q.X == 0 || q.Y == 0 || abs(q.X) == abs(q.Y):
 	case abs(q.X) > abs(q.Y):
-		ps = append(ps, p.Add(gruid.Point{r.X, 0}))
+		p1 := p.Add(gruid.Point{r.X, 0})
+		n1 := fov.LMap[fov.idx(p1)]
+		if n1.Idx == fov.Idx {
+			ps = append(ps, LightNode{P: p1, Cost: n1.Cost})
+		}
 	default:
-		ps = append(ps, p.Add(gruid.Point{0, r.Y}))
+		p1 := p.Add(gruid.Point{0, r.Y})
+		n1 := fov.LMap[fov.idx(p1)]
+		if n1.Idx == fov.Idx {
+			ps = append(ps, LightNode{P: p1, Cost: n1.Cost})
+		}
 	}
 	return ps
 }
 
-func (fov *FOV) bestParent(lt Lighter, src, p gruid.Point) (gruid.Point, int) {
-	var psa [2]gruid.Point
-	ps := psa[:0]
-	ps = fov.octantParents(ps, src, p)
-	q := ps[0]
-	cost0 := fov.LMap[fov.idx(q)].Cost + lt.Cost(src, q, p)
-	if len(ps) < 2 {
-		return q, cost0
+func (fov *FOV) bestParent(lt Lighter, src, p gruid.Point) LightNode {
+	var pnodesa [2]LightNode
+	pnodes := pnodesa[:0]
+	pnodes = fov.octantParents(pnodes, src, p)
+	switch len(pnodes) {
+	case 0:
+		return LightNode{Cost: -1}
+	case 1:
+		n := pnodes[0]
+		return LightNode{P: n.P, Cost: n.Cost + lt.Cost(src, n.P, p)}
+	default:
+		n := pnodes[0]
+		m := pnodes[1]
+		cost0 := n.Cost + lt.Cost(src, n.P, p)
+		cost1 := m.Cost + lt.Cost(src, m.P, p)
+		if cost0 <= cost1 {
+			return LightNode{P: n.P, Cost: cost0}
+		}
+		return LightNode{P: m.P, Cost: cost1}
 	}
-	cost1 := fov.LMap[fov.idx(ps[1])].Cost + lt.Cost(src, ps[1], p)
-	if cost1 < cost0 {
-		q = ps[1]
-		return q, cost1
-	}
-	return q, cost0
 }
 
 // Lighter is the interface that captures the requirements for light ray
@@ -188,7 +205,8 @@ type Lighter interface {
 	Cost(src gruid.Point, from gruid.Point, to gruid.Point) int
 
 	// MaxCost indicates the cost limit at which light cannot propagate
-	// anymore. It should normally be equal to maximum sight distance.
+	// anymore from the given source. It should normally be equal to
+	// maximum sight or light distance.
 	MaxCost(src gruid.Point) int
 }
 
@@ -197,11 +215,13 @@ type Lighter interface {
 // with At.
 func (fov *FOV) VisionMap(lt Lighter, src gruid.Point) []LightNode {
 	fov.Idx++
+	fov.Lighted = fov.Lighted[:0]
 	if !src.In(fov.Rg) {
 		return fov.Lighted
 	}
 	fov.Src = src
 	fov.LMap[fov.idx(src)] = fovNode{Cost: 0, Idx: fov.Idx}
+	fov.Lighted = append(fov.Lighted, LightNode{P: src, Cost: 0})
 	for d := 1; d <= lt.MaxCost(src); d++ {
 		rg := fov.Rg.Intersect(gruid.NewRange(src.X-d, src.Y-d+1, src.X+d+1, src.Y+d))
 		if src.Y+d < fov.Rg.Max.Y {
@@ -226,13 +246,15 @@ func (fov *FOV) VisionMap(lt Lighter, src gruid.Point) []LightNode {
 		}
 	}
 	fov.checkIdx()
-	fov.computeLighted()
 	return fov.Lighted
 }
 
 func (fov *FOV) visionUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
-	_, c := fov.bestParent(lt, src, to)
-	fov.LMap[fov.idx(to)] = fovNode{Cost: c, Idx: fov.Idx}
+	n := fov.bestParent(lt, src, to)
+	if n.Cost >= 0 {
+		fov.LMap[fov.idx(to)] = fovNode{Cost: n.Cost, Idx: fov.Idx}
+		fov.Lighted = append(fov.Lighted, LightNode{P: to, Cost: n.Cost})
+	}
 }
 
 // LightMap builds a lighting map with given light sources. It returs a cached
@@ -275,12 +297,15 @@ func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point) []LightNode {
 }
 
 func (fov *FOV) lightUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
-	_, c := fov.bestParent(lt, src, to)
-	n := &fov.LMap[fov.idx(to)]
-	if n.Idx == fov.Idx && n.Cost <= c {
+	n := fov.bestParent(lt, src, to)
+	if n.Cost < 0 {
 		return
 	}
-	*n = fovNode{Cost: c, Idx: fov.Idx}
+	m := &fov.LMap[fov.idx(to)]
+	if m.Idx == fov.Idx && m.Cost <= n.Cost {
+		return
+	}
+	*m = fovNode{Cost: n.Cost, Idx: fov.Idx}
 }
 
 func (fov *FOV) computeLighted() {
@@ -331,11 +356,11 @@ func (fov *FOV) Ray(lt Lighter, to gruid.Point) []LightNode {
 		return nil
 	}
 	fov.RayCache = fov.RayCache[:0]
-	var c int
+	var n LightNode
 	for to != fov.Src {
-		oto := to
-		to, c = fov.bestParent(lt, fov.Src, oto)
-		fov.RayCache = append(fov.RayCache, LightNode{P: oto, Cost: c})
+		n = fov.bestParent(lt, fov.Src, to)
+		fov.RayCache = append(fov.RayCache, LightNode{P: to, Cost: n.Cost})
+		to = n.P
 	}
 	fov.RayCache = append(fov.RayCache, LightNode{P: fov.Src, Cost: 0})
 	for i := range fov.RayCache[:len(fov.RayCache)/2] {
