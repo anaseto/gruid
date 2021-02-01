@@ -160,24 +160,35 @@ func (fov *FOV) octantParents(ps []LightNode, src, p gruid.Point) []LightNode {
 	return ps
 }
 
-// From returns the previous position in the light ray from src to the given
-// position. If none, it returns a LightNode with negative cost. This method is
-// EXPERIMENTAL.
-func (fov *FOV) From(lt Lighter, src, to gruid.Point) LightNode {
+// From returns the previous position in the light ray to the given position,
+// as computed in the last VisionMap call.  If none, it returns false.
+func (fov *FOV) From(lt Lighter, to gruid.Point) (LightNode, bool) {
+	_, ok := fov.At(to)
+	if !ok {
+		return LightNode{}, false
+	}
+	ln := fov.from(lt, to)
+	if ln.Cost == -1 {
+		return LightNode{}, false
+	}
+	return ln, true
+}
+
+func (fov *FOV) from(lt Lighter, to gruid.Point) LightNode {
 	var pnodesa [2]LightNode
 	pnodes := pnodesa[:0]
-	pnodes = fov.octantParents(pnodes, src, to)
+	pnodes = fov.octantParents(pnodes, fov.Src, to)
 	switch len(pnodes) {
 	case 0:
 		return LightNode{Cost: -1}
 	case 1:
 		n := pnodes[0]
-		return LightNode{P: n.P, Cost: n.Cost + lt.Cost(src, n.P, to)}
+		return LightNode{P: n.P, Cost: n.Cost + lt.Cost(fov.Src, n.P, to)}
 	default:
 		n := pnodes[0]
 		m := pnodes[1]
-		cost0 := n.Cost + lt.Cost(src, n.P, to)
-		cost1 := m.Cost + lt.Cost(src, m.P, to)
+		cost0 := n.Cost + lt.Cost(fov.Src, n.P, to)
+		cost1 := m.Cost + lt.Cost(fov.Src, m.P, to)
 		if cost0 <= cost1 {
 			return LightNode{P: n.P, Cost: cost0}
 		}
@@ -253,7 +264,7 @@ func (fov *FOV) VisionMap(lt Lighter, src gruid.Point) []LightNode {
 }
 
 func (fov *FOV) visionUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
-	n := fov.From(lt, src, to)
+	n := fov.from(lt, to)
 	if n.Cost >= 0 {
 		fov.LMap[fov.idx(to)] = fovNode{Cost: n.Cost, Idx: fov.Idx}
 		fov.Lighted = append(fov.Lighted, LightNode{P: to, Cost: n.Cost})
@@ -300,7 +311,7 @@ func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point) []LightNode {
 }
 
 func (fov *FOV) lightUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
-	n := fov.From(lt, src, to)
+	n := fov.from(lt, to)
 	if n.Cost < 0 {
 		return
 	}
@@ -361,7 +372,7 @@ func (fov *FOV) Ray(lt Lighter, to gruid.Point) []LightNode {
 	fov.RayCache = fov.RayCache[:0]
 	var n LightNode
 	for to != fov.Src {
-		n = fov.From(lt, fov.Src, to)
+		n = fov.from(lt, to)
 		fov.RayCache = append(fov.RayCache, LightNode{P: to, Cost: n.Cost})
 		to = n.P
 	}
