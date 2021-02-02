@@ -101,6 +101,7 @@ func (eq *EventQueue) Empty() bool {
 // queue.
 func (eq *EventQueue) Filter(fn func(ev Event) bool) {
 	eq.Max = 0
+	eq.Min = -1
 	ievs := []event{}
 	for !eq.Empty() {
 		evr := eq.popIEvent()
