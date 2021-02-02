@@ -185,8 +185,8 @@ func (rep *Replay) handleAction() {
 		rep.auto = !rep.auto
 	case replaySpeedMore:
 		rep.speed *= 2
-		if rep.speed > 16 {
-			rep.speed = 16
+		if rep.speed > 64 {
+			rep.speed = 64
 		}
 	case replaySpeedLess:
 		rep.speed /= 2
