@@ -33,6 +33,7 @@ type pathRange struct {
 	BfUnreachable       int // last maxcost + 1
 	BfEnd               int // bf map last index
 	CCIdx               int // cc map number
+	W                   int // path range width
 }
 
 // GobDecode implements gob.GobDecoder.
@@ -61,6 +62,7 @@ func (pr *PathRange) GobEncode() ([]byte, error) {
 func NewPathRange(rg gruid.Range) *PathRange {
 	pr := &PathRange{}
 	pr.Rg = rg
+	pr.W = pr.Rg.Max.X - pr.Rg.Min.X
 	return pr
 }
 
@@ -76,6 +78,7 @@ func (pr *PathRange) SetRange(rg gruid.Range) {
 	}
 	*pr = PathRange{}
 	pr.Rg = rg
+	pr.W = pr.Rg.Max.X - pr.Rg.Min.X
 }
 
 // Range returns the current PathRange's range of positions.
@@ -85,8 +88,7 @@ func (pr *PathRange) Range() gruid.Range {
 
 func (pr *PathRange) idx(p gruid.Point) int {
 	p = p.Sub(pr.Rg.Min)
-	w := pr.Rg.Max.X - pr.Rg.Min.X
-	return p.Y*w + p.X
+	return p.Y*pr.W + p.X
 }
 
 func (nm nodeMap) get(pr *PathRange, p gruid.Point) *node {
