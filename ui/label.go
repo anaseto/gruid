@@ -7,28 +7,28 @@ import (
 // Label represents a bunch of text in a grid. It may be boxed and provided
 // with a title.
 type Label struct {
-	StyledText  StyledText // label styled text content
+	Content     StyledText // label's styled text content
 	Box         *Box       // draw optional box around the label
 	AdjustWidth bool       // reduce the width of the label if possible
 }
 
 // NewLabel returns a new label with given styled text and AdjustWidth set to
 // true.
-func NewLabel(stt StyledText) *Label {
+func NewLabel(content StyledText) *Label {
 	lb := &Label{
-		StyledText:  stt,
+		Content:     content,
 		AdjustWidth: true,
 	}
 	return lb
 }
 
-// SetText updates the text for the label.
+// SetText updates the text for the label's content, using the same styling.
 func (lb *Label) SetText(text string) {
-	lb.StyledText = lb.StyledText.WithText(text)
+	lb.Content = lb.Content.WithText(text)
 }
 
 func (lb *Label) drawGrid(gd gruid.Grid) gruid.Grid {
-	max := lb.StyledText.Size()
+	max := lb.Content.Size()
 	w, h := max.X, max.Y
 	if lb.Box != nil {
 		ts := lb.Box.Title.Size()
@@ -56,7 +56,7 @@ func (lb *Label) Draw(gd gruid.Grid) gruid.Grid {
 		rg := grid.Range()
 		cgrid = grid.Slice(rg.Shift(1, 1, -1, -1))
 	}
-	cgrid.Fill(gruid.Cell{Rune: ' ', Style: lb.StyledText.Style()})
-	lb.StyledText.Draw(cgrid)
+	cgrid.Fill(gruid.Cell{Rune: ' ', Style: lb.Content.Style()})
+	lb.Content.Draw(cgrid)
 	return grid
 }

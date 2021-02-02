@@ -42,7 +42,7 @@ func newModel(gd gruid.Grid) *model {
 	m.grid = m.grid.Slice(gruid.NewRange(0, 0, 80, 5)) // we only draw in a small part of the grid
 	label := &ui.Label{
 		Box:        &ui.Box{Title: ui.Text("Last Message").WithStyle(st.WithFg(ColorHeader))},
-		StyledText: ui.Text("No input messages yet!"),
+		Content: ui.Text("No input messages yet!"),
 	}
 	m.label = label
 	m.init = true
@@ -62,7 +62,7 @@ func (m *model) Update(msg gruid.Msg) gruid.Effect {
 			return gruid.End()
 		}
 	}
-	m.label.StyledText = ui.Text(fmt.Sprintf("%+v", msg)).Format(78)
+	m.label.Content = ui.Text(fmt.Sprintf("%+v", msg)).Format(78)
 	return nil
 }
 
