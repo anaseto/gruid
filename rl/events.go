@@ -100,19 +100,14 @@ func (eq *EventQueue) Empty() bool {
 // Filter removes events that do not satisfy a given predicate from the event
 // queue.
 func (eq *EventQueue) Filter(fn func(ev Event) bool) {
-	eq.Max = 0
-	eq.Min = -1
-	ievs := []event{}
+	neq := NewEventQueue()
 	for !eq.Empty() {
 		evr := eq.popIEvent()
 		if fn(evr.Event) {
-			ievs = append(ievs, evr)
+			neq.Push(evr.Event, evr.Rank)
 		}
 	}
-	*eq.Queue = (*eq.Queue)[:0]
-	for _, evr := range ievs {
-		eq.Push(evr.Event, evr.Rank)
-	}
+	*eq = *neq
 }
 
 // Pop removes the first element rank-wise (lowest rank) in the event queue and
