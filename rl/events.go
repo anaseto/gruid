@@ -102,7 +102,7 @@ func (eq *EventQueue) Empty() bool {
 func (eq *EventQueue) Filter(fn func(ev Event) bool) {
 	neq := NewEventQueue()
 	for !eq.Empty() {
-		evr := eq.popIEvent()
+		evr := eq.pop()
 		if fn(evr.Event) {
 			neq.Push(evr.Event, evr.Rank)
 		}
@@ -113,11 +113,18 @@ func (eq *EventQueue) Filter(fn func(ev Event) bool) {
 // Pop removes the first element rank-wise (lowest rank) in the event queue and
 // returns it.
 func (eq *EventQueue) Pop() Event {
-	ev := eq.popIEvent()
+	ev := eq.pop()
 	return ev.Event
 }
 
-func (eq *EventQueue) popIEvent() event {
+// PopR removes the first element rank-wise (lowest rank) in the event queue
+// and returns it, along with its rank.
+func (eq *EventQueue) PopR() (Event, int) {
+	ev := eq.pop()
+	return ev.Event, ev.Rank
+}
+
+func (eq *EventQueue) pop() event {
 	evr := heap.Pop(eq.Queue).(event)
 	return evr
 }

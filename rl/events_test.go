@@ -89,3 +89,17 @@ func TestEventsQueueFilter(t *testing.T) {
 		t.Errorf("not empty: %+v", eq)
 	}
 }
+
+func TestEventsQueuePopR(t *testing.T) {
+	eq := NewEventQueue()
+	eq.Push(3, 2)
+	eq.Push(2, 4)
+	n, r := eq.PopR()
+	n = n.(int)
+	if n != 3 {
+		t.Errorf("bad number: %d vs 3", n)
+	}
+	if r != 2 {
+		t.Errorf("bad rank: %d vs 2", r)
+	}
+}
