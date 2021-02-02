@@ -13,14 +13,14 @@ type npath struct {
 	nb Neighbors
 }
 
-func (nb npath) Neighbors(p gruid.Point) []gruid.Point {
-	return nb.nb.All(p, func(q gruid.Point) bool {
+func (np npath) Neighbors(p gruid.Point) []gruid.Point {
+	return np.nb.All(p, func(q gruid.Point) bool {
 		// strange Neighborer that allows only horizontal moves
 		return q.Y == p.Y
 	})
 }
 
-func (nb npath) Cost(p, q gruid.Point) int {
+func (np npath) Cost(p, q gruid.Point) int {
 	return 2
 }
 

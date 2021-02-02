@@ -63,7 +63,7 @@ func TestPathMaps(t *testing.T) {
 	}
 }
 
-func BenchmarkDijktraMapSmall(b *testing.B) {
+func BenchmarkDijkstraMapSmall(b *testing.B) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
 	nb := bpath{&Neighbors{}}
 	for i := 0; i < b.N; i++ {
@@ -71,7 +71,7 @@ func BenchmarkDijktraMapSmall(b *testing.B) {
 	}
 }
 
-func BenchmarkDijktraMapBig(b *testing.B) {
+func BenchmarkDijkstraMapBig(b *testing.B) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
 	nb := bpath{&Neighbors{}}
 	for i := 0; i < b.N; i++ {
