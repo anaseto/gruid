@@ -58,13 +58,14 @@ func (pr *PathRange) BreadthFirstMap(nb Pather, sources []gruid.Point, maxCost i
 			continue
 		}
 		cidx := pr.idx(n.P)
+		cost := pr.BfMap[cidx].Cost
 		for _, q := range nb.Neighbors(n.P) {
 			if !q.In(pr.Rg) {
 				continue
 			}
 			nidx := pr.idx(q)
 			if pr.BfMap[nidx].Idx != pr.BfIdx {
-				c := 1 + pr.BfMap[cidx].Cost
+				c := 1 + cost
 				pr.BfMap[nidx] = bfNode{Idx: pr.BfIdx, Cost: c}
 				pr.BfQueue[qend] = Node{P: q, Cost: c}
 				qend++
