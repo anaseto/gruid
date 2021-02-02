@@ -1,5 +1,15 @@
 This changelog file only lists important changes.
 
+## v0.13.0 - 2020-02-02
+
++ New From method for rl.FOV that allows to get the previous position in a
+  light ray from the current source without having to compute the whole ray.
++ VisionMap and LightMap used a radius parameter: it is moved to the Lighter
+  interface for a more flexible and intuitive API (incompatible change).
++ New ActiveBounds method for ui.Menu that returns the range occupied by the
+  active entry.
++ Improve SetScale handling in sdl driver.
+
 ## v0.12.0 - 2020-01-25
 
 + Add String methods for Point, Range and Grid types in gruid package.
