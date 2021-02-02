@@ -24,6 +24,44 @@ func TestEventsQueuePush(t *testing.T) {
 	}
 }
 
+func TestEventsQueuePushLast(t *testing.T) {
+	eq := NewEventQueue()
+	eq.Push(3, 1)
+	eq.Push(1, 1)
+	eq.Push(2, 1)
+	n := eq.Pop().(int)
+	if n != 3 {
+		t.Errorf("bad number: %d", n)
+	}
+	n = eq.Pop().(int)
+	if n != 1 {
+		t.Errorf("bad number: %d", n)
+	}
+	n = eq.Pop().(int)
+	if n != 2 {
+		t.Errorf("bad number: %d", n)
+	}
+}
+
+func TestEventsQueuePushFirst(t *testing.T) {
+	eq := NewEventQueue()
+	eq.PushFirst(3, 1)
+	eq.PushFirst(1, 1)
+	eq.PushFirst(2, 1)
+	n := eq.Pop().(int)
+	if n != 2 {
+		t.Errorf("bad number: %d", n)
+	}
+	n = eq.Pop().(int)
+	if n != 1 {
+		t.Errorf("bad number: %d", n)
+	}
+	n = eq.Pop().(int)
+	if n != 3 {
+		t.Errorf("bad number: %d", n)
+	}
+}
+
 func TestEventsQueueFilter(t *testing.T) {
 	eq := NewEventQueue()
 	eq.Push(3, 1)

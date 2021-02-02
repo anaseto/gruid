@@ -33,7 +33,8 @@ type EventQueue struct {
 
 type eventQueue struct {
 	Queue *evSliceQueue
-	Idx   int
+	Max   int // maximum secondary rank
+	Min   int // minimum secondary rank
 }
 
 // NewEventQueue returns a new EventQueue suitable for use.
@@ -42,6 +43,7 @@ func NewEventQueue() *EventQueue {
 	heap.Init(q)
 	return &EventQueue{eventQueue{
 		Queue: q,
+		Min:   -1,
 	}}
 }
 
@@ -66,13 +68,25 @@ func (eq *EventQueue) GobEncode() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-// Push adds a new event to the heap with a given rank. Events with the same
-// rank are processed in a first-in first-out order.
+// Push adds a new event to the heap with a given rank. Previously queued
+// events with same rank will be out first.
 func (eq *EventQueue) Push(ev Event, rank int) {
-	evr := event{Event: ev, Rank: rank, Idx: eq.Idx}
-	eq.Idx++
+	evr := event{Event: ev, Rank: rank, Idx: eq.Max}
+	eq.Max++
 	heap.Push(eq.Queue, evr)
-	if eq.Idx+1 < 0 {
+	if eq.Max+1 < 0 {
+		// should not happen in practical situations
+		eq.Filter(func(ev Event) bool { return true })
+	}
+}
+
+// PushFirst adds a new event to the heap with a given rank. It will be out
+// before other events of same rank previously queued.
+func (eq *EventQueue) PushFirst(ev Event, rank int) {
+	evr := event{Event: ev, Rank: rank, Idx: eq.Min}
+	eq.Min--
+	heap.Push(eq.Queue, evr)
+	if eq.Min-1 > 0 {
 		// should not happen in practical situations
 		eq.Filter(func(ev Event) bool { return true })
 	}
@@ -86,7 +100,7 @@ func (eq *EventQueue) Empty() bool {
 // Filter removes events that do not satisfy a given predicate from the event
 // queue.
 func (eq *EventQueue) Filter(fn func(ev Event) bool) {
-	eq.Idx = 0
+	eq.Max = 0
 	ievs := []event{}
 	for !eq.Empty() {
 		evr := eq.popIEvent()
@@ -103,7 +117,8 @@ func (eq *EventQueue) Filter(fn func(ev Event) bool) {
 // Pop removes the first element rank-wise (lowest rank) in the event queue and
 // returns it.
 func (eq *EventQueue) Pop() Event {
-	return eq.popIEvent().Event
+	ev := eq.popIEvent()
+	return ev.Event
 }
 
 func (eq *EventQueue) popIEvent() event {
