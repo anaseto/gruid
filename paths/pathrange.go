@@ -92,9 +92,10 @@ func (pr *PathRange) idx(p gruid.Point) int {
 }
 
 func (nm nodeMap) get(pr *PathRange, p gruid.Point) *node {
-	n := &nm.Nodes[pr.idx(p)]
+	idx := pr.idx(p)
+	n := &nm.Nodes[idx]
 	if n.CacheIndex != nm.Idx {
-		nm.Nodes[pr.idx(p)] = node{P: p, CacheIndex: nm.Idx}
+		nm.Nodes[idx] = node{P: p, CacheIndex: nm.Idx}
 	}
 	return n
 }
