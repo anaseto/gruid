@@ -7,7 +7,7 @@ package paths
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// pqInit establishes the heap invariants required by the other routines in this package.
+// pqInit establishes the heap invariants required by the other routines in this file.
 // Init is idempotent with respect to the heap invariants
 // and may be called whenever the heap invariants may have been invalidated.
 // The complexity is O(n) where n = h.Len().
