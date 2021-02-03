@@ -124,7 +124,7 @@ type nodeMap struct {
 	Idx   int
 }
 
-// A priorityQueue implements heap.Interface with Node elements.
+// priorityQueue implements a custom heap-like interface with node elements.
 type priorityQueue []*node
 
 func (pq priorityQueue) Len() int {
@@ -141,18 +141,17 @@ func (pq priorityQueue) Swap(i, j int) {
 	pq[j].Idx = j
 }
 
-func (pq *priorityQueue) Push(x interface{}) {
-	n := len(*pq)
-	no := x.(*node)
-	no.Idx = n
-	*pq = append(*pq, no)
+func (pq *priorityQueue) Push(n *node) {
+	i := len(*pq)
+	n.Idx = i
+	*pq = append(*pq, n)
 }
 
-func (pq *priorityQueue) Pop() interface{} {
+func (pq *priorityQueue) Pop() *node {
 	old := *pq
-	n := len(old)
-	no := old[n-1]
-	no.Idx = -1
-	*pq = old[0 : n-1]
-	return no
+	i := len(old)
+	n := old[i-1]
+	n.Idx = -1
+	*pq = old[0 : i-1]
+	return n
 }

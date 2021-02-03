@@ -1,8 +1,6 @@
 package paths
 
 import (
-	"container/heap"
-
 	"github.com/anaseto/gruid"
 )
 
@@ -47,20 +45,20 @@ func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost in
 	defer checkNodesIdx(nm)
 	nqs := pr.DijkstraQueue[:0]
 	nq := &nqs
-	heap.Init(nq)
+	pqInit(nq)
 	for _, f := range sources {
 		if !f.In(pr.Rg) {
 			continue
 		}
 		n := nm.get(pr, f)
 		n.Open = true
-		heap.Push(nq, n)
+		pqPush(nq, n)
 	}
 	for {
 		if nq.Len() == 0 {
 			return pr.DijkstraIterNodes
 		}
-		n := heap.Pop(nq).(*node)
+		n := pqPop(nq)
 		n.Open = false
 		n.Closed = true
 		pr.DijkstraIterNodes = append(pr.DijkstraIterNodes, Node{P: n.P, Cost: n.Cost})
@@ -76,7 +74,7 @@ func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost in
 			nbNode := nm.get(pr, nb)
 			if cost < nbNode.Cost {
 				if nbNode.Open {
-					heap.Remove(nq, nbNode.Idx)
+					pqRemove(nq, nbNode.Idx)
 				}
 				nbNode.Open = false
 				nbNode.Closed = false
@@ -85,7 +83,7 @@ func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost in
 				nbNode.Cost = cost
 				nbNode.Open = true
 				nbNode.Rank = cost
-				heap.Push(nq, nbNode)
+				pqPush(nq, nbNode)
 			}
 		}
 	}

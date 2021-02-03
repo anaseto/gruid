@@ -24,8 +24,6 @@
 package paths
 
 import (
-	"container/heap"
-
 	"github.com/anaseto/gruid"
 )
 
@@ -58,18 +56,18 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 	defer checkNodesIdx(nm)
 	nqs := pr.AstarQueue[:0]
 	nq := &nqs
-	heap.Init(nq)
+	pqInit(nq)
 	fromNode := nm.get(pr, from)
 	fromNode.Open = true
 	num := 0
 	fromNode.Num = num
-	heap.Push(nq, fromNode)
+	pqPush(nq, fromNode)
 	for {
 		if nq.Len() == 0 {
 			// There's no path.
 			return nil
 		}
-		n := heap.Pop(nq).(*node)
+		n := pqPop(nq)
 		n.Open = false
 		n.Closed = true
 
@@ -98,7 +96,7 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 			nbNode := nm.get(pr, nb)
 			if cost < nbNode.Cost {
 				if nbNode.Open {
-					heap.Remove(nq, nbNode.Idx)
+					pqRemove(nq, nbNode.Idx)
 				}
 				nbNode.Open = false
 				nbNode.Closed = false
@@ -110,7 +108,7 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 				nbNode.Parent = &n.P
 				num++
 				nbNode.Num = num
-				heap.Push(nq, nbNode)
+				pqPush(nq, nbNode)
 			}
 		}
 	}
