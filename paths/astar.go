@@ -88,12 +88,12 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 			return path
 		}
 
-		for _, nb := range ast.Neighbors(n.P) {
-			if !nb.In(pr.Rg) {
+		for _, q := range ast.Neighbors(n.P) {
+			if !q.In(pr.Rg) {
 				continue
 			}
-			cost := n.Cost + ast.Cost(n.P, nb)
-			nbNode := nm.get(pr, nb)
+			cost := n.Cost + ast.Cost(n.P, q)
+			nbNode := nm.get(pr, q)
 			if cost < nbNode.Cost {
 				if nbNode.Open {
 					pqRemove(nq, nbNode.Idx)
@@ -104,7 +104,7 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 			if !nbNode.Open && !nbNode.Closed {
 				nbNode.Cost = cost
 				nbNode.Open = true
-				nbNode.Rank = cost + ast.Estimation(nb, to)
+				nbNode.Rank = cost + ast.Estimation(q, to)
 				nbNode.Parent = &n.P
 				num++
 				nbNode.Num = num

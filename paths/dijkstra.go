@@ -63,15 +63,15 @@ func (pr *PathRange) DijkstraMap(dij Dijkstra, sources []gruid.Point, maxCost in
 		n.Closed = true
 		pr.DijkstraIterNodes = append(pr.DijkstraIterNodes, Node{P: n.P, Cost: n.Cost})
 
-		for _, nb := range dij.Neighbors(n.P) {
-			if !nb.In(pr.Rg) {
+		for _, q := range dij.Neighbors(n.P) {
+			if !q.In(pr.Rg) {
 				continue
 			}
-			cost := n.Cost + dij.Cost(n.P, nb)
+			cost := n.Cost + dij.Cost(n.P, q)
 			if cost > maxCost {
 				continue
 			}
-			nbNode := nm.get(pr, nb)
+			nbNode := nm.get(pr, q)
 			if cost < nbNode.Cost {
 				if nbNode.Open {
 					pqRemove(nq, nbNode.Idx)
