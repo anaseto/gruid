@@ -44,7 +44,7 @@ type Astar interface {
 	Estimation(gruid.Point, gruid.Point) int
 }
 
-// AstarPath return a path from a position to another, including thoses
+// AstarPath returns a path from a position to another, including thoses
 // positions, in the path order. It returns nil if no path was found.
 func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 	if !from.In(pr.Rg) || !to.In(pr.Rg) {
@@ -59,8 +59,7 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 	pqInit(nq)
 	fromNode := nm.get(pr, from)
 	fromNode.Open = true
-	num := 0
-	fromNode.Num = num
+	fromNode.Estimation = ast.Estimation(from, to)
 	pqPush(nq, fromNode)
 	for {
 		if nq.Len() == 0 {
@@ -75,12 +74,13 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 			// Found a path to the goal.
 			path := []gruid.Point{}
 			pn := n
+			zp := gruid.Point{}
 			for {
 				path = append(path, pn.P)
-				if pn.Parent == nil {
+				if pn.Dir == zp {
 					break
 				}
-				pn = nm.at(pr, *pn.Parent)
+				pn = nm.at(pr, pn.P.Sub(pn.Dir))
 			}
 			for i := range path[:len(path)/2] {
 				path[i], path[len(path)-i-1] = path[len(path)-i-1], path[i]
@@ -104,10 +104,9 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 			if !nbNode.Open && !nbNode.Closed {
 				nbNode.Cost = cost
 				nbNode.Open = true
-				nbNode.Rank = cost + ast.Estimation(q, to)
-				nbNode.Parent = &n.P
-				num++
-				nbNode.Num = num
+				nbNode.Estimation = ast.Estimation(q, to)
+				nbNode.Rank = cost + nbNode.Estimation
+				nbNode.Dir = q.Sub(n.P)
 				pqPush(nq, nbNode)
 			}
 		}

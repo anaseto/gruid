@@ -103,10 +103,53 @@ func BenchmarkAstar(b *testing.B) {
 	}
 }
 
-func BenchmarkShortPath(b *testing.B) {
+func BenchmarkAstarShortPath(b *testing.B) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
 	nb := bpath{&Neighbors{}}
 	for i := 0; i < b.N; i++ {
 		pr.AstarPath(nb, gruid.Point{X: 2, Y: 2}, gruid.Point{X: 15, Y: 10})
+	}
+}
+
+type apath struct {
+	nb       *Neighbors
+	passable func(gruid.Point) bool
+	diags    bool
+}
+
+func (ap apath) Neighbors(p gruid.Point) []gruid.Point {
+	if ap.diags {
+		return ap.nb.All(p, func(q gruid.Point) bool {
+			return ap.passable(q)
+		})
+	}
+	return ap.nb.Cardinal(p, func(q gruid.Point) bool {
+		return ap.passable(q)
+	})
+}
+
+func (ap apath) Cost(p, q gruid.Point) int {
+	return 1
+}
+
+func (ap apath) Estimation(p, q gruid.Point) int {
+	p = p.Sub(q)
+	return max(abs(p.X), abs(p.Y))
+	//return abs(p.X) + abs(p.Y)
+}
+
+func BenchmarkAstarPassable1(b *testing.B) {
+	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
+	ap := apath{nb: &Neighbors{}, passable: passable1, diags: true}
+	for i := 0; i < b.N; i++ {
+		pr.AstarPath(ap, gruid.Point{X: 2, Y: 2}, gruid.Point{X: 70, Y: 20})
+	}
+}
+
+func BenchmarkAstarPassable1NoDiags(b *testing.B) {
+	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
+	ap := apath{nb: &Neighbors{}, passable: passable1}
+	for i := 0; i < b.N; i++ {
+		pr.AstarPath(ap, gruid.Point{X: 2, Y: 2}, gruid.Point{X: 70, Y: 20})
 	}
 }

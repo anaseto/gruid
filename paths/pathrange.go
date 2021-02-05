@@ -1,4 +1,5 @@
-// Package paths provides utilities for efficient pathfinding in rectangular maps.
+// Package paths provides utilities for efficient pathfinding in rectangular
+// maps.
 package paths
 
 import (
@@ -17,6 +18,8 @@ type PathRange struct {
 }
 
 type pathRange struct {
+	diags               bool                   // JPS diagonal movement
+	passable            func(gruid.Point) bool // JPS passable function
 	AstarNodes          *nodeMap
 	DijkstraNodes       *nodeMap // dijkstra map
 	DijkstraIterNodes   []Node
@@ -109,14 +112,14 @@ func (nm nodeMap) at(pr *PathRange, p gruid.Point) *node {
 }
 
 type node struct {
-	Parent     *gruid.Point
+	Dir        gruid.Point
 	Open       bool
 	Closed     bool
 	P          gruid.Point
 	Cost       int
 	Rank       int
 	Idx        int
-	Num        int
+	Estimation int
 	CacheIndex int
 }
 
@@ -133,7 +136,7 @@ func (pq priorityQueue) Len() int {
 }
 
 func (pq priorityQueue) Less(i, j int) bool {
-	return pq[i].Rank < pq[j].Rank || pq[i].Rank == pq[j].Rank && pq[i].Num < pq[j].Num
+	return pq[i].Rank < pq[j].Rank || pq[i].Rank == pq[j].Rank && pq[i].Estimation < pq[j].Estimation
 }
 
 func (pq priorityQueue) Swap(i, j int) {

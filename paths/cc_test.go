@@ -24,13 +24,6 @@ func (np npath) Cost(p, q gruid.Point) int {
 	return 2
 }
 
-func abs(x int) int {
-	if x < 0 {
-		return -x
-	}
-	return x
-}
-
 func (nb npath) Estimation(p, q gruid.Point) int {
 	r := p.Sub(q)
 	return abs(r.X) + abs(r.Y)
@@ -150,7 +143,8 @@ func (bp bpath) Cost(p, q gruid.Point) int {
 
 func (bp bpath) Estimation(p, q gruid.Point) int {
 	p = p.Sub(q)
-	return abs(p.X) + abs(p.Y)
+	return max(abs(p.X), abs(p.Y))
+	//return abs(p.X) + abs(p.Y)
 }
 
 func BenchmarkCCMapAll(b *testing.B) {

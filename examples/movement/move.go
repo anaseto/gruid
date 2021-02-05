@@ -282,10 +282,7 @@ func (m *model) stopAuto() {
 
 // pathSet updates the path from player to a new position.
 func (m *model) pathSet(p gruid.Point) {
-	pp := &playerPath{}
-	pp.neighbors = &paths.Neighbors{}
-	pp.mapgd = m.mapgd
-	m.path = m.pr.AstarPath(pp, m.playerPos, p)
+	m.path = m.pr.JPSPath(m.path, m.playerPos, p, m.passable, false)
 }
 
 // pathNext moves the player to next position in the path, updates the path
@@ -300,31 +297,12 @@ func (m *model) pathNext() gruid.Cmd {
 	return automoveCmd(m.move.delta)
 }
 
-// playerPath implements paths.Astar interface.
-type playerPath struct {
-	neighbors *paths.Neighbors
-	mapgd     rl.Grid
-}
-
-func (pp *playerPath) Neighbors(p gruid.Point) []gruid.Point {
-	return pp.neighbors.Cardinal(p, func(q gruid.Point) bool {
-		if !pp.mapgd.Contains(q) {
-			return false
-		}
-		c := pp.mapgd.At(q)
-		return explored(c) && cell(c) != Wall
-	})
-}
-
-func (pp *playerPath) Cost(p, q gruid.Point) int {
-	return 1
-}
-
-func (pp *playerPath) Estimation(p, q gruid.Point) int {
-	// The manhattan distance corresponds here to the optimal distance and
-	// is hence an acceptable estimation for astar.
-	p = p.Sub(q)
-	return abs(p.X) + abs(p.Y)
+func (m *model) passable(p gruid.Point) bool {
+	if !m.mapgd.Contains(p) {
+		return false
+	}
+	c := m.mapgd.At(p)
+	return explored(c) && cell(c) != Wall
 }
 
 // walker implements rl.RandomWalker.

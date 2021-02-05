@@ -53,11 +53,11 @@ func pqRemove(h *priorityQueue, i int) *node {
 // Changing the value of the element at index i and then calling Fix is equivalent to,
 // but less expensive than, calling Remove(h, i) followed by a Push of the new value.
 // The complexity is O(log n) where n = h.Len().
-func pqFix(h *priorityQueue, i int) {
-	if !down(h, i, h.Len()) {
-		up(h, i)
-	}
-}
+//func pqFix(h *priorityQueue, i int) {
+//if !down(h, i, h.Len()) {
+//up(h, i)
+//}
+//}
 
 func up(h *priorityQueue, j int) {
 	for {
