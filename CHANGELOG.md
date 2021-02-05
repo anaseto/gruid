@@ -1,5 +1,17 @@
 This changelog file only lists important changes.
 
+## v0.14.0 - 2020-02-05
+
++ New JPSPath function in paths packages for really fast pathfinding on a grid
+  using the JPS algorithm.
++ Some improvements in Astar and Dijkstra algorithms performance.
++ New PopR method for rl.EventQueue, that returns an
+  event along with its rank
++ New PushFirst method for rl.EventQueue that pushes an event to the queue in
+  LIFO position among events of same rank, instead of FIFO (Push).
++ Renamed ui.Label's StyledText field to more fitting Content: StyledText was
+  too vague, as the label's title is also a StyledText (incompatible change).
+
 ## v0.13.0 - 2020-02-02
 
 + New From method for rl.FOV that allows to get the previous position in a
@@ -88,7 +100,7 @@ idiomatic.  Incompatible changes are mentioned as such below.
 ## v0.6.0 - 2020-01-04
 
 + New field of view algorithm in rl package.
-+ Add configurable map generation algoritms in rl package: RandomWalkCave and
++ Add configurable map generation algorithms in rl package: RandomWalkCave and
   CellularAutomataCave.
 
 ## v0.5.0 - 2020-01-02
