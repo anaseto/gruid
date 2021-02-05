@@ -176,11 +176,11 @@ func (pr *PathRange) jumpStraight(p, dir, to gruid.Point) (gruid.Point, int) {
 		return pr.jumpStraightLeft(p, dir, to, max)
 	default:
 		for i := 1; i < max+1; i++ {
-			if p == to {
-				return p, i
-			}
 			if !pr.passable(p) {
 				return p, 0
+			}
+			if p == to {
+				return p, i
 			}
 			np := p.Add(dir)
 			if q := left(p, dir); !pr.passable(q) && pr.pass(q.Add(dir)) {
@@ -197,11 +197,11 @@ func (pr *PathRange) jumpStraight(p, dir, to gruid.Point) (gruid.Point, int) {
 
 func (pr *PathRange) jumpStraightNone(p, dir, to gruid.Point, max int) (gruid.Point, int) {
 	for i := 1; i < max+1; i++ {
-		if p == to {
-			return p, i
-		}
 		if !pr.passable(p) {
 			return p, 0
+		}
+		if p == to {
+			return p, i
 		}
 		p = p.Add(dir)
 	}
@@ -210,11 +210,11 @@ func (pr *PathRange) jumpStraightNone(p, dir, to gruid.Point, max int) (gruid.Po
 
 func (pr *PathRange) jumpStraightLeft(p, dir, to gruid.Point, max int) (gruid.Point, int) {
 	for i := 1; i < max+1; i++ {
-		if p == to {
-			return p, i
-		}
 		if !pr.passable(p) {
 			return p, 0
+		}
+		if p == to {
+			return p, i
 		}
 		np := p.Add(dir)
 		if q := left(p, dir); !pr.passable(q) && pr.pass(q.Add(dir)) {
@@ -227,11 +227,11 @@ func (pr *PathRange) jumpStraightLeft(p, dir, to gruid.Point, max int) (gruid.Po
 
 func (pr *PathRange) jumpStraightRight(p, dir, to gruid.Point, max int) (gruid.Point, int) {
 	for i := 1; i < max+1; i++ {
-		if p == to {
-			return p, i
-		}
 		if !pr.passable(p) {
 			return p, 0
+		}
+		if p == to {
+			return p, i
 		}
 		np := p.Add(dir)
 		if q := right(p, dir); !pr.passable(q) && pr.pass(q.Add(dir)) {
@@ -253,11 +253,11 @@ func (pr *PathRange) jumpStraightNoDiags(p, dir, to gruid.Point) (gruid.Point, i
 		return pr.jumpStraightLeftNoDiags(p, dir, to, max)
 	default:
 		for i := 1; i < max+1; i++ {
-			if p == to {
-				return p, i
-			}
 			if !pr.passable(p) {
 				return p, 0
+			}
+			if p == to {
+				return p, i
 			}
 			np := p.Add(dir)
 			if q := left(p, dir); !pr.passable(q) {
@@ -278,11 +278,11 @@ func (pr *PathRange) jumpStraightNoDiags(p, dir, to gruid.Point) (gruid.Point, i
 
 func (pr *PathRange) jumpStraightLeftNoDiags(p, dir, to gruid.Point, max int) (gruid.Point, int) {
 	for i := 1; i < max+1; i++ {
-		if p == to {
-			return p, i
-		}
 		if !pr.passable(p) {
 			return p, 0
+		}
+		if p == to {
+			return p, i
 		}
 		np := p.Add(dir)
 		if q := left(p, dir); !pr.passable(q) {
@@ -297,11 +297,11 @@ func (pr *PathRange) jumpStraightLeftNoDiags(p, dir, to gruid.Point, max int) (g
 
 func (pr *PathRange) jumpStraightRightNoDiags(p, dir, to gruid.Point, max int) (gruid.Point, int) {
 	for i := 1; i < max+1; i++ {
-		if p == to {
-			return p, i
-		}
 		if !pr.passable(p) {
 			return p, 0
+		}
+		if p == to {
+			return p, i
 		}
 		np := p.Add(dir)
 		if q := right(p, dir); !pr.passable(q) {
@@ -317,11 +317,11 @@ func (pr *PathRange) jumpStraightRightNoDiags(p, dir, to gruid.Point, max int) (
 func (pr *PathRange) jumpDiagonal(p, dir, to gruid.Point) (gruid.Point, int) {
 	i := 1
 	for {
-		if p == to {
-			return p, i
-		}
 		if !pr.pass(p) {
 			return p, 0
+		}
+		if p == to {
+			return p, i
 		}
 		if q := p.Shift(-dir.X, 0); pr.obstacle(q) {
 			if pr.pass(p.Add(gruid.Point{-dir.X, dir.Y})) {
@@ -347,7 +347,7 @@ func (pr *PathRange) jumpDiagonal(p, dir, to gruid.Point) (gruid.Point, int) {
 }
 
 func (pr *PathRange) jumpDiagonalNoDiags(p, dir, to gruid.Point) (gruid.Point, int) {
-	i := 2 // diagonals cost 2 (two cordinal movements)
+	i := 2 // diagonals cost 2 (two cardinal movements)
 	for {
 		if !pr.pass(p) {
 			return p, 0
@@ -389,11 +389,8 @@ func (pr *PathRange) jumpDiagonalNoDiags(p, dir, to gruid.Point) (gruid.Point, i
 // appropiate successor, skipping nodes that do not require being added to the
 // open list.
 func (pr *PathRange) jump(p, dir, to gruid.Point) (gruid.Point, int) {
-	switch dir {
-	case gruid.Point{-1, 0},
-		gruid.Point{1, 0},
-		gruid.Point{0, 1},
-		gruid.Point{0, -1}:
+	switch {
+	case dir.X == 0 || dir.Y == 0:
 		return pr.jumpStraight(p, dir, to)
 	default:
 		return pr.jumpDiagonal(p, dir, to)
@@ -405,11 +402,8 @@ func (pr *PathRange) jump(p, dir, to gruid.Point) (gruid.Point, int) {
 // jumps and diagonal forced neighbors are only processed if they are doable
 // using two cardinal movements.
 func (pr *PathRange) jumpNoDiags(p, dir, to gruid.Point) (gruid.Point, int) {
-	switch dir {
-	case gruid.Point{-1, 0},
-		gruid.Point{1, 0},
-		gruid.Point{0, 1},
-		gruid.Point{0, -1}:
+	switch {
+	case dir.X == 0 || dir.Y == 0:
 		return pr.jumpStraightNoDiags(p, dir, to)
 	default:
 		return pr.jumpDiagonalNoDiags(p, dir, to)
@@ -424,11 +418,8 @@ func (pr *PathRange) jumpNoDiags(p, dir, to gruid.Point) (gruid.Point, int) {
 // practice, because in most situations JPS adds very few nodes to the open
 // list, so this function is not called very often, and so is not a bottleneck.
 func (pr *PathRange) neighbors(neighbors []gruid.Point, n *node, to gruid.Point) []gruid.Point {
-	switch n.Dir {
-	case gruid.Point{-1, 0},
-		gruid.Point{1, 0},
-		gruid.Point{0, 1},
-		gruid.Point{0, -1}:
+	switch {
+	case n.Dir.X == 0 || n.Dir.Y == 0:
 		neighbors = append(neighbors, n.P.Add(n.Dir))
 		if q := left(n.P, n.Dir); !pr.pass(q) {
 			if pr.diags || pr.pass(n.P.Add(n.Dir)) {
@@ -444,10 +435,7 @@ func (pr *PathRange) neighbors(neighbors []gruid.Point, n *node, to gruid.Point)
 				pr.addSuccessor(p, p.Sub(n.P), to, n.Cost+cost)
 			}
 		}
-	case gruid.Point{-1, -1},
-		gruid.Point{1, -1},
-		gruid.Point{-1, 1},
-		gruid.Point{1, 1}:
+	default:
 		diag := false
 		q0 := n.P.Shift(n.Dir.X, 0)
 		q1 := n.P.Shift(0, n.Dir.Y)
@@ -523,11 +511,7 @@ loop:
 			break loop
 		}
 		if !pr.diags {
-			switch dir {
-			case gruid.Point{-1, -1},
-				gruid.Point{1, -1},
-				gruid.Point{-1, 1},
-				gruid.Point{1, 1}:
+			if dir.X != 0 && dir.Y != 0 {
 				if px := p.Sub(gruid.Point{dir.X, 0}); pr.pass(px) {
 					path = append(path, px)
 				} else if py := p.Sub(gruid.Point{0, dir.Y}); pr.pass(py) {
