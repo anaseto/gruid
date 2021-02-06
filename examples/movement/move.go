@@ -168,8 +168,18 @@ func (m *model) MovePlayer(to gruid.Point) {
 	m.playerPos = to
 	lt := &lighter{mapgd: m.mapgd}
 	// We mark cells in field of view as explored.
+	passable := func(p gruid.Point) bool {
+		return cell(m.mapgd.At(p)) != Wall
+	}
+	// We combine symmetric shadow casting (SSC) with the default vision
+	// algoritm (VisionMap), so that we obtain an SSC-like vision adapted
+	// to 4-way movement. VisionMap also has the advantage of offering
+	// weights, for example allowing to create obstacles that reduce line
+	// of sight range without blocking it completely (though we don't do
+	// that in this example).
+	m.fov.SSCVisionMap(m.playerPos, maxLOS, passable)
 	for _, ln := range m.fov.VisionMap(lt, m.playerPos) {
-		if ln.Cost >= maxLOS {
+		if ln.Cost >= maxLOS || !m.fov.Visible(ln.P) {
 			continue
 		}
 		c := m.mapgd.At(ln.P)
@@ -378,7 +388,7 @@ func abs(x int) int {
 func (m *model) Draw() gruid.Grid {
 	m.mapgd.Iter(func(p gruid.Point, c rl.Cell) {
 		st := gruid.Style{}
-		if cost, ok := m.fov.At(p); ok && cost < maxLOS {
+		if cost, ok := m.fov.At(p); ok && cost < maxLOS && m.fov.Visible(p) {
 			st = st.WithFg(ColorLOS)
 		} else {
 			st = st.WithBg(ColorDark)

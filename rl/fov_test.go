@@ -9,7 +9,7 @@ import (
 const maxLOS = 10
 
 func TestFOV(t *testing.T) {
-	fov := NewFOV(gruid.NewRange(-maxLOS, -maxLOS, maxLOS+1, maxLOS+1))
+	fov := NewFOV(gruid.NewRange(-maxLOS, -maxLOS, maxLOS+2, maxLOS+2))
 	lt := &lighter{max: maxLOS}
 	lns := fov.VisionMap(lt, gruid.Point{0, 0})
 	if len(lns) != (2*maxLOS+1)*(2*maxLOS+1) {
@@ -26,6 +26,20 @@ func TestFOV(t *testing.T) {
 	lns = fov.LightMap(lt, []gruid.Point{{-5, 0}, {5, 0}})
 	if len(lns) != 2*(2*4+1)*(2*4+1) {
 		t.Errorf("bad length: %d vs %d", len(lns), 2*(2*4+1)*(2*4+1))
+	}
+}
+
+func TestFOVSSC(t *testing.T) {
+	fov := NewFOV(gruid.NewRange(-maxLOS, -maxLOS, maxLOS+2, maxLOS+2))
+	fov.SSCVisionMap(gruid.Point{0, 0}, maxLOS, func(p gruid.Point) bool { return true })
+	count := 0
+	fov.Rg.Iter(func(p gruid.Point) {
+		if fov.Visible(p) {
+			count++
+		}
+	})
+	if count != (2*maxLOS+1)*(2*maxLOS+1) {
+		t.Errorf("bad length: %d vs %d", count, (2*maxLOS+1)*(2*maxLOS+1))
 	}
 }
 
@@ -68,6 +82,13 @@ func BenchmarkFOVBig(b *testing.B) {
 	}
 }
 
+func BenchmarkFOVBigSSC(b *testing.B) {
+	fov := NewFOV(gruid.NewRange(0, 0, 80, 24))
+	for i := 0; i < b.N; i++ {
+		fov.SSCVisionMap(gruid.Point{20, 10}, maxLOS, func(p gruid.Point) bool { return true })
+	}
+}
+
 func BenchmarkFOVBigLights(b *testing.B) {
 	fov := NewFOV(gruid.NewRange(0, 0, 80, 24))
 	lt := &lighter{max: 7}
@@ -81,6 +102,13 @@ func BenchmarkFOVBigBig(b *testing.B) {
 	lt := &lighter{max: 50}
 	for i := 0; i < b.N; i++ {
 		fov.VisionMap(lt, gruid.Point{40, 10})
+	}
+}
+
+func BenchmarkFOVBigBigSSC(b *testing.B) {
+	fov := NewFOV(gruid.NewRange(0, 0, 80, 24))
+	for i := 0; i < b.N; i++ {
+		fov.SSCVisionMap(gruid.Point{40, 10}, 50, func(p gruid.Point) bool { return true })
 	}
 }
 

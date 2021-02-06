@@ -1,4 +1,4 @@
-// This file implements a line of sight algorithm.
+// This file implements line of sight algorithms.
 
 package rl
 
@@ -9,22 +9,26 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-// FOV represents a field of vision. With a well-defined Lighter, it has the
-// following properties: symmetric light rays, expansive walls, permissive with
-// blind diagonal corners, simple octant-based geometry, fast computation.
+// FOV represents a field of vision. There are two main algorithms available:
+// VisionMap and SCCVisionMap, and their multiple-source versions. Both
+// algorithms are symmetric (under certain conditions) with expansive walls,
+// and quite fast.
 //
-// The default algorithm works in a way that can remind of the Dijkstra
-// algorithm, but within each cone between a diagonal and an orthogonal axis
-// (an octant), only movements along those two directions are allowed. This
-// allows the algorithm to be a simple pass on squares around the player,
-// starting from radius 1 until line of sight range.
+// The VisionMap method algorithm is more permissive, faster and only produces
+// continuous light rays. Moreover, it allows for non-binary visibility (some
+// obstacles may reduce sight range without blocking it completely).
 //
-// Going from a gruid.Point p to a gruid.Point q has a cost, which depends
-// essentially on the type of terrain in p, and is determined by a Lighter.
+// The SCCVisionMap method algorithm is a symmetric shadow casting algorithm
+// based on:
 //
-// The obtained light rays are lines formed using at most two adjacent
-// directions: a diagonal and an orthogonal one (for example north east and
-// east).
+// 	https://www.albertford.com/shadowcasting/
+//
+// It offers more euclidian-like geometry, less permissive and with expansive
+// shadows, while still being symmetric and fast enough.
+//
+// Both algorithms can be combined to obtain a less permissive version of
+// VisionMap with expansive shadows, while keeping the non-binary visibility
+// information.
 //
 // FOV implements the gob.Decoder and gob.Encoder interfaces for easy
 // serialization.
@@ -38,12 +42,14 @@ type fovNode struct {
 }
 
 type innerFOV struct {
-	LMap     []fovNode
-	Lighted  []LightNode
-	RayCache []LightNode
-	Idx      int         // light map number (for caching)
-	Rg       gruid.Range // range of valid positions
-	Src      gruid.Point
+	LMap          []fovNode
+	Lighted       []LightNode
+	RayCache      []LightNode
+	ShadowCasting []bool      // visibility
+	Idx           int         // light map number (for caching)
+	Rg            gruid.Range // range of valid positions
+	Src           gruid.Point
+	passable      func(gruid.Point) bool
 }
 
 // NewFOV returns new ready to use field of view with a given range of valid
@@ -96,8 +102,9 @@ func (fov *FOV) GobEncode() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-// At returns the total ray cost at a given position from the last source given
-// to VisionMap. It returns a false boolean if the position was out of reach.
+// At returns the total ray cost at a given position from the last source(s)
+// given to VisionMap or LightMap. It returns a false boolean if the position
+// was out of reach.
 func (fov *FOV) At(p gruid.Point) (int, bool) {
 	if !p.In(fov.Rg) || fov.LMap == nil {
 		return 0, false
@@ -107,6 +114,15 @@ func (fov *FOV) At(p gruid.Point) (int, bool) {
 		return node.Cost, false
 	}
 	return node.Cost, true
+}
+
+// Visible returns true if the given position is visible according to the
+// previous SCCVisionMap call.
+func (fov *FOV) Visible(p gruid.Point) bool {
+	if !p.In(fov.Rg) || fov.ShadowCasting == nil {
+		return false
+	}
+	return fov.ShadowCasting[fov.idx(p)]
 }
 
 func (fov *FOV) idx(p gruid.Point) int {
@@ -227,6 +243,19 @@ type Lighter interface {
 // VisionMap builds a field of vision map for a viewer at src. It returns a
 // cached slice of lighted nodes. Values can also be consulted individually
 // with At.
+//
+// The algorithm works in a way that can remind of the Dijkstra algorithm, but
+// within each cone between a diagonal and an orthogonal axis (an octant), only
+// movements along those two directions are allowed. This allows the algorithm
+// to be a simple pass on squares around the player, starting from radius 1
+// until line of sight range.
+//
+// Going from a gruid.Point p to a gruid.Point q has a cost, which depends
+// essentially on the type of terrain in p, and is determined by a Lighter.
+//
+// The obtained light rays are lines formed using at most two adjacent
+// directions: a diagonal and an orthogonal one (for example north east and
+// east).
 func (fov *FOV) VisionMap(lt Lighter, src gruid.Point) []LightNode {
 	fov.Idx++
 	fov.Lighted = fov.Lighted[:0]
@@ -388,4 +417,232 @@ func abs(x int) int {
 		return -x
 	}
 	return x
+}
+
+type row struct {
+	depth      int
+	slopeStart gruid.Point // fractional number
+	slopeEnd   gruid.Point
+}
+
+func (r row) tiles(ts []gruid.Point, colmin, colmax int) []gruid.Point {
+	min := r.depth * r.slopeStart.X
+	div, rem := min/r.slopeStart.Y, min%r.slopeStart.Y
+	min = div
+	switch sign(rem) {
+	case 1:
+		if 2*rem >= r.slopeStart.Y {
+			min = div + 1
+		}
+	case -1:
+		if -2*rem > r.slopeStart.Y {
+			min = div - 1
+		}
+	}
+	max := r.depth * r.slopeEnd.X
+	div, rem = max/r.slopeEnd.Y, max%r.slopeEnd.Y
+	max = div
+	switch sign(rem) {
+	case 1:
+		if 2*rem > r.slopeEnd.Y {
+			max = div + 1
+		}
+	case -1:
+		if -rem*2 >= r.slopeEnd.Y {
+			max = div - 1
+		}
+	}
+	if min < colmin {
+		min = colmin
+	}
+	if max > colmax {
+		max = colmax
+	}
+	for col := min; col < max+1; col++ {
+		ts = append(ts, gruid.Point{r.depth, col})
+	}
+	return ts
+}
+
+func (r row) next() row {
+	r.depth++
+	return r
+}
+
+func (r row) isSymmetric(tile gruid.Point) bool {
+	_, col := tile.X, tile.Y
+	return col*r.slopeStart.Y >= r.depth*r.slopeStart.X &&
+		col*r.slopeEnd.Y <= r.depth*r.slopeEnd.X
+}
+
+func slope(tile gruid.Point) gruid.Point {
+	depth, col := tile.X, tile.Y
+	return gruid.Point{2*col - 1, 2 * depth}
+}
+
+type quadDir int
+
+const (
+	north quadDir = iota
+	east
+	south
+	west
+)
+
+type quadrant struct {
+	dir quadDir
+	p   gruid.Point
+}
+
+func (qt quadrant) transform(tile gruid.Point) gruid.Point {
+	switch qt.dir {
+	case north:
+		return gruid.Point{qt.p.X + tile.Y, qt.p.Y - tile.X}
+	case south:
+		return gruid.Point{qt.p.X + tile.Y, qt.p.Y + tile.X}
+	case east:
+		return gruid.Point{qt.p.X + tile.X, qt.p.Y + tile.Y}
+	default:
+		return gruid.Point{qt.p.X - tile.X, qt.p.Y + tile.Y}
+	}
+}
+
+func (qt quadrant) maxCols(rg gruid.Range) (int, int) {
+	switch qt.dir {
+	case north, south:
+		deltaX := qt.p.X - rg.Min.X
+		deltaY := rg.Max.X - qt.p.X - 1
+		return -deltaX, deltaY
+	default:
+		deltaX := qt.p.Y - rg.Min.Y
+		deltaY := rg.Max.Y - qt.p.Y - 1
+		return -deltaX, deltaY
+	}
+}
+
+func (qt quadrant) maxDepth(rg gruid.Range) int {
+	switch qt.dir {
+	case north:
+		delta := qt.p.Y - rg.Min.Y
+		return delta
+	case south:
+		delta := rg.Max.Y - qt.p.Y - 1
+		return delta
+	case east:
+		delta := rg.Max.X - qt.p.X - 1
+		return delta
+	default:
+		delta := qt.p.X - rg.Min.X
+		return delta
+	}
+}
+
+func (fov *FOV) reveal(qt quadrant, tile gruid.Point) {
+	p := qt.transform(tile)
+	fov.ShadowCasting[fov.idx(p)] = true
+}
+
+const unreachable = 999999 // an unreachable coordinate (a bit hacky, but simpler)
+
+func (fov *FOV) isWall(qt quadrant, tile gruid.Point) bool {
+	if tile.X == unreachable {
+		return false
+	}
+	p := qt.transform(tile)
+	return !fov.passable(p)
+}
+
+func (fov *FOV) isFloor(qt quadrant, tile gruid.Point) bool {
+	if tile.X == unreachable {
+		return false
+	}
+	p := qt.transform(tile)
+	return fov.passable(p)
+}
+
+// Symmetric shadow casting algorithm described here:
+//
+// 	https://www.albertford.com/shadowcasting/
+//
+// Visibility of positions can then be checked with the Visible method.
+// Contrary to VisionMap and LightMap, this algorithm can have some
+// discontinuous rays.
+//
+func (fov *FOV) SSCVisionMap(src gruid.Point, maxDepth int, passable func(p gruid.Point) bool) {
+	if !src.In(fov.Rg) {
+		return
+	}
+	if fov.ShadowCasting == nil {
+		fov.ShadowCasting = make([]bool, fov.Rg.Size().X*fov.Rg.Size().Y)
+	}
+	for i := range fov.ShadowCasting {
+		fov.ShadowCasting[i] = false
+	}
+	tiles := []gruid.Point{}
+	fov.sscVisionMap(src, tiles[:0], maxDepth, passable)
+}
+
+func (fov *FOV) sscVisionMap(src gruid.Point, tiles []gruid.Point, maxDepth int, passable func(p gruid.Point) bool) {
+	fov.passable = passable
+	fov.ShadowCasting[fov.idx(src)] = true
+	for i := 0; i < 4; i++ {
+		qt := quadrant{dir: quadDir(i), p: src}
+		colmin, colmax := qt.maxCols(fov.Rg)
+		dmax := qt.maxDepth(fov.Rg)
+		if dmax > maxDepth {
+			dmax = maxDepth
+		}
+		if dmax == 0 {
+			continue
+		}
+		r := row{
+			depth:      1,
+			slopeStart: gruid.Point{-1, 1},
+			slopeEnd:   gruid.Point{1, 1},
+		}
+		rows := []row{r}
+		for len(rows) > 0 {
+			r := rows[len(rows)-1]
+			rows = rows[:len(rows)-1]
+			ptile := gruid.Point{unreachable, unreachable}
+			for _, tile := range r.tiles(tiles, colmin, colmax) {
+				if fov.isWall(qt, tile) || r.isSymmetric(tile) {
+					fov.reveal(qt, tile)
+				}
+				if fov.isWall(qt, ptile) && fov.isFloor(qt, tile) {
+					r.slopeStart = slope(tile)
+				}
+				if fov.isFloor(qt, ptile) && fov.isWall(qt, tile) {
+					nr := r.next()
+					nr.slopeEnd = slope(tile)
+					if nr.depth <= dmax {
+						rows = append(rows, nr)
+					}
+				}
+				ptile = tile
+			}
+			if fov.isFloor(qt, ptile) {
+				if r.depth < dmax {
+					rows = append(rows, r.next())
+				}
+			}
+		}
+	}
+}
+
+// SSCLightMap is the equivalent of SSCVisionMap with several sources.
+func (fov *FOV) SSCLightMap(srcs []gruid.Point, maxDepth int, passable func(p gruid.Point) bool) {
+	if fov.ShadowCasting == nil {
+		fov.ShadowCasting = make([]bool, fov.Rg.Size().X*fov.Rg.Size().Y)
+	}
+	for i := range fov.ShadowCasting {
+		fov.ShadowCasting[i] = false
+	}
+	tiles := []gruid.Point{}
+	for _, src := range srcs {
+		if !src.In(fov.Rg) {
+			continue
+		}
+		fov.sscVisionMap(src, tiles[:0], maxDepth, passable)
+	}
 }
