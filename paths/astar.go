@@ -74,13 +74,13 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 			// Found a path to the goal.
 			path := []gruid.Point{}
 			pn := n
-			zp := gruid.Point{}
+			path = append(path, pn.P)
 			for {
-				path = append(path, pn.P)
-				if pn.Dir == zp {
+				if pn.P == from {
 					break
 				}
-				pn = nm.at(pr, pn.P.Sub(pn.Dir))
+				pn = nm.at(pr, pn.Parent)
+				path = append(path, pn.P)
 			}
 			for i := range path[:len(path)/2] {
 				path[i], path[len(path)-i-1] = path[len(path)-i-1], path[i]
@@ -106,7 +106,7 @@ func (pr *PathRange) AstarPath(ast Astar, from, to gruid.Point) []gruid.Point {
 				nbNode.Open = true
 				nbNode.Estimation = ast.Estimation(q, to)
 				nbNode.Rank = cost + nbNode.Estimation
-				nbNode.Dir = q.Sub(n.P)
+				nbNode.Parent = n.P
 				pqPush(nq, nbNode)
 			}
 		}

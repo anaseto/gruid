@@ -58,19 +58,7 @@ func BenchmarkJPSPassable1NoDiags(b *testing.B) {
 	}
 }
 
-var logrid gruid.Grid
-
-func init() {
-	logrid = gruid.NewGrid(80, 24)
-}
-
 func TestPassable1Diags(t *testing.T) {
-	logrid.Map(func(p gruid.Point, c gruid.Cell) gruid.Cell {
-		if passable1(p) {
-			return gruid.Cell{Rune: '.'}
-		}
-		return gruid.Cell{Rune: '#'}
-	})
 	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
 	path := []gruid.Point{}
 	patha := []gruid.Point{}
@@ -80,26 +68,10 @@ func TestPassable1Diags(t *testing.T) {
 	if len(path) != len(patha) {
 		t.Errorf("bad path:\n%v\n%v", path, patha)
 	}
-	//logPath(path)
 	//fmt.Printf("%s\n\n", logrid)
 }
 
-func logPath(path []gruid.Point) {
-	for _, p := range path {
-		c := logrid.At(p)
-		if c.Rune == '.' {
-			logrid.Set(p, gruid.Cell{Rune: 'o'})
-		}
-	}
-}
-
 func TestPassable1(t *testing.T) {
-	logrid.Map(func(p gruid.Point, c gruid.Cell) gruid.Cell {
-		if passable1(p) {
-			return gruid.Cell{Rune: '.'}
-		}
-		return gruid.Cell{Rune: '#'}
-	})
 	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
 	path := []gruid.Point{}
 	patha := []gruid.Point{}
@@ -109,6 +81,5 @@ func TestPassable1(t *testing.T) {
 	if len(path) != len(patha) {
 		t.Errorf("bad path:\n%v\n%v", path, patha)
 	}
-	//logPath(path)
 	//fmt.Printf("%s\n\n", logrid)
 }

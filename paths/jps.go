@@ -17,7 +17,7 @@ import (
 // The function returns nil if no path was found.
 //
 // In most situations, JPSPath has significantly better performance than
-// AstarPath. The algorithm limitation is that it only handles uniform costs
+// AstarPath. The algorithm's limitation is that it only handles uniform costs
 // and natural neighbors in grid geometry.
 func (pr *PathRange) JPSPath(path []gruid.Point, from, to gruid.Point, passable func(gruid.Point) bool, diags bool) []gruid.Point {
 	if !from.In(pr.Rg) || !to.In(pr.Rg) {
@@ -37,6 +37,12 @@ func (pr *PathRange) JPSPath(path []gruid.Point, from, to gruid.Point, passable 
 	fromNode.Open = false
 	var neighbors []gruid.Point
 	neighbors = pr.expandOrigin(neighbors, from, to)
+	//logrid.Map(func(p gruid.Point, c gruid.Cell) gruid.Cell {
+	//if passable(p) {
+	//return gruid.Cell{Rune: '.'}
+	//}
+	//return gruid.Cell{Rune: '#'}
+	//})
 	for {
 		if (&pr.AstarQueue).Len() == 0 {
 			// There's no path.
@@ -48,7 +54,9 @@ func (pr *PathRange) JPSPath(path []gruid.Point, from, to gruid.Point, passable 
 		n.Closed = true
 
 		if n.P == to {
-			path = pr.path(path, n)
+			path = pr.path(path, from, n)
+			//logPath(path)
+			//log.Printf("\n%v\n", logrid)
 			return path
 		}
 
@@ -58,12 +66,12 @@ func (pr *PathRange) JPSPath(path []gruid.Point, from, to gruid.Point, passable 
 			var q gruid.Point
 			var i int
 			if pr.diags {
-				q, i = pr.jump(p, dir, to)
+				q, i = pr.jump(p, dir, to, n.Cost)
 			} else {
-				q, i = pr.jumpNoDiags(p, dir, to)
+				q, i = pr.jumpNoDiags(p, dir, to, n.Cost)
 			}
 			if i > 0 {
-				pr.addSuccessor(q, dir, to, n.Cost+i)
+				pr.addSuccessor(q, n.P, to, n.Cost+i)
 			}
 		}
 	}
@@ -85,14 +93,14 @@ func (pr *PathRange) expandOrigin(neighbors []gruid.Point, from, to gruid.Point)
 		if !pr.diags {
 			if dir.X != 0 && dir.Y != 0 {
 				if pr.pass(from.Add(gruid.Point{dir.X, 0})) || pr.pass(from.Add(gruid.Point{0, dir.Y})) {
-					pr.addSuccessor(q, dir, to, 2)
+					pr.addSuccessor(q, from, to, 2)
 				}
 				continue
 			}
-			pr.addSuccessor(q, dir, to, 1)
+			pr.addSuccessor(q, from, to, 1)
 			continue
 		}
-		pr.addSuccessor(q, dir, to, 1)
+		pr.addSuccessor(q, from, to, 1)
 	}
 	return neighbors
 }
@@ -314,8 +322,9 @@ func (pr *PathRange) jumpStraightRightNoDiags(p, dir, to gruid.Point, max int) (
 	return p, 0
 }
 
-func (pr *PathRange) jumpDiagonal(p, dir, to gruid.Point) (gruid.Point, int) {
+func (pr *PathRange) jumpDiagonal(p, dir, to gruid.Point, cost int) (gruid.Point, int) {
 	i := 1
+	from := p.Sub(dir)
 	for {
 		if !pr.pass(p) {
 			return p, 0
@@ -333,21 +342,22 @@ func (pr *PathRange) jumpDiagonal(p, dir, to gruid.Point) (gruid.Point, int) {
 				return p, i
 			}
 		}
-		_, j := pr.jumpStraight(p.Shift(dir.X, 0), gruid.Point{dir.X, 0}, to)
+		q, j := pr.jumpStraight(p.Shift(dir.X, 0), gruid.Point{dir.X, 0}, to)
 		if j > 0 {
-			return p, i
+			pr.addSuccessor(q, from, to, cost+i+j)
 		}
-		_, j = pr.jumpStraight(p.Shift(0, dir.Y), gruid.Point{0, dir.Y}, to)
+		q, j = pr.jumpStraight(p.Shift(0, dir.Y), gruid.Point{0, dir.Y}, to)
 		if j > 0 {
-			return p, i
+			pr.addSuccessor(q, from, to, cost+i+j)
 		}
 		p = p.Add(dir)
 		i++
 	}
 }
 
-func (pr *PathRange) jumpDiagonalNoDiags(p, dir, to gruid.Point) (gruid.Point, int) {
+func (pr *PathRange) jumpDiagonalNoDiags(p, dir, to gruid.Point, cost int) (gruid.Point, int) {
 	i := 2 // diagonals cost 2 (two cardinal movements)
+	from := p.Sub(dir)
 	for {
 		if !pr.pass(p) {
 			return p, 0
@@ -372,13 +382,16 @@ func (pr *PathRange) jumpDiagonalNoDiags(p, dir, to gruid.Point) (gruid.Point, i
 				return p, i
 			}
 		}
-		_, j := pr.jumpStraightNoDiags(p.Shift(dir.X, 0), gruid.Point{dir.X, 0}, to)
+		q, j := pr.jumpStraightNoDiags(p.Shift(dir.X, 0), gruid.Point{dir.X, 0}, to)
+		//_, j := pr.jumpStraightNoDiags(p.Shift(dir.X, 0), gruid.Point{dir.X, 0}, to)
 		if j > 0 {
-			return p, i
+			//return p, i
+			pr.addSuccessor(q, from, to, cost+i+j)
 		}
-		_, j = pr.jumpStraightNoDiags(p.Shift(0, dir.Y), gruid.Point{0, dir.Y}, to)
+		q, j = pr.jumpStraightNoDiags(p.Shift(0, dir.Y), gruid.Point{0, dir.Y}, to)
+		//_, j = pr.jumpStraightNoDiags(p.Shift(0, dir.Y), gruid.Point{0, dir.Y}, to)
 		if j > 0 {
-			return p, i
+			pr.addSuccessor(q, from, to, cost+i+j)
 		}
 		p = p.Add(dir)
 		i += 2
@@ -388,12 +401,12 @@ func (pr *PathRange) jumpDiagonalNoDiags(p, dir, to gruid.Point) (gruid.Point, i
 // jump makes a jump from a position in a given direction in order to find an
 // appropiate successor, skipping nodes that do not require being added to the
 // open list.
-func (pr *PathRange) jump(p, dir, to gruid.Point) (gruid.Point, int) {
+func (pr *PathRange) jump(p, dir, to gruid.Point, cost int) (gruid.Point, int) {
 	switch {
 	case dir.X == 0 || dir.Y == 0:
 		return pr.jumpStraight(p, dir, to)
 	default:
-		return pr.jumpDiagonal(p, dir, to)
+		return pr.jumpDiagonal(p, dir, to, cost)
 	}
 }
 
@@ -401,13 +414,32 @@ func (pr *PathRange) jump(p, dir, to gruid.Point) (gruid.Point, int) {
 // for paths that cannot be diagonal: in practice, this means that diagonal
 // jumps and diagonal forced neighbors are only processed if they are doable
 // using two cardinal movements.
-func (pr *PathRange) jumpNoDiags(p, dir, to gruid.Point) (gruid.Point, int) {
+func (pr *PathRange) jumpNoDiags(p, dir, to gruid.Point, cost int) (gruid.Point, int) {
 	switch {
 	case dir.X == 0 || dir.Y == 0:
 		return pr.jumpStraightNoDiags(p, dir, to)
 	default:
-		return pr.jumpDiagonalNoDiags(p, dir, to)
+		return pr.jumpDiagonalNoDiags(p, dir, to, cost)
 	}
+}
+
+// dirnorm returns a normalized direction between two points, so that
+// directions that aren't cardinal nor diagonal are transformed into the
+// cardinal part (this corresponds to pruned intermediate nodes in diagonal
+// jump).
+func dirnorm(p, q gruid.Point) gruid.Point {
+	dir := q.Sub(p)
+	dx := abs(dir.X)
+	dy := abs(dir.Y)
+	dir = gruid.Point{sign(dir.X), sign(dir.Y)}
+	switch {
+	case dx == dy:
+	case dx > dy:
+		dir.Y = 0
+	default:
+		dir.X = 0
+	}
+	return dir
 }
 
 // neighbors returns the natural neigbors of current node, and adds to the
@@ -418,45 +450,46 @@ func (pr *PathRange) jumpNoDiags(p, dir, to gruid.Point) (gruid.Point, int) {
 // practice, because in most situations JPS adds very few nodes to the open
 // list, so this function is not called very often, and so is not a bottleneck.
 func (pr *PathRange) neighbors(neighbors []gruid.Point, n *node, to gruid.Point) []gruid.Point {
+	dir := dirnorm(n.Parent, n.P)
 	switch {
-	case n.Dir.X == 0 || n.Dir.Y == 0:
-		neighbors = append(neighbors, n.P.Add(n.Dir))
-		if q := left(n.P, n.Dir); !pr.pass(q) {
-			if pr.diags || pr.pass(n.P.Add(n.Dir)) {
-				p := q.Add(n.Dir)
+	case dir.X == 0 || dir.Y == 0:
+		neighbors = append(neighbors, n.P.Add(dir))
+		if q := left(n.P, dir); !pr.pass(q) {
+			if pr.diags || pr.pass(n.P.Add(dir)) {
+				p := q.Add(dir)
 				cost := diagCost(pr.diags)
-				pr.addSuccessor(p, p.Sub(n.P), to, n.Cost+cost)
+				pr.addSuccessor(p, n.P, to, n.Cost+cost)
 			}
 		}
-		if q := right(n.P, n.Dir); !pr.pass(q) {
-			if pr.diags || pr.pass(n.P.Add(n.Dir)) {
-				p := q.Add(n.Dir)
+		if q := right(n.P, dir); !pr.pass(q) {
+			if pr.diags || pr.pass(n.P.Add(dir)) {
+				p := q.Add(dir)
 				cost := diagCost(pr.diags)
-				pr.addSuccessor(p, p.Sub(n.P), to, n.Cost+cost)
+				pr.addSuccessor(p, n.P, to, n.Cost+cost)
 			}
 		}
 	default:
 		diag := false
-		q0 := n.P.Shift(n.Dir.X, 0)
-		q1 := n.P.Shift(0, n.Dir.Y)
+		q0 := n.P.Shift(dir.X, 0)
+		q1 := n.P.Shift(0, dir.Y)
 		if !pr.diags {
 			diag = pr.pass(q0) || pr.pass(q1)
 		}
 		neighbors = append(neighbors, q0)
 		neighbors = append(neighbors, q1)
 		if pr.diags || diag {
-			neighbors = append(neighbors, n.P.Add(n.Dir))
+			neighbors = append(neighbors, n.P.Add(dir))
 		}
-		if q := n.P.Shift(-n.Dir.X, 0); !pr.pass(q) {
-			if pr.diags || pr.pass(n.P.Add(gruid.Point{0, n.Dir.Y})) {
+		if q := n.P.Shift(-dir.X, 0); !pr.pass(q) {
+			if pr.diags || pr.pass(n.P.Add(gruid.Point{0, dir.Y})) {
 				cost := diagCost(pr.diags)
-				pr.addSuccessor(q.Shift(0, n.Dir.Y), gruid.Point{-n.Dir.X, n.Dir.Y}, to, n.Cost+cost)
+				pr.addSuccessor(q.Shift(0, dir.Y), n.P, to, n.Cost+cost)
 			}
 		}
-		if q := n.P.Shift(0, -n.Dir.Y); !pr.pass(q) {
-			if pr.diags || pr.pass(n.P.Add(gruid.Point{n.Dir.X, 0})) {
+		if q := n.P.Shift(0, -dir.Y); !pr.pass(q) {
+			if pr.diags || pr.pass(n.P.Add(gruid.Point{dir.X, 0})) {
 				cost := diagCost(pr.diags)
-				pr.addSuccessor(q.Shift(n.Dir.X, 0), gruid.Point{n.Dir.X, -n.Dir.Y}, to, n.Cost+cost)
+				pr.addSuccessor(q.Shift(dir.X, 0), n.P, to, n.Cost+cost)
 			}
 		}
 	}
@@ -470,7 +503,7 @@ func diagCost(diags bool) int {
 	return 2
 }
 
-func (pr *PathRange) addSuccessor(p, dir, to gruid.Point, cost int) {
+func (pr *PathRange) addSuccessor(p, parent, to gruid.Point, cost int) {
 	if !pr.pass(p) {
 		return
 	}
@@ -490,40 +523,54 @@ func (pr *PathRange) addSuccessor(p, dir, to gruid.Point, cost int) {
 		dy := abs(delta.Y)
 		nbNode.Estimation = dx + dy
 		nbNode.Rank = cost + pr.estim(dx, dy)
-		nbNode.Dir = dir
+		nbNode.Parent = parent
 		pqPush(&pr.AstarQueue, nbNode)
 	}
+	return
 }
 
-func (pr *PathRange) path(path []gruid.Point, n *node) []gruid.Point {
-	p := n.P
-	dir := n.Dir
-	count := 0
-loop:
-	for {
-		count++
-		if count > 1000 {
-			break
+// jumpPath adds to the path the points from p (included) to q (excluded)
+// corresponding to a jump (possibly diagonal+straight) from q to p.
+func (pr *PathRange) jumpPath(path []gruid.Point, p, q gruid.Point) []gruid.Point {
+	dir := q.Sub(p)
+	dx := abs(dir.X)
+	dy := abs(dir.Y)
+	dir = gruid.Point{sign(dir.X), sign(dir.Y)}
+	switch {
+	case dx > dy:
+		for i := 0; i < dx-dy; i++ {
+			path = append(path, p)
+			p = p.Add(gruid.Point{dir.X, 0})
 		}
+	case dx < dy:
+		for i := 0; i < dy-dx; i++ {
+			path = append(path, p)
+			p = p.Add(gruid.Point{0, dir.Y})
+		}
+	}
+	for ; p != q; p = p.Add(dir) {
 		path = append(path, p)
-		switch dir {
-		case gruid.Point{0, 0}:
-			break loop
-		}
 		if !pr.diags {
 			if dir.X != 0 && dir.Y != 0 {
-				if px := p.Sub(gruid.Point{dir.X, 0}); pr.pass(px) {
+				if px := p.Add(gruid.Point{dir.X, 0}); pr.pass(px) {
 					path = append(path, px)
-				} else if py := p.Sub(gruid.Point{0, dir.Y}); pr.pass(py) {
+				} else if py := p.Add(gruid.Point{0, dir.Y}); pr.pass(py) {
 					path = append(path, py)
 				}
 			}
 		}
-		p = p.Sub(dir)
-		n = pr.AstarNodes.at(pr, p)
-		if n != nil {
-			dir = n.Dir
+	}
+	return path
+}
+
+func (pr *PathRange) path(path []gruid.Point, from gruid.Point, n *node) []gruid.Point {
+	for {
+		if n.P == from {
+			path = append(path, n.P)
+			break
 		}
+		path = pr.jumpPath(path, n.P, n.Parent)
+		n = pr.AstarNodes.at(pr, n.Parent)
 	}
 	for i := range path[:len(path)/2] {
 		path[i], path[len(path)-i-1] = path[len(path)-i-1], path[i]
@@ -551,3 +598,29 @@ func (pr *PathRange) estim(x, y int) int {
 	}
 	return x + y
 }
+
+func sign(n int) int {
+	var i int
+	switch {
+	case n > 0:
+		i = 1
+	case n < 0:
+		i = -1
+	}
+	return i
+}
+
+//var logrid gruid.Grid
+
+//func init() {
+//logrid = gruid.NewGrid(80, 24)
+//}
+
+//func logPath(path []gruid.Point) {
+//for _, p := range path {
+//c := logrid.At(p)
+//if c.Rune == '.' {
+//logrid.Set(p, gruid.Cell{Rune: 'o'})
+//}
+//}
+//}

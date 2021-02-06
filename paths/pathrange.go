@@ -112,9 +112,9 @@ func (nm nodeMap) at(pr *PathRange, p gruid.Point) *node {
 }
 
 type node struct {
-	Dir        gruid.Point
 	Open       bool
 	Closed     bool
+	Parent     gruid.Point
 	P          gruid.Point
 	Cost       int
 	Rank       int
