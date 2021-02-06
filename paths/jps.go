@@ -23,6 +23,9 @@ func (pr *PathRange) JPSPath(path []gruid.Point, from, to gruid.Point, passable 
 	if !from.In(pr.Rg) || !to.In(pr.Rg) {
 		return nil
 	}
+	if from == to {
+		return append(path, from)
+	}
 	pr.passable = passable
 	pr.diags = diags
 	path = path[:0]
