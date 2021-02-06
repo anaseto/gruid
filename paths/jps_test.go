@@ -62,9 +62,9 @@ func TestPassable1Diags(t *testing.T) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
 	path := []gruid.Point{}
 	patha := []gruid.Point{}
-	path = pr.JPSPath(path, gruid.Point{X: 2, Y: 2}, gruid.Point{X: 70, Y: 20}, passable1, true)
+	path = pr.JPSPath(path, gruid.Point{X: 0, Y: 23}, gruid.Point{X: 79, Y: 23}, passable1, true)
 	ap := apath{nb: &Neighbors{}, passable: passable1, diags: true}
-	patha = pr.AstarPath(ap, gruid.Point{X: 2, Y: 2}, gruid.Point{X: 70, Y: 20})
+	patha = pr.AstarPath(ap, gruid.Point{X: 0, Y: 23}, gruid.Point{X: 79, Y: 23})
 	if len(path) != len(patha) {
 		t.Errorf("bad path:\n%v\n%v", path, patha)
 	}
@@ -75,9 +75,9 @@ func TestPassable1(t *testing.T) {
 	pr := NewPathRange(gruid.NewRange(0, 0, 80, 24))
 	path := []gruid.Point{}
 	patha := []gruid.Point{}
-	path = pr.JPSPath(path, gruid.Point{X: 2, Y: 2}, gruid.Point{X: 70, Y: 20}, passable1, false)
+	path = pr.JPSPath(path, gruid.Point{X: 0, Y: 23}, gruid.Point{X: 79, Y: 23}, passable1, false)
 	ap := apath{nb: &Neighbors{}, passable: passable1}
-	patha = pr.AstarPath(ap, gruid.Point{X: 2, Y: 2}, gruid.Point{X: 70, Y: 20})
+	patha = pr.AstarPath(ap, gruid.Point{X: 0, Y: 23}, gruid.Point{X: 79, Y: 23})
 	if len(path) != len(patha) {
 		t.Errorf("bad path:\n%v\n%v", path, patha)
 	}
