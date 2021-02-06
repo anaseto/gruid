@@ -38,8 +38,8 @@ func (pr *PathRange) JPSPath(path []gruid.Point, from, to gruid.Point, passable 
 	fromNode := nm.get(pr, from)
 	fromNode.Closed = true
 	fromNode.Open = false
-	var neighbors []gruid.Point
-	neighbors = pr.expandOrigin(neighbors, from, to)
+	neighbors := make([]gruid.Point, 0, 8)
+	pr.expandOrigin(from, to)
 	//logrid.Map(func(p gruid.Point, c gruid.Cell) gruid.Cell {
 	//if passable(p) {
 	//return gruid.Cell{Rune: '.'}
@@ -80,32 +80,27 @@ func (pr *PathRange) JPSPath(path []gruid.Point, from, to gruid.Point, passable 
 	}
 }
 
-func (pr *PathRange) expandOrigin(neighbors []gruid.Point, from, to gruid.Point) []gruid.Point {
-	neighbors = append(neighbors,
-		from.Add(gruid.Point{-1, 0}),
-		from.Add(gruid.Point{1, 0}),
-		from.Add(gruid.Point{0, 1}),
-		from.Add(gruid.Point{0, -1}),
-		from.Add(gruid.Point{-1, -1}),
-		from.Add(gruid.Point{1, -1}),
-		from.Add(gruid.Point{-1, 1}),
-		from.Add(gruid.Point{1, 1}),
-	)
-	for _, q := range neighbors {
-		dir := q.Sub(from)
-		if !pr.diags {
-			if dir.X != 0 && dir.Y != 0 {
-				if pr.pass(from.Add(gruid.Point{dir.X, 0})) || pr.pass(from.Add(gruid.Point{0, dir.Y})) {
-					pr.addSuccessor(q, from, to, 2)
+func (pr *PathRange) expandOrigin(from, to gruid.Point) {
+	for y := -1; y <= 1; y++ {
+		for x := -1; x <= 1; x++ {
+			if x == 0 && y == 0 {
+				continue
+			}
+			dir := gruid.Point{x, y}
+			q := from.Add(dir)
+			if !pr.diags {
+				if dir.X != 0 && dir.Y != 0 {
+					if pr.pass(from.Add(gruid.Point{dir.X, 0})) || pr.pass(from.Add(gruid.Point{0, dir.Y})) {
+						pr.addSuccessor(q, from, to, 2)
+					}
+					continue
 				}
+				pr.addSuccessor(q, from, to, 1)
 				continue
 			}
 			pr.addSuccessor(q, from, to, 1)
-			continue
 		}
-		pr.addSuccessor(q, from, to, 1)
 	}
-	return neighbors
 }
 
 func (pr *PathRange) pass(p gruid.Point) bool {
