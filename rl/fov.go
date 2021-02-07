@@ -544,24 +544,6 @@ func (fov *FOV) reveal(qt quadrant, tile gruid.Point) {
 	fov.ShadowCasting[fov.idx(p)] = true
 }
 
-const unreachable = 999999 // an unreachable coordinate (a bit hacky, but simpler)
-
-func (fov *FOV) isWall(qt quadrant, tile gruid.Point) bool {
-	if tile.X == unreachable {
-		return false
-	}
-	p := qt.transform(tile)
-	return !fov.passable(p)
-}
-
-func (fov *FOV) isFloor(qt quadrant, tile gruid.Point) bool {
-	if tile.X == unreachable {
-		return false
-	}
-	p := qt.transform(tile)
-	return fov.passable(p)
-}
-
 // Symmetric shadow casting algorithm described here:
 //
 // 	https://www.albertford.com/shadowcasting/
@@ -596,6 +578,7 @@ func (fov *FOV) sscVisionMap(src gruid.Point, tiles []gruid.Point, maxDepth int,
 		if dmax == 0 {
 			continue
 		}
+		unreachable := maxDepth + 1
 		r := row{
 			depth:      1,
 			slopeStart: gruid.Point{-1, 1},
@@ -605,16 +588,22 @@ func (fov *FOV) sscVisionMap(src gruid.Point, tiles []gruid.Point, maxDepth int,
 		for len(rows) > 0 {
 			r := rows[len(rows)-1]
 			rows = rows[:len(rows)-1]
-			ptile := gruid.Point{unreachable, unreachable}
+			ptile := gruid.Point{unreachable, 0}
 			tiles = r.tiles(tiles[:0], colmin, colmax)
 			for _, tile := range tiles {
-				if fov.isWall(qt, tile) || r.isSymmetric(tile) {
+				wall := !fov.passable(qt.transform(tile))
+				if wall || r.isSymmetric(tile) {
 					fov.reveal(qt, tile)
 				}
-				if fov.isWall(qt, ptile) && fov.isFloor(qt, tile) {
+				if ptile.X == unreachable {
+					ptile = tile
+					continue
+				}
+				pwall := !fov.passable(qt.transform(ptile))
+				if pwall && !wall {
 					r.slopeStart = slope(tile)
 				}
-				if fov.isFloor(qt, ptile) && fov.isWall(qt, tile) {
+				if !pwall && wall {
 					nr := r.next()
 					nr.slopeEnd = slope(tile)
 					if nr.depth <= dmax {
@@ -623,7 +612,10 @@ func (fov *FOV) sscVisionMap(src gruid.Point, tiles []gruid.Point, maxDepth int,
 				}
 				ptile = tile
 			}
-			if fov.isFloor(qt, ptile) {
+			if ptile.X == unreachable {
+				continue
+			}
+			if fov.passable(qt.transform(ptile)) {
 				if r.depth < dmax {
 					rows = append(rows, r.next())
 				}
