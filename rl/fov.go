@@ -53,6 +53,7 @@ type innerFOV struct {
 	Src           gruid.Point
 	passable      func(gruid.Point) bool
 	tiles         []gruid.Point
+	Visibles      []gruid.Point
 	Capacity      int
 }
 
@@ -142,17 +143,11 @@ func (fov *FOV) Iter(fn func(LightNode)) {
 	}
 }
 
-// IterVisible iterates a function on the nodes lighted in the last
-// SCCVisionMap or SCCLightMap.
-func (fov *FOV) IterVisible(fn func(p gruid.Point)) {
-	i := 0
-	for y := fov.Rg.Min.Y; y < fov.Rg.Max.Y; y++ {
-		for x := fov.Rg.Min.X; x < fov.Rg.Max.X; x++ {
-			if fov.ShadowCasting[i] {
-				fn(gruid.Point{x, y})
-			}
-			i++
-		}
+// IterSCC iterates a function on the nodes lighted in the last SCCVisionMap or
+// SCCLightMap.
+func (fov *FOV) IterSCC(fn func(p gruid.Point)) {
+	for _, p := range fov.Visibles {
+		fn(p)
 	}
 }
 
@@ -561,19 +556,24 @@ func (qt quadrant) maxDepth(rg gruid.Range) int {
 
 func (fov *FOV) reveal(qt quadrant, tile gruid.Point) {
 	p := qt.transform(tile)
-	fov.ShadowCasting[fov.idx(p)] = true
+	idx := fov.idx(p)
+	v := fov.ShadowCasting[idx]
+	if !v {
+		fov.ShadowCasting[idx] = true
+		fov.Visibles = append(fov.Visibles, p)
+	}
 }
 
 // Symmetric shadow casting algorithm based on algorithm described there:
 //
 // 	https://www.albertford.com/shadowcasting/
 //
-// Visibility of positions can then be checked with the Visible method.
-// Contrary to VisionMap and LightMap, this algorithm can have some
-// discontinuous rays.
-func (fov *FOV) SSCVisionMap(src gruid.Point, maxDepth int, passable func(p gruid.Point) bool, diags bool) {
+// It returns a cached slice of visible points. Visibility of positions can
+// also be checked with the Visible method.  Contrary to VisionMap and
+// LightMap, this algorithm can have some discontinuous rays.
+func (fov *FOV) SSCVisionMap(src gruid.Point, maxDepth int, passable func(p gruid.Point) bool, diags bool) []gruid.Point {
 	if !src.In(fov.Rg) {
-		return
+		return nil
 	}
 	if fov.ShadowCasting == nil {
 		fov.ShadowCasting = make([]bool, fov.Capacity)
@@ -582,7 +582,9 @@ func (fov *FOV) SSCVisionMap(src gruid.Point, maxDepth int, passable func(p grui
 		fov.ShadowCasting[i] = false
 	}
 	fov.passable = passable
+	fov.Visibles = fov.Visibles[:0]
 	fov.sscVisionMap(src, maxDepth, diags)
+	return fov.Visibles
 }
 
 func (fov *FOV) sscVisionMap(src gruid.Point, maxDepth int, diags bool) {
@@ -617,7 +619,7 @@ func (fov *FOV) sscQuadrant(src gruid.Point, maxDepth int, dir quadDir, diags bo
 		for _, tile := range fov.tiles {
 			wall := !fov.passable(qt.transform(tile))
 			if wall || r.isSymmetric(tile) {
-				if diags || tile.X > 1 && fov.passable(qt.transform(tile.Shift(-1, 0))) ||
+				if diags || tile.X <= 1 && tile.Y == 0 || tile.X > 1 && fov.passable(qt.transform(tile.Shift(-1, 0))) ||
 					tile.Y >= 0 && fov.passable(qt.transform(tile.Shift(0, -1))) ||
 					tile.Y <= 0 && fov.passable(qt.transform(tile.Shift(0, 1))) {
 					fov.reveal(qt, tile)
@@ -672,7 +674,7 @@ func (fov *FOV) sscQuadrant(src gruid.Point, maxDepth int, dir quadDir, diags bo
 }
 
 // SSCLightMap is the equivalent of SSCVisionMap with several sources.
-func (fov *FOV) SSCLightMap(srcs []gruid.Point, maxDepth int, passable func(p gruid.Point) bool, diags bool) {
+func (fov *FOV) SSCLightMap(srcs []gruid.Point, maxDepth int, passable func(p gruid.Point) bool, diags bool) []gruid.Point {
 	if fov.ShadowCasting == nil {
 		fov.ShadowCasting = make([]bool, fov.Capacity)
 	}
@@ -680,10 +682,12 @@ func (fov *FOV) SSCLightMap(srcs []gruid.Point, maxDepth int, passable func(p gr
 		fov.ShadowCasting[i] = false
 	}
 	fov.passable = passable
+	fov.Visibles = fov.Visibles[:0]
 	for _, src := range srcs {
 		if !src.In(fov.Rg) {
 			continue
 		}
 		fov.sscVisionMap(src, maxDepth, diags)
 	}
+	return fov.Visibles
 }

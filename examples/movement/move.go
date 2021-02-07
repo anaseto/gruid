@@ -167,19 +167,22 @@ func (m *model) MovePlayer(to gruid.Point) {
 	// player's position. We could have simply used the whole map for the
 	// range, though it would have used a little bit more memory (not
 	// important here, just for showing what can be done).
-	m.fov.SetRange(m.fov.Range().Add(to.Sub(m.playerPos)))
+	rg := gruid.NewRange(-maxLOS, -maxLOS, maxLOS+1, maxLOS+1)
+	m.fov.SetRange(rg.Add(to).Intersect(m.mapgd.Range()))
 	m.playerPos = to
 	// We mark cells in field of view as explored.
 	passable := func(p gruid.Point) bool {
 		return cell(m.mapgd.At(p)) != Wall
 	}
-	m.fov.SSCVisionMap(m.playerPos, maxLOS, passable, false)
-	m.fov.IterVisible(func(p gruid.Point) {
+	for _, p := range m.fov.SSCVisionMap(m.playerPos, maxLOS, passable, false) {
+		if distance(p, m.playerPos) > maxLOS {
+			continue
+		}
 		c := m.mapgd.At(p)
 		if !explored(c) {
 			m.mapgd.Set(p, c|Explored)
 		}
-	})
+	}
 }
 
 func (m *model) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
@@ -335,12 +338,17 @@ func abs(x int) int {
 	return x
 }
 
+func distance(p, q gruid.Point) int {
+	p = p.Sub(q)
+	return abs(p.X) + abs(p.Y)
+}
+
 // Draw implements gruid.Model.Draw. It draws a simple map that spans the whole
 // grid.
 func (m *model) Draw() gruid.Grid {
 	m.mapgd.Iter(func(p gruid.Point, c rl.Cell) {
 		st := gruid.Style{}
-		if m.fov.Visible(p) {
+		if m.fov.Visible(p) && distance(p, m.playerPos) <= maxLOS {
 			st = st.WithFg(ColorLOS)
 		} else {
 			st = st.WithBg(ColorDark)
