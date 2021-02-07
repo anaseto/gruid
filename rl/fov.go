@@ -12,9 +12,9 @@ import (
 // FOV represents a field of vision. There are two main algorithms available:
 // VisionMap and SCCVisionMap, and their multiple-source versions. Both
 // algorithms are symmetric (under certain conditions) with expansive walls,
-// and quite fast.
+// and fast.
 //
-// The VisionMap method algorithm is more permissive, faster and only produces
+// The VisionMap method algorithm is more permissive and only produces
 // continuous light rays. Moreover, it allows for non-binary visibility (some
 // obstacles may reduce sight range without blocking it completely).
 //
@@ -567,7 +567,6 @@ func (fov *FOV) isFloor(qt quadrant, tile gruid.Point) bool {
 // Visibility of positions can then be checked with the Visible method.
 // Contrary to VisionMap and LightMap, this algorithm can have some
 // discontinuous rays.
-//
 func (fov *FOV) SSCVisionMap(src gruid.Point, maxDepth int, passable func(p gruid.Point) bool) {
 	if !src.In(fov.Rg) {
 		return
@@ -605,7 +604,8 @@ func (fov *FOV) sscVisionMap(src gruid.Point, tiles []gruid.Point, maxDepth int,
 			r := rows[len(rows)-1]
 			rows = rows[:len(rows)-1]
 			ptile := gruid.Point{unreachable, unreachable}
-			for _, tile := range r.tiles(tiles, colmin, colmax) {
+			tiles = r.tiles(tiles[:0], colmin, colmax)
+			for _, tile := range tiles {
 				if fov.isWall(qt, tile) || r.isSymmetric(tile) {
 					fov.reveal(qt, tile)
 				}
