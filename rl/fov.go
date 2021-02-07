@@ -136,9 +136,9 @@ func (fov *FOV) Iter(fn func(LightNode)) {
 	}
 }
 
-// IterSCC iterates a function on the nodes lighted in the last SCCVisionMap or
+// IterSSC iterates a function on the nodes lighted in the last SCCVisionMap or
 // SCCLightMap.
-func (fov *FOV) IterSCC(fn func(p gruid.Point)) {
+func (fov *FOV) IterSSC(fn func(p gruid.Point)) {
 	for _, p := range fov.Visibles {
 		fn(p)
 	}
