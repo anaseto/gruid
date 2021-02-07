@@ -21,10 +21,6 @@ applications: less functional and more efficient.
 You can find there [annotated examples](examples/) and the
 [documentation](https://pkg.go.dev/github.com/anaseto/gruid).
 
-*Note: the module is already usable and the core functionality and APIs should
-be stable or close to it. It is expected that after a testing period to collect
-user feedback, a stable version will be released.*
-
 # Overview of packages
 
 The **gruid** package defines the Model and Driver interfaces and allows to
@@ -51,15 +47,16 @@ drivers/js.
 
 The **paths** package provides efficient implementations of some common
 pathfinding algorithms that are often used in grid-based games, such as
-roguelikes. You will find implementations of the A\* algorithm, as well as
+roguelikes. You will find implementations of the A\* and
+[JPS](https://en.wikipedia.org/wiki/Jump_point_search) algorithms, as well as
 Dijkstra, breadth first, and connected components maps computations. See the
 [movement example](examples/movement/move.go) for an annotated example using
-A\* and the mouse.
+JPS and the mouse.
 
 The **rl** package provides some additional utilities commonly needed in
 grid-based games such as roguelikes. The package provides an event priority
-queue, a field of view algorithm, map generation algorithms, as well as vault
-parsing and manipulation utilities.
+queue, two complementary field of view algorithms, map generation algorithms,
+as well as vault parsing and manipulation utilities.
 
 # Examples
 
@@ -82,4 +79,4 @@ there's at least one fork that does.
 
 As gruid only provides a few map generation algorithms, you may be interested
 in the [dngn](https://github.com/SolarLune/dngn) module, which provides map
-generation algorithms too, though its representations of maps is different.
+generation algorithms too, though its representation of maps is different.
