@@ -81,6 +81,9 @@ const (
 	Explored rl.Cell = 0b10
 )
 
+// maxLOS is the maximum sight range.
+const maxLOS = 10
+
 func cell(c rl.Cell) rl.Cell {
 	return c &^ Explored
 }
@@ -166,27 +169,17 @@ func (m *model) MovePlayer(to gruid.Point) {
 	// important here, just for showing what can be done).
 	m.fov.SetRange(m.fov.Range().Add(to.Sub(m.playerPos)))
 	m.playerPos = to
-	lt := &lighter{mapgd: m.mapgd}
 	// We mark cells in field of view as explored.
 	passable := func(p gruid.Point) bool {
 		return cell(m.mapgd.At(p)) != Wall
 	}
-	// We combine symmetric shadow casting (SSC) with the default vision
-	// algoritm (VisionMap), so that we obtain an SSC-like vision adapted
-	// to 4-way movement. VisionMap also has the advantage of offering
-	// weights, for example allowing to create obstacles that reduce line
-	// of sight range without blocking it completely (though we don't do
-	// that in this example).
-	m.fov.SSCVisionMap(m.playerPos, maxLOS, passable)
-	for _, ln := range m.fov.VisionMap(lt, m.playerPos) {
-		if ln.Cost >= maxLOS || !m.fov.Visible(ln.P) {
-			continue
-		}
-		c := m.mapgd.At(ln.P)
+	m.fov.SSCVisionMap(m.playerPos, maxLOS, passable, false)
+	m.fov.IterVisible(func(p gruid.Point) {
+		c := m.mapgd.At(p)
 		if !explored(c) {
-			m.mapgd.Set(ln.P, c|Explored)
+			m.mapgd.Set(p, c|Explored)
 		}
-	}
+	})
 }
 
 func (m *model) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
@@ -335,47 +328,6 @@ func (w walker) Neighbor(p gruid.Point) gruid.Point {
 	}
 }
 
-// lighter implements rl.Lighter in a simple way.
-type lighter struct {
-	mapgd rl.Grid
-}
-
-const maxLOS = 10
-
-func (lt *lighter) Cost(src, from, to gruid.Point) int {
-	if cell(lt.mapgd.At(from)) == Wall || lt.diagonalWalls(from, to) {
-		return maxLOS
-	}
-	if src == from {
-		return 0
-	}
-	if lt.diagonalStep(from, to) {
-		return 2
-	}
-	return 1
-}
-
-func (lt *lighter) MaxCost(src gruid.Point) int {
-	return maxLOS
-}
-
-// diagonalWalls checks whether diagonal light has to be blocked (this would
-// not be necessary if 8-way movement geometry is chosen).
-func (lt *lighter) diagonalWalls(from, to gruid.Point) bool {
-	if !lt.diagonalStep(from, to) {
-		return false
-	}
-	step := to.Sub(from)
-	return cell(lt.mapgd.At(from.Add(gruid.Point{X: step.X}))) == Wall &&
-		cell(lt.mapgd.At(from.Add(gruid.Point{Y: step.Y}))) == Wall
-}
-
-// diagonalStep reports whether it is a diagonal step.
-func (lt *lighter) diagonalStep(from, to gruid.Point) bool {
-	step := to.Sub(from)
-	return step.X != 0 && step.Y != 0
-}
-
 func abs(x int) int {
 	if x < 0 {
 		return -x
@@ -388,7 +340,7 @@ func abs(x int) int {
 func (m *model) Draw() gruid.Grid {
 	m.mapgd.Iter(func(p gruid.Point, c rl.Cell) {
 		st := gruid.Style{}
-		if cost, ok := m.fov.At(p); ok && cost < maxLOS && m.fov.Visible(p) {
+		if m.fov.Visible(p) {
 			st = st.WithFg(ColorLOS)
 		} else {
 			st = st.WithBg(ColorDark)

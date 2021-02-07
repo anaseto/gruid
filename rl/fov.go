@@ -19,7 +19,7 @@ import (
 // obstacles may reduce sight range without blocking it completely).
 //
 // The SCCVisionMap method algorithm is a symmetric shadow casting algorithm
-// based on:
+// based on the one described there:
 //
 // 	https://www.albertford.com/shadowcasting/
 //
@@ -139,6 +139,20 @@ func (fov *FOV) idx(p gruid.Point) int {
 func (fov *FOV) Iter(fn func(LightNode)) {
 	for _, n := range fov.Lighted {
 		fn(n)
+	}
+}
+
+// IterVisible iterates a function on the nodes lighted in the last
+// SCCVisionMap or SCCLightMap.
+func (fov *FOV) IterVisible(fn func(p gruid.Point)) {
+	i := 0
+	for y := fov.Rg.Min.Y; y < fov.Rg.Max.Y; y++ {
+		for x := fov.Rg.Min.X; x < fov.Rg.Max.X; x++ {
+			if fov.ShadowCasting[i] {
+				fn(gruid.Point{x, y})
+			}
+			i++
+		}
 	}
 }
 
@@ -478,9 +492,14 @@ func (r row) isSymmetric(tile gruid.Point) bool {
 		col*r.slopeEnd.Y <= r.depth*r.slopeEnd.X
 }
 
-func slope(tile gruid.Point) gruid.Point {
+func slopeDiamond(tile gruid.Point) gruid.Point {
 	depth, col := tile.X, tile.Y
 	return gruid.Point{2*col - 1, 2 * depth}
+}
+
+func slopeSquare(tile gruid.Point) gruid.Point {
+	depth, col := tile.X, tile.Y
+	return gruid.Point{2*col - 1, 2*depth + 1}
 }
 
 type quadDir int
@@ -545,14 +564,14 @@ func (fov *FOV) reveal(qt quadrant, tile gruid.Point) {
 	fov.ShadowCasting[fov.idx(p)] = true
 }
 
-// Symmetric shadow casting algorithm described here:
+// Symmetric shadow casting algorithm based on algorithm described there:
 //
 // 	https://www.albertford.com/shadowcasting/
 //
 // Visibility of positions can then be checked with the Visible method.
 // Contrary to VisionMap and LightMap, this algorithm can have some
 // discontinuous rays.
-func (fov *FOV) SSCVisionMap(src gruid.Point, maxDepth int, passable func(p gruid.Point) bool) {
+func (fov *FOV) SSCVisionMap(src gruid.Point, maxDepth int, passable func(p gruid.Point) bool, diags bool) {
 	if !src.In(fov.Rg) {
 		return
 	}
@@ -562,18 +581,18 @@ func (fov *FOV) SSCVisionMap(src gruid.Point, maxDepth int, passable func(p grui
 	for i := range fov.ShadowCasting {
 		fov.ShadowCasting[i] = false
 	}
-	fov.sscVisionMap(src, maxDepth, passable)
+	fov.passable = passable
+	fov.sscVisionMap(src, maxDepth, diags)
 }
 
-func (fov *FOV) sscVisionMap(src gruid.Point, maxDepth int, passable func(p gruid.Point) bool) {
-	fov.passable = passable
+func (fov *FOV) sscVisionMap(src gruid.Point, maxDepth int, diags bool) {
 	fov.ShadowCasting[fov.idx(src)] = true
 	for i := 0; i < 4; i++ {
-		fov.sscQuadrant(src, maxDepth, passable, quadDir(i))
+		fov.sscQuadrant(src, maxDepth, quadDir(i), diags)
 	}
 }
 
-func (fov *FOV) sscQuadrant(src gruid.Point, maxDepth int, passable func(p gruid.Point) bool, dir quadDir) {
+func (fov *FOV) sscQuadrant(src gruid.Point, maxDepth int, dir quadDir, diags bool) {
 	qt := quadrant{dir: dir, p: src}
 	colmin, colmax := qt.maxCols(fov.Rg)
 	dmax := qt.maxDepth(fov.Rg)
@@ -598,7 +617,11 @@ func (fov *FOV) sscQuadrant(src gruid.Point, maxDepth int, passable func(p gruid
 		for _, tile := range fov.tiles {
 			wall := !fov.passable(qt.transform(tile))
 			if wall || r.isSymmetric(tile) {
-				fov.reveal(qt, tile)
+				if diags || tile.X > 1 && fov.passable(qt.transform(tile.Shift(-1, 0))) ||
+					tile.Y >= 0 && fov.passable(qt.transform(tile.Shift(0, -1))) ||
+					tile.Y <= 0 && fov.passable(qt.transform(tile.Shift(0, 1))) {
+					fov.reveal(qt, tile)
+				}
 			}
 			if ptile.X == unreachable {
 				ptile = tile
@@ -606,11 +629,31 @@ func (fov *FOV) sscQuadrant(src gruid.Point, maxDepth int, passable func(p gruid
 			}
 			pwall := !fov.passable(qt.transform(ptile))
 			if pwall && !wall {
-				r.slopeStart = slope(tile)
+				if !diags {
+					if tile.X < dmax && !fov.passable(qt.transform(tile.Shift(1, 0))) {
+						r.slopeStart = slopeSquare(tile.Shift(1, 0))
+					} else if tile.X > 1 && !fov.passable(qt.transform(tile.Shift(-1, 0))) {
+						r.slopeStart = slopeDiamond(tile.Shift(-1, 1))
+					} else {
+						r.slopeStart = slopeDiamond(tile)
+					}
+				} else {
+					r.slopeStart = slopeDiamond(tile)
+				}
 			}
 			if !pwall && wall {
 				nr := r.next()
-				nr.slopeEnd = slope(tile)
+				if !diags {
+					if tile.X < dmax && !fov.passable(qt.transform(ptile.Shift(1, 0))) {
+						nr.slopeEnd = slopeSquare(tile.Shift(1, 0))
+					} else if ptile.X > 1 && !fov.passable(qt.transform(ptile.Shift(-1, 0))) {
+						nr.slopeEnd = slopeDiamond(ptile.Shift(-1, 0))
+					} else {
+						nr.slopeEnd = slopeDiamond(tile)
+					}
+				} else {
+					nr.slopeEnd = slopeDiamond(tile)
+				}
 				if nr.depth <= dmax {
 					rows = append(rows, nr)
 				}
@@ -629,17 +672,18 @@ func (fov *FOV) sscQuadrant(src gruid.Point, maxDepth int, passable func(p gruid
 }
 
 // SSCLightMap is the equivalent of SSCVisionMap with several sources.
-func (fov *FOV) SSCLightMap(srcs []gruid.Point, maxDepth int, passable func(p gruid.Point) bool) {
+func (fov *FOV) SSCLightMap(srcs []gruid.Point, maxDepth int, passable func(p gruid.Point) bool, diags bool) {
 	if fov.ShadowCasting == nil {
 		fov.ShadowCasting = make([]bool, fov.Capacity)
 	}
 	for i := range fov.ShadowCasting {
 		fov.ShadowCasting[i] = false
 	}
+	fov.passable = passable
 	for _, src := range srcs {
 		if !src.In(fov.Rg) {
 			continue
 		}
-		fov.sscVisionMap(src, maxDepth, passable)
+		fov.sscVisionMap(src, maxDepth, diags)
 	}
 }
