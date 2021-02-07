@@ -30,6 +30,8 @@ import (
 // VisionMap with expansive shadows, while keeping the non-binary visibility
 // information.
 //
+// FOV elements must be created with NewFOV.
+//
 // FOV implements the gob.Decoder and gob.Encoder interfaces for easy
 // serialization.
 type FOV struct {
@@ -50,6 +52,7 @@ type innerFOV struct {
 	Rg            gruid.Range // range of valid positions
 	Src           gruid.Point
 	passable      func(gruid.Point) bool
+	Capacity      int
 }
 
 // NewFOV returns new ready to use field of view with a given range of valid
@@ -57,7 +60,8 @@ type innerFOV struct {
 func NewFOV(rg gruid.Range) *FOV {
 	fov := &FOV{}
 	fov.Rg = rg
-	fov.LMap = make([]fovNode, fov.Rg.Size().X*fov.Rg.Size().Y)
+	fov.Capacity = fov.Rg.Size().X * fov.Rg.Size().Y
+	fov.LMap = make([]fovNode, fov.Capacity)
 	return fov
 }
 
@@ -65,15 +69,13 @@ func NewFOV(rg gruid.Range) *FOV {
 // same, cached structures will be preserved, otherwise they will be
 // reinitialized.
 func (fov *FOV) SetRange(rg gruid.Range) {
-	org := fov.Rg
 	fov.Rg = rg
 	max := rg.Size()
-	omax := org.Size()
-	if max == omax {
+	if max.X*max.Y <= fov.Capacity {
 		return
 	}
-	*fov = FOV{}
-	fov.Rg = rg
+	nfov := NewFOV(rg)
+	*fov = *nfov
 }
 
 // Range returns the current FOV's range of positions.
@@ -572,7 +574,7 @@ func (fov *FOV) SSCVisionMap(src gruid.Point, maxDepth int, passable func(p grui
 		return
 	}
 	if fov.ShadowCasting == nil {
-		fov.ShadowCasting = make([]bool, fov.Rg.Size().X*fov.Rg.Size().Y)
+		fov.ShadowCasting = make([]bool, fov.Capacity)
 	}
 	for i := range fov.ShadowCasting {
 		fov.ShadowCasting[i] = false
@@ -633,7 +635,7 @@ func (fov *FOV) sscVisionMap(src gruid.Point, tiles []gruid.Point, maxDepth int,
 // SSCLightMap is the equivalent of SSCVisionMap with several sources.
 func (fov *FOV) SSCLightMap(srcs []gruid.Point, maxDepth int, passable func(p gruid.Point) bool) {
 	if fov.ShadowCasting == nil {
-		fov.ShadowCasting = make([]bool, fov.Rg.Size().X*fov.Rg.Size().Y)
+		fov.ShadowCasting = make([]bool, fov.Capacity)
 	}
 	for i := range fov.ShadowCasting {
 		fov.ShadowCasting[i] = false
