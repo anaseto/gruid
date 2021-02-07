@@ -38,22 +38,16 @@ type FOV struct {
 	innerFOV
 }
 
-type fovNode struct {
-	Idx  int // map number (for caching)
-	Cost int // ray cost from source to this node
-}
-
 type innerFOV struct {
-	LMap          []fovNode
+	Costs         []int  // non-binary visibility
+	ShadowCasting []bool // binary visibility
 	Lighted       []LightNode
+	Visibles      []gruid.Point
 	RayCache      []LightNode
-	ShadowCasting []bool      // visibility
-	Idx           int         // light map number (for caching)
 	Rg            gruid.Range // range of valid positions
 	Src           gruid.Point
 	passable      func(gruid.Point) bool
 	tiles         []gruid.Point
-	Visibles      []gruid.Point
 	Capacity      int
 }
 
@@ -63,7 +57,6 @@ func NewFOV(rg gruid.Range) *FOV {
 	fov := &FOV{}
 	fov.Rg = rg
 	fov.Capacity = fov.Rg.Size().X * fov.Rg.Size().Y
-	fov.LMap = make([]fovNode, fov.Capacity)
 	return fov
 }
 
@@ -110,14 +103,14 @@ func (fov *FOV) GobEncode() ([]byte, error) {
 // given to VisionMap or LightMap. It returns a false boolean if the position
 // was out of reach.
 func (fov *FOV) At(p gruid.Point) (int, bool) {
-	if !p.In(fov.Rg) || fov.LMap == nil {
+	if !p.In(fov.Rg) || fov.Costs == nil {
 		return 0, false
 	}
-	node := fov.LMap[fov.idx(p)]
-	if node.Idx != fov.Idx {
-		return node.Cost, false
+	cost := fov.Costs[fov.idx(p)]
+	if cost < 0 {
+		return cost, false
 	}
-	return node.Cost, true
+	return cost, true
 }
 
 // Visible returns true if the given position is visible according to the
@@ -166,23 +159,23 @@ func (fov *FOV) octantParents(ps []LightNode, src, p gruid.Point) []LightNode {
 	q := src.Sub(p)
 	r := gruid.Point{sign(q.X), sign(q.Y)}
 	p0 := p.Add(gruid.Point{r.X, r.Y})
-	n0 := fov.LMap[fov.idx(p0)]
-	if n0.Idx == fov.Idx {
-		ps = append(ps, LightNode{P: p0, Cost: n0.Cost})
+	c0 := fov.Costs[fov.idx(p0)]
+	if c0 > 0 {
+		ps = append(ps, LightNode{P: p0, Cost: c0})
 	}
 	switch {
 	case q.X == 0 || q.Y == 0 || abs(q.X) == abs(q.Y):
 	case abs(q.X) > abs(q.Y):
 		p1 := p.Add(gruid.Point{r.X, 0})
-		n1 := fov.LMap[fov.idx(p1)]
-		if n1.Idx == fov.Idx {
-			ps = append(ps, LightNode{P: p1, Cost: n1.Cost})
+		c1 := fov.Costs[fov.idx(p1)]
+		if c1 > 0 {
+			ps = append(ps, LightNode{P: p1, Cost: c1})
 		}
 	default:
 		p1 := p.Add(gruid.Point{0, r.Y})
-		n1 := fov.LMap[fov.idx(p1)]
-		if n1.Idx == fov.Idx {
-			ps = append(ps, LightNode{P: p1, Cost: n1.Cost})
+		c1 := fov.Costs[fov.idx(p1)]
+		if c1 > 0 {
+			ps = append(ps, LightNode{P: p1, Cost: c1})
 		}
 	}
 	return ps
@@ -196,7 +189,7 @@ func (fov *FOV) From(lt Lighter, to gruid.Point) (LightNode, bool) {
 		return LightNode{}, false
 	}
 	ln := fov.from(lt, to)
-	if ln.Cost == -1 {
+	if ln.Cost == 0 {
 		return LightNode{}, false
 	}
 	return ln, true
@@ -208,7 +201,7 @@ func (fov *FOV) from(lt Lighter, to gruid.Point) LightNode {
 	pnodes = fov.octantParents(pnodes, fov.Src, to)
 	switch len(pnodes) {
 	case 0:
-		return LightNode{Cost: -1}
+		return LightNode{Cost: 0}
 	case 1:
 		n := pnodes[0]
 		return LightNode{P: n.P, Cost: n.Cost + lt.Cost(fov.Src, n.P, to)}
@@ -269,13 +262,18 @@ type Lighter interface {
 // directions: a diagonal and an orthogonal one (for example north east and
 // east).
 func (fov *FOV) VisionMap(lt Lighter, src gruid.Point) []LightNode {
-	fov.Idx++
 	fov.Lighted = fov.Lighted[:0]
 	if !src.In(fov.Rg) {
 		return fov.Lighted
 	}
+	if fov.Costs == nil {
+		fov.Costs = make([]int, fov.Capacity)
+	}
+	for i := range fov.Costs {
+		fov.Costs[i] = 0
+	}
 	fov.Src = src
-	fov.LMap[fov.idx(src)] = fovNode{Cost: 0, Idx: fov.Idx}
+	fov.Costs[fov.idx(src)] = 1
 	fov.Lighted = append(fov.Lighted, LightNode{P: src, Cost: 0})
 	for d := 1; d <= lt.MaxCost(src); d++ {
 		rg := fov.Rg.Intersect(gruid.NewRange(src.X-d, src.Y-d+1, src.X+d+1, src.Y+d))
@@ -300,28 +298,32 @@ func (fov *FOV) VisionMap(lt Lighter, src gruid.Point) []LightNode {
 			}
 		}
 	}
-	fov.checkIdx()
 	return fov.Lighted
 }
 
 func (fov *FOV) visionUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
 	n := fov.from(lt, to)
-	if n.Cost >= 0 {
-		fov.LMap[fov.idx(to)] = fovNode{Cost: n.Cost, Idx: fov.Idx}
-		fov.Lighted = append(fov.Lighted, LightNode{P: to, Cost: n.Cost})
+	if n.Cost > 0 {
+		fov.Costs[fov.idx(to)] = n.Cost
+		fov.Lighted = append(fov.Lighted, LightNode{P: to, Cost: n.Cost - 1})
 	}
 }
 
 // LightMap builds a lighting map with given light sources. It returs a cached
 // slice of lighted nodes. Values can also be consulted with At.
 func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point) []LightNode {
-	fov.Idx++
+	if fov.Costs == nil {
+		fov.Costs = make([]int, fov.Capacity)
+	}
+	for i := range fov.Costs {
+		fov.Costs[i] = 0
+	}
 	for _, src := range srcs {
 		if !src.In(fov.Rg) {
 			continue
 		}
 		fov.Src = src
-		fov.LMap[fov.idx(src)] = fovNode{Cost: 0, Idx: fov.Idx}
+		fov.Costs[fov.idx(src)] = 1
 		for d := 1; d <= lt.MaxCost(src); d++ {
 			rg := fov.Rg.Intersect(gruid.NewRange(src.X-d, src.Y-d+1, src.X+d+1, src.Y+d))
 			if src.Y+d < fov.Rg.Max.Y {
@@ -346,50 +348,35 @@ func (fov *FOV) LightMap(lt Lighter, srcs []gruid.Point) []LightNode {
 			}
 		}
 	}
-	fov.checkIdx()
 	fov.computeLighted()
 	return fov.Lighted
 }
 
 func (fov *FOV) lightUpdate(lt Lighter, src gruid.Point, to gruid.Point) {
 	n := fov.from(lt, to)
-	if n.Cost < 0 {
+	if n.Cost <= 0 {
 		return
 	}
-	m := &fov.LMap[fov.idx(to)]
-	if m.Idx == fov.Idx && m.Cost <= n.Cost {
+	c1p := &fov.Costs[fov.idx(to)]
+	if *c1p > 0 && *c1p <= n.Cost {
 		return
 	}
-	*m = fovNode{Cost: n.Cost, Idx: fov.Idx}
+	*c1p = n.Cost
 }
 
 func (fov *FOV) computeLighted() {
 	fov.Lighted = fov.Lighted[:0]
 	w := fov.Rg.Max.X - fov.Rg.Min.X
-	h := len(fov.LMap) / w
+	h := len(fov.Costs) / w
 	i := 0
 	for y := 0; y < h; y = y + 1 {
 		for x := 0; x < w; x, i = x+1, i+1 {
-			n := fov.LMap[i]
-			if n.Idx == fov.Idx {
-				fov.Lighted = append(fov.Lighted, LightNode{P: gruid.Point{x, y}.Add(fov.Rg.Min), Cost: n.Cost})
+			c := fov.Costs[i]
+			if c > 0 {
+				fov.Lighted = append(fov.Lighted, LightNode{P: gruid.Point{x, y}.Add(fov.Rg.Min), Cost: c - 1})
 			}
 		}
 	}
-}
-
-func (fov *FOV) checkIdx() {
-	if fov.Idx+1 > 0 {
-		return
-	}
-	for i, n := range fov.LMap {
-		idx := 0
-		if n.Idx == fov.Idx {
-			idx = 1
-		}
-		fov.LMap[i] = fovNode{Cost: n.Cost, Idx: idx}
-	}
-	fov.Idx = 1
 }
 
 // LightNode represents the information attached to a given position in a light
@@ -414,7 +401,7 @@ func (fov *FOV) Ray(lt Lighter, to gruid.Point) []LightNode {
 	var n LightNode
 	for to != fov.Src {
 		n = fov.from(lt, to)
-		fov.RayCache = append(fov.RayCache, LightNode{P: to, Cost: n.Cost})
+		fov.RayCache = append(fov.RayCache, LightNode{P: to, Cost: n.Cost - 1})
 		to = n.P
 	}
 	fov.RayCache = append(fov.RayCache, LightNode{P: fov.Src, Cost: 0})
