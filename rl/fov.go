@@ -107,10 +107,10 @@ func (fov *FOV) At(p gruid.Point) (int, bool) {
 		return 0, false
 	}
 	cost := fov.Costs[fov.idx(p)]
-	if cost < 0 {
+	if cost <= 0 {
 		return cost, false
 	}
-	return cost, true
+	return cost - 1, true
 }
 
 // Visible returns true if the given position is visible according to the
