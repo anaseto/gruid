@@ -52,6 +52,7 @@ type innerFOV struct {
 	Rg            gruid.Range // range of valid positions
 	Src           gruid.Point
 	passable      func(gruid.Point) bool
+	tiles         []gruid.Point
 	Capacity      int
 }
 
@@ -472,7 +473,7 @@ func (r row) next() row {
 }
 
 func (r row) isSymmetric(tile gruid.Point) bool {
-	_, col := tile.X, tile.Y
+	col := tile.Y
 	return col*r.slopeStart.Y >= r.depth*r.slopeStart.X &&
 		col*r.slopeEnd.Y <= r.depth*r.slopeEnd.X
 }
@@ -561,64 +562,67 @@ func (fov *FOV) SSCVisionMap(src gruid.Point, maxDepth int, passable func(p grui
 	for i := range fov.ShadowCasting {
 		fov.ShadowCasting[i] = false
 	}
-	tiles := []gruid.Point{}
-	fov.sscVisionMap(src, tiles[:0], maxDepth, passable)
+	fov.sscVisionMap(src, maxDepth, passable)
 }
 
-func (fov *FOV) sscVisionMap(src gruid.Point, tiles []gruid.Point, maxDepth int, passable func(p gruid.Point) bool) {
+func (fov *FOV) sscVisionMap(src gruid.Point, maxDepth int, passable func(p gruid.Point) bool) {
 	fov.passable = passable
 	fov.ShadowCasting[fov.idx(src)] = true
 	for i := 0; i < 4; i++ {
-		qt := quadrant{dir: quadDir(i), p: src}
-		colmin, colmax := qt.maxCols(fov.Rg)
-		dmax := qt.maxDepth(fov.Rg)
-		if dmax > maxDepth {
-			dmax = maxDepth
-		}
-		if dmax == 0 {
-			continue
-		}
-		unreachable := maxDepth + 1
-		r := row{
-			depth:      1,
-			slopeStart: gruid.Point{-1, 1},
-			slopeEnd:   gruid.Point{1, 1},
-		}
-		rows := []row{r}
-		for len(rows) > 0 {
-			r := rows[len(rows)-1]
-			rows = rows[:len(rows)-1]
-			ptile := gruid.Point{unreachable, 0}
-			tiles = r.tiles(tiles[:0], colmin, colmax)
-			for _, tile := range tiles {
-				wall := !fov.passable(qt.transform(tile))
-				if wall || r.isSymmetric(tile) {
-					fov.reveal(qt, tile)
-				}
-				if ptile.X == unreachable {
-					ptile = tile
-					continue
-				}
-				pwall := !fov.passable(qt.transform(ptile))
-				if pwall && !wall {
-					r.slopeStart = slope(tile)
-				}
-				if !pwall && wall {
-					nr := r.next()
-					nr.slopeEnd = slope(tile)
-					if nr.depth <= dmax {
-						rows = append(rows, nr)
-					}
-				}
-				ptile = tile
+		fov.sscQuadrant(src, maxDepth, passable, quadDir(i))
+	}
+}
+
+func (fov *FOV) sscQuadrant(src gruid.Point, maxDepth int, passable func(p gruid.Point) bool, dir quadDir) {
+	qt := quadrant{dir: dir, p: src}
+	colmin, colmax := qt.maxCols(fov.Rg)
+	dmax := qt.maxDepth(fov.Rg)
+	if dmax > maxDepth {
+		dmax = maxDepth
+	}
+	if dmax == 0 {
+		return
+	}
+	unreachable := maxDepth + 1
+	r := row{
+		depth:      1,
+		slopeStart: gruid.Point{-1, 1},
+		slopeEnd:   gruid.Point{1, 1},
+	}
+	rows := []row{r}
+	for len(rows) > 0 {
+		r := rows[len(rows)-1]
+		rows = rows[:len(rows)-1]
+		ptile := gruid.Point{unreachable, 0}
+		fov.tiles = r.tiles(fov.tiles[:0], colmin, colmax)
+		for _, tile := range fov.tiles {
+			wall := !fov.passable(qt.transform(tile))
+			if wall || r.isSymmetric(tile) {
+				fov.reveal(qt, tile)
 			}
 			if ptile.X == unreachable {
+				ptile = tile
 				continue
 			}
-			if fov.passable(qt.transform(ptile)) {
-				if r.depth < dmax {
-					rows = append(rows, r.next())
+			pwall := !fov.passable(qt.transform(ptile))
+			if pwall && !wall {
+				r.slopeStart = slope(tile)
+			}
+			if !pwall && wall {
+				nr := r.next()
+				nr.slopeEnd = slope(tile)
+				if nr.depth <= dmax {
+					rows = append(rows, nr)
 				}
+			}
+			ptile = tile
+		}
+		if ptile.X == unreachable {
+			continue
+		}
+		if fov.passable(qt.transform(ptile)) {
+			if r.depth < dmax {
+				rows = append(rows, r.next())
 			}
 		}
 	}
@@ -632,11 +636,10 @@ func (fov *FOV) SSCLightMap(srcs []gruid.Point, maxDepth int, passable func(p gr
 	for i := range fov.ShadowCasting {
 		fov.ShadowCasting[i] = false
 	}
-	tiles := []gruid.Point{}
 	for _, src := range srcs {
 		if !src.In(fov.Rg) {
 			continue
 		}
-		fov.sscVisionMap(src, tiles[:0], maxDepth, passable)
+		fov.sscVisionMap(src, maxDepth, passable)
 	}
 }
