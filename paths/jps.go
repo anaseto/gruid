@@ -8,7 +8,7 @@ import (
 	//"log"
 )
 
-// JPSPath returns a path from a position to another, including thoses
+// JPSPath returns a path from a position to another, including these
 // positions, in the path order. It uses the given path slice to avoid
 // allocations unless its capacity is not enough. The passable function
 // controls which positions can be passed. If diags is false, only movements in
