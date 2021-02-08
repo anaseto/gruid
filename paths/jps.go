@@ -397,7 +397,7 @@ func (pr *PathRange) jumpDiagonalNoDiags(p, dir, to gruid.Point, cost int) (grui
 }
 
 // jump makes a jump from a position in a given direction in order to find an
-// appropiate successor, skipping nodes that do not require being added to the
+// appropriate successor, skipping nodes that do not require being added to the
 // open list.
 func (pr *PathRange) jump(p, dir, to gruid.Point, cost int) (gruid.Point, int) {
 	switch {
@@ -524,7 +524,6 @@ func (pr *PathRange) addSuccessor(p, parent, to gruid.Point, cost int) {
 		nbNode.Parent = parent
 		pqPush(&pr.AstarQueue, nbNode)
 	}
-	return
 }
 
 // jumpPath adds to the path the points from p (included) to q (excluded)
