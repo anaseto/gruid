@@ -1,5 +1,10 @@
 This changelog file only lists important changes.
 
+## v0.16.0 - 2020-02-09
+
++ Use image.Image instead of image.RGBA in sdl and js drivers for GetImage
+  (minor incompatible change).
+
 ## v0.15.0 - 2020-02-09
 
 + New FOV algorithm: symmetric shadow casting.
