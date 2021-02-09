@@ -1,5 +1,10 @@
 This changelog file only lists important changes.
 
+## v0.15.0 - 2020-02-09
+
++ New FOV algorithm: symmetric shadow casting.
++ Improvement in JPS algorithm neighbor prunning based on the 2014 paper.
+
 ## v0.14.0 - 2020-02-05
 
 + New JPSPath function in paths packages for really fast pathfinding on a grid
