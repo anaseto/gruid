@@ -45,7 +45,7 @@ type TileDrawer struct {
 	drawer *tiles.Drawer
 }
 
-func (t *TileDrawer) GetImage(c gruid.Cell) *image.RGBA {
+func (t *TileDrawer) GetImage(c gruid.Cell) image.Image {
 	// we use some selenized colors
 	fg := image.NewUniform(color.RGBA{0xad, 0xbc, 0xbc, 255})
 	bg := image.NewUniform(color.RGBA{0x18, 0x49, 0x56, 255})

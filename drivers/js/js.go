@@ -4,6 +4,7 @@ package js
 import (
 	"context"
 	"image"
+	"image/draw"
 	"log"
 	"time"
 	"unicode/utf8"
@@ -16,7 +17,7 @@ import (
 // TileManager manages tiles fetching.
 type TileManager interface {
 	// GetImage returns the image to be used for a given cell style.
-	GetImage(gruid.Cell) *image.RGBA
+	GetImage(gruid.Cell) image.Image
 
 	// TileSize returns the (width, height) in pixels of the tiles. Both
 	// should be positive and non-zero.
@@ -358,7 +359,15 @@ func (dr *Driver) draw(cell gruid.Cell, x, y int) {
 			log.Printf("no tile for %+v", cell)
 			return
 		}
-		buf := img.Pix
+		var rgbaimg *image.RGBA
+		switch img := img.(type) {
+		case *image.RGBA:
+			rgbaimg = img
+		default:
+			rect := img.Bounds()
+			draw.Draw(rgbaimg, rect, img, rect.Min, draw.Src)
+		}
+		buf := rgbaimg.Pix
 		ua := js.Global().Get("Uint8Array").New(js.ValueOf(len(buf)))
 		js.CopyBytesToJS(ua, buf)
 		ca := js.Global().Get("Uint8ClampedArray").New(ua)

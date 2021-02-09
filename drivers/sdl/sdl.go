@@ -20,7 +20,7 @@ import (
 // TileManager manages tiles fetching.
 type TileManager interface {
 	// GetImage returns the image to be used for a given cell style.
-	GetImage(gruid.Cell) *image.RGBA
+	GetImage(gruid.Cell) image.Image
 
 	// TileSize returns the (width, height) in pixels of the tiles. Both
 	// should be positive and non-zero.

@@ -41,14 +41,14 @@ func NewDrawer(face font.Face) (*Drawer, error) {
 
 // Draw draws a rune and returns the produced image with foreground and
 // background colors given by images fg and bg.
-func (d *Drawer) Draw(r rune, fg, bg image.Image) *image.RGBA {
+func (d *Drawer) Draw(r rune, fg, bg image.Image) image.Image {
 	d.drawer.Dot = d.dot
 	d.drawer.Src = fg
 	d.drawer.Dst = image.NewRGBA(d.rect)
 	rect := d.drawer.Dst.Bounds()
 	draw.Draw(d.drawer.Dst, rect, bg, rect.Min, draw.Src)
 	d.drawer.DrawString(string(r))
-	img := d.drawer.Dst.(*image.RGBA)
+	img := d.drawer.Dst
 	return img
 }
 
