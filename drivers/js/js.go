@@ -365,6 +365,7 @@ func (dr *Driver) draw(cell gruid.Cell, x, y int) {
 			rgbaimg = img
 		default:
 			rect := img.Bounds()
+			rgbaimg = image.NewRGBA(rect)
 			draw.Draw(rgbaimg, rect, img, rect.Min, draw.Src)
 		}
 		buf := rgbaimg.Pix
