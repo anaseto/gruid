@@ -139,11 +139,8 @@ func (pg *Pager) SetLines(lines []StyledText) {
 }
 
 func (pg *Pager) nlines() int {
-	nlines := pg.grid.Size().Y
-	if pg.box != nil {
-		nlines -= 2
-	}
-	return nlines
+	h, bh := pg.height()
+	return h - bh
 }
 
 // View returns a range (Min, Max) such that the currently displayed lines are
@@ -283,11 +280,9 @@ func (pg *Pager) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
 }
 
 func (pg *Pager) updateMsgMouse(msg gruid.MsgMouse) gruid.Effect {
-	nlines := pg.grid.Size().Y
-	if pg.box != nil {
-		nlines -= 2
-	}
-	if !msg.P.In(pg.grid.Bounds()) {
+	h, bh := pg.height()
+	nlines := h - bh
+	if !msg.P.In(pg.grid.Range().Lines(0, h)) {
 		switch msg.Action {
 		case gruid.MouseMain:
 			pg.action = PagerQuit
@@ -314,6 +309,17 @@ func (pg *Pager) Action() PagerAction {
 	return pg.action
 }
 
+func (pg *Pager) height() (h int, bh int) {
+	h = pg.grid.Size().Y
+	if pg.box != nil {
+		bh = 2
+	}
+	if h > bh+len(pg.lines) {
+		h = bh + len(pg.lines)
+	}
+	return h, bh
+}
+
 // Draw implements gruid.Model.Draw for Pager. It returns the grid slice that
 // was drawn, or the whole grid if it is used as main model.
 func (pg *Pager) Draw() gruid.Grid {
@@ -323,17 +329,8 @@ func (pg *Pager) Draw() gruid.Grid {
 		}
 		return pg.drawn
 	}
-	grid := pg.grid
-	max := grid.Size()
-	w, h := max.X, max.Y
-	bh := 0
-	if pg.box != nil {
-		bh = 2
-	}
-	if h > bh+len(pg.lines) {
-		h = bh + len(pg.lines)
-		grid = grid.Slice(gruid.NewRange(0, 0, w, h))
-	}
+	h, bh := pg.height()
+	grid := pg.grid.Slice(pg.grid.Range().Lines(0, h))
 	if pg.init {
 		pg.grid.Fill(gruid.Cell{Rune: ' '})
 	}
