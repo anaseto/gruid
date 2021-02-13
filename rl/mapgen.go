@@ -235,6 +235,14 @@ type Vault struct {
 	size    gruid.Point
 }
 
+// NewVault returns a new vault given a contextual representation to be parsed.
+// See Parse method for a specification of valid string format.
+func NewVault(s string) (*Vault, error) {
+	v := &Vault{}
+	err := v.Parse(s)
+	return v, err
+}
+
 // Content returns the vault's textual content.
 func (v *Vault) Content() string {
 	return v.content
@@ -278,7 +286,7 @@ func (v *Vault) Parse(s string) error {
 			continue
 		}
 		if v.runes != "" && !strings.ContainsRune(v.runes, r) {
-			return fmt.Errorf("vault contains invalid rune “%c” at %v", r, gruid.Point{x, y})
+			return fmt.Errorf("vault contains invalid rune “%c” at %v:\n%s", r, gruid.Point{x, y}, s)
 		}
 		x++
 	}
