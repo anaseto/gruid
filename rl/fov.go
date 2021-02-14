@@ -60,8 +60,8 @@ func NewFOV(rg gruid.Range) *FOV {
 	return fov
 }
 
-// SetRange updates the range used by the field of view. If the size is the
-// same, cached structures will be preserved, otherwise they will be
+// SetRange updates the range used by the field of view. If the size is
+// smaller, cached structures will be preserved, otherwise they will be
 // reinitialized.
 func (fov *FOV) SetRange(rg gruid.Range) {
 	fov.Rg = rg
