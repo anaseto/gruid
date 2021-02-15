@@ -152,6 +152,12 @@ func (m *Menu) ActiveBounds() gruid.Range {
 	return m.table[m.active].grid.Bounds()
 }
 
+// Bounds return the bounds of the the currently viewable menu entries
+// (including box if any).
+func (m *Menu) Bounds() gruid.Range {
+	return m.pageGrid().Bounds()
+}
+
 // Action returns the last action performed in the menu.
 func (m *Menu) Action() MenuAction {
 	return m.action
@@ -419,7 +425,7 @@ func (m *Menu) pageGrid() gruid.Grid {
 			rg = rg.Union(it.grid.Bounds())
 		}
 		if m.box != nil {
-			rg = rg.Shift(-1, -1, -1, -1)
+			rg = rg.Shift(-1, -1, 1, 1)
 		}
 		return m.grid.Slice(rg)
 	}
