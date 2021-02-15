@@ -1,5 +1,0 @@
------ TODO
-add more tests (always)
-add ecs package? (probably not: easy to reimplement and not easy to do generically without code generation)
------ Partial
-send MsgScreen at start and on resize (when sensible) [done for tcell, sdl]
