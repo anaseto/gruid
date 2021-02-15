@@ -343,7 +343,7 @@ func (pg *Pager) Draw() gruid.Grid {
 			lnumtext = fmt.Sprintf("%d-%d/%d", pg.index, pg.index+h-bh-1, len(pg.lines)-1)
 		}
 		foot := pg.box.Footer
-		if pg.box.Footer.Text() == "" {
+		if pg.box.Footer.Text() == "" && h == pg.grid.Size().Y {
 			pg.box.Footer = NewStyledText(lnumtext, pg.style.LineNum)
 		}
 		pg.box.Draw(grid)
