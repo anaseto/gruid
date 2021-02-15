@@ -73,6 +73,10 @@ func NewDriver(cfg Config) *Driver {
 	if dr.appdiv == "" {
 		dr.appdiv = "appdiv"
 	}
+	canvas := js.Global().Get("document").Call("getElementById", dr.appcanvas)
+	canvas.Call("setAttribute", "tabindex", "1")
+	dr.ctx = canvas.Call("getContext", "2d")
+	dr.ctx.Set("imageSmoothingEnabled", false)
 	dr.SetTileManager(cfg.TileManager)
 	return dr
 }
@@ -88,6 +92,7 @@ func (dr *Driver) SetTileManager(tm TileManager) {
 	if dr.th <= 0 {
 		dr.th = 1
 	}
+	dr.resizeCanvas()
 	if dr.init {
 		dr.ClearCache()
 	}
@@ -104,19 +109,20 @@ type listeners struct {
 
 // Init implements gruid.Driver.Init.
 func (dr *Driver) Init() error {
-	canvas := js.Global().Get("document").Call("getElementById", dr.appcanvas)
-	canvas.Call("setAttribute", "tabindex", "1")
-	dr.ctx = canvas.Call("getContext", "2d")
-	dr.ctx.Set("imageSmoothingEnabled", false)
-	max := dr.tm.TileSize()
-	dr.tw, dr.th = max.X, max.Y
-	canvas.Set("height", dr.th*dr.height)
-	canvas.Set("width", dr.tw*dr.width)
 	dr.cache = make(map[gruid.Cell]js.Value)
+	if dr.init {
+		dr.resizeCanvas()
+	}
 	dr.init = true
 	dr.mousedrag = -1
 	dr.flushing = false
 	return nil
+}
+
+func (dr *Driver) resizeCanvas() {
+	canvas := js.Global().Get("document").Call("getElementById", dr.appcanvas)
+	canvas.Set("height", dr.th*dr.height)
+	canvas.Set("width", dr.tw*dr.width)
 }
 
 func (dr *Driver) getMousePos(evt js.Value) gruid.Point {
@@ -185,6 +191,7 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 		case <-ctx.Done():
 		}
 	}
+	send(gruid.MsgScreen{Width: dr.width, Height: dr.height})
 	canvas := js.Global().Get("document").Call("getElementById", dr.appcanvas)
 	dr.listeners.menu = js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		e := args[0]
@@ -314,6 +321,11 @@ func (dr *Driver) PollMsgs(ctx context.Context, msgs chan<- gruid.Msg) error {
 // Flush implements gruid.Driver.Flush.
 func (dr *Driver) Flush(frame gruid.Frame) {
 	var cached bool
+	if frame.Width != dr.width || frame.Height != dr.height {
+		dr.width = frame.Width
+		dr.height = frame.Height
+		dr.resizeCanvas()
+	}
 	if dr.flushing {
 		cells := make([]gruid.FrameCell, len(frame.Cells))
 		for i, fc := range frame.Cells {
