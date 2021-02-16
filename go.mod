@@ -1,6 +1,7 @@
 module github.com/anaseto/gruid
 
-go 1.15
+// Not really a requirement, but for lazy module loading.
+go 1.16
 
 require (
 	github.com/gdamore/tcell/v2 v2.1.0

@@ -64,6 +64,7 @@ In addition of the [annotated examples](examples/) that come within the gruid
 module, you may want to look also into some real world examples of gruid
 programs:
 
++ [harmonist](https://github.com/anaseto/harmonist) : a stealth roguelike game.
 + [gospeedr](https://github.com/anaseto/gospeedr) : a simple speed reading program.
 
 # See also

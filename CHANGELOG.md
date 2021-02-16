@@ -1,5 +1,17 @@
 This changelog file only lists important changes.
 
+## v0.17.0 - 2020-02-16
+
++ NewVault shorthand method for creating new vaults.
++ New Bounds method for ui.Menu, that returns the range occupied currently by
+  the menu.
++ New AtU method in rl.Grid package, for cases in which performance does really
+  matter.
++ Improve handling of short texts in pager (texts that do not use the whole
+  available space).
++ Send a MsgScreen initially in js driver, as the other drivers already did.
++ Add source too in returned slice of visibles in SSC FOV methods.
+
 ## v0.16.0 - 2020-02-09
 
 + Use image.Image instead of image.RGBA in sdl and js drivers for GetImage
