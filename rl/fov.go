@@ -575,7 +575,11 @@ func (fov *FOV) SSCVisionMap(src gruid.Point, maxDepth int, passable func(p grui
 }
 
 func (fov *FOV) sscVisionMap(src gruid.Point, maxDepth int, diags bool) {
-	fov.ShadowCasting[fov.idx(src)] = true
+	idx := fov.idx(src)
+	if !fov.ShadowCasting[idx] {
+		fov.ShadowCasting[idx] = true
+		fov.Visibles = append(fov.Visibles, src)
+	}
 	for i := 0; i < 4; i++ {
 		fov.sscQuadrant(src, maxDepth, quadDir(i), diags)
 	}
