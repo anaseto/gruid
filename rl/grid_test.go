@@ -233,6 +233,21 @@ func BenchmarkGridLoopAt(b *testing.B) {
 	}
 }
 
+func BenchmarkGridLoopAtU(b *testing.B) {
+	gd := NewGrid(80, 24)
+	gd.Fill(Cell(1))
+	for i := 0; i < b.N; i++ {
+		n := Cell(0)
+		max := gd.Size()
+		for y := 0; y < max.Y; y++ {
+			for x := 0; x < max.X; x++ {
+				p := gruid.Point{x, y}
+				n += gd.AtU(p)
+			}
+		}
+	}
+}
+
 func BenchmarkGridIterSet(b *testing.B) {
 	gd := NewGrid(80, 24)
 	gd.Fill(Cell(1))

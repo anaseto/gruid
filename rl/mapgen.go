@@ -60,7 +60,7 @@ func (mg MapGen) RandomWalkCave(walker RandomWalker, c Cell, fillp float64, walk
 	if walks > 0 {
 		wlkmax /= walks
 	}
-	for digs <= maxdigs {
+	for digs < maxdigs {
 		p := gruid.Point{mg.rand(max.X), mg.rand(max.Y)}
 		sc := mg.Grid.At(p)
 		if c == sc {
@@ -71,15 +71,15 @@ func (mg MapGen) RandomWalkCave(walker RandomWalker, c Cell, fillp float64, walk
 		wlkdigs := 1
 		outDigs := 0
 		lastInRange := p
-		for digs <= maxdigs && wlkdigs <= wlkmax {
+		for digs < maxdigs && wlkdigs <= wlkmax {
 			q := walker.Neighbor(p)
-			if !mg.Grid.Contains(p) && mg.Grid.Contains(q) && mg.Grid.At(q) != c {
+			if !mg.Grid.Contains(p) && mg.Grid.Contains(q) && mg.Grid.AtU(q) != c {
 				p = lastInRange
 				continue
 			}
 			p = q
 			if mg.Grid.Contains(p) {
-				if mg.Grid.At(p) != c {
+				if mg.Grid.AtU(p) != c {
 					mg.Grid.Set(p, c)
 					digs++
 					wlkdigs++
