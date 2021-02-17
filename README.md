@@ -36,10 +36,9 @@ The **tcell**, **js**, and **sdl** packages in the [drivers
 sub-directory](drivers/) provide specific rendering and input implementations
 satisfying gruid's package Driver interface. The provided terminal driver only
 handles full-window applications. See the README.md files in their respective
-folders for specific build and deployment instructions. *Note that until lazy
-module loading comes (hopefully with Go 1.16), unless you manually remove the
-sdl dependency, you will probably need to install SDL2 even if you only want to
-use tcell for the terminal.*
+folders for specific build and deployment instructions. **Note:** *Before Go
+1.16 and lazy module loading, you will need to install SDL2 even if you only
+want to use tcell for the terminal (unless you manually remove the driver).*
 
 The **tiles** package contains helpers for drawing fonts on images, which can
 be used to manage character tiles using a Driver from either drivers/sdl or
