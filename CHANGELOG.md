@@ -1,5 +1,21 @@
 This changelog file only lists important changes.
 
+## v0.18.0 - 2020-02-19
+
+This release moves the drivers packages into their own modules. The rationale
+behind that it that users may want to only use the terminal driver, so it is
+inconvenient to force a module dependence on SDL (at least, until lazy module
+loading comes). It also makes it easier to fork the provided drivers, or use
+custom ones without depending on any default ones.
+
+There are now new modules:
+
++ github.com/anaseto/gruid-tcell
++ github.com/anaseto/gruid-sdl
++ github.com/anaseto/gruid-js
+
+Their packages are drop-in replacements for the old drivers/\* packages.
+
 ## v0.17.0 - 2020-02-16
 
 + NewVault shorthand method for creating new vaults.
