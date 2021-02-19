@@ -6,7 +6,7 @@
 The **gruid** *module* provides packages for easily building grid-based
 applications in Go.  The library abstracts rendering and input for different
 platforms. There are drivers available for terminal apps
-([gruid-tcell](https://github.com/anaseto/gruid-tcell), native graphical apps
+([gruid-tcell](https://github.com/anaseto/gruid-tcell)), native graphical apps
 ([gruid-sdl](https://github.com/anaseto/gruid-sdl)) and browser apps
 ([gruid-js](https://github.com/anaseto/gruid-js)). The original application for
 the library was creating grid-based games, but it's also well-suited for any
