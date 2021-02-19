@@ -4,7 +4,7 @@ This changelog file only lists important changes.
 
 This release moves the drivers packages into their own modules. The rationale
 behind that it that users may want to only use the terminal driver, so it is
-inconvenient to force a module dependence on SDL (at least, until lazy module
+inconvenient to force a module dependency on SDL (at least, until lazy module
 loading comes). It also makes it easier to fork the provided drivers, or use
 custom ones without depending on any default ones.
 
