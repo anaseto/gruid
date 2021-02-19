@@ -20,11 +20,12 @@ Architecture](https://guide.elm-lang.org/architecture/). The architecture has
 been adapted to be more idiomatic in Go in the context of grid-based
 applications: less functional and more efficient.
 
-You can find there [annotated
-examples](https://github.com/anaseto/gruid-examples/) and the
-[documentation](https://pkg.go.dev/github.com/anaseto/gruid).
+You can find examples below in the [Examples section](#examples).
 
 # Overview of packages
+
+The full documentation is linked at the top of this README. We provide here a
+quick overview.
 
 The **gruid** package defines the Model and Driver interfaces and allows to
 start the “update on message then draw” main loop of an application. It also
@@ -43,9 +44,10 @@ The **paths** package provides efficient implementations of some common
 pathfinding algorithms that are often used in grid-based games, such as
 roguelikes. You will find implementations of the A\* and
 [JPS](https://en.wikipedia.org/wiki/Jump_point_search) algorithms, as well as
-Dijkstra, breadth first, and connected components maps computations. See the
-[movement example](https://github.com/anaseto/gruid-examples/movement/move.go)
-for an annotated example using JPS and the mouse.
+Dijkstra, breadth first, and connected components maps computations. See
+`move.go` in the movement example in
+[gruid-examples](https://github.com/anaseto/gruid-examples) for an annotated
+example using JPS and the mouse.
 
 The **rl** package provides some additional utilities commonly needed in
 grid-based games such as roguelikes. The package provides an event priority
@@ -66,9 +68,10 @@ a bit of HTML and js).
 
 # Examples
 
-In addition of the simple [annotated
-examples](https://github.com/anaseto/gruid-examples/) previously mentioned, you
-may want to look also into some real world examples of gruid programs:
+The [gruid-examples](https://github.com/anaseto/gruid-examples) module offers
+some simple annotated examples of gruid usage.
+
+You may want to look also into some real world examples of gruid programs:
 
 + [harmonist](https://github.com/anaseto/harmonist) : a stealth roguelike game.
 + [gospeedr](https://github.com/anaseto/gospeedr) : a simple speed reading program.
