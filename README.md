@@ -55,7 +55,7 @@ as well as vault parsing and manipulation utilities.
 # Drivers
 
 The **tcell**, **sdl**, and **js** packages in the
-([gruid-tcell](https://github.com/anaseto/gruid-tcell),
+([gruid-tcell](https://github.com/anaseto/gruid-tcell)),
 ([gruid-sdl](https://github.com/anaseto/gruid-sdl)) and
 ([gruid-js](https://github.com/anaseto/gruid-js)) modules provide specific
 rendering and input implementations satisfying gruid's package Driver
