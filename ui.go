@@ -41,9 +41,9 @@
 // SOFTWARE.
 
 // Package gruid provides a model for building grid-based applications. The
-// interface abstracts rendering and input for different platforms. The module
-// provides drivers for terminal apps (driver/tcell), native graphical apps
-// (driver/sdl) and browser apps (driver/js).
+// interface abstracts rendering and input for different platforms. There are
+// drivers for terminal apps (gruid-tcell), native graphical apps (gruid-sdl)
+// and browser apps (gruid-js).
 //
 // The package uses an architecture of updating a model in response to messages
 // strongly inspired from the bubbletea module for building terminal apps
