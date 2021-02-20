@@ -11,7 +11,8 @@ type ccNode struct {
 
 // CCMapAll computes a map of the connected components. It makes the
 // assumption that the paths are bidirectional, allowing for efficient
-// computation.
+// computation. This means, in particular, that the pather should return no
+// neighbors for obstacles.
 func (pr *PathRange) CCMapAll(nb Pather) {
 	max := pr.Rg.Size()
 	w, h := max.X, max.Y
@@ -53,7 +54,8 @@ func (pr *PathRange) CCMapAll(nb Pather) {
 // CCMap computes the connected component which contains a given position.
 // It returns a cached slice with all the positions in the same connected
 // component as p, or nil if p is out of range.  It makes the assumption that
-// the paths are bidirectional, allowing for efficient computation.
+// the paths are bidirectional, allowing for efficient computation. This means,
+// in particular, that the pather should return no neighbors for obstacles.
 //
 // It makes uses of the same caching structures as ComputeCCAll, so CCAt will
 // return -1 on all unreachable positions from p.
