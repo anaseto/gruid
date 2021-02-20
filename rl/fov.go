@@ -56,7 +56,8 @@ type innerFOV struct {
 func NewFOV(rg gruid.Range) *FOV {
 	fov := &FOV{}
 	fov.Rg = rg
-	fov.Capacity = fov.Rg.Size().X * fov.Rg.Size().Y
+	max := fov.Rg.Size()
+	fov.Capacity = max.X * max.Y
 	return fov
 }
 

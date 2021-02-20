@@ -7,9 +7,7 @@ import (
 // Dijkstra is the interface that allows to build a dijkstra map using the
 // DijkstraMap function.
 type Dijkstra interface {
-	// Neighbors returns the available neighbor positions of a given
-	// position. Implementations may use a cache to avoid allocations.
-	Neighbors(gruid.Point) []gruid.Point
+	Pather
 
 	// Cost represents the cost from one position to an adjacent one. It
 	// should not produce paths with negative costs.

@@ -35,6 +35,7 @@ type pathRange struct {
 	BfUnreachable       int // last maxcost + 1
 	BfEnd               int // bf map last index
 	W                   int // path range width
+	Capacity            int
 }
 
 // GobDecode implements gob.GobDecoder.
@@ -63,23 +64,22 @@ func (pr *PathRange) GobEncode() ([]byte, error) {
 func NewPathRange(rg gruid.Range) *PathRange {
 	pr := &PathRange{}
 	pr.Rg = rg
-	pr.W = pr.Rg.Max.X - pr.Rg.Min.X
+	max := pr.Rg.Size()
+	pr.W = max.X
+	pr.Capacity = max.X * max.Y
 	return pr
 }
 
-// SetRange updates the range used by the PathFinder. If the size is the same,
+// SetRange updates the range used by the PathFinder. If the size is smaller,
 // cached structures will be preserved, otherwise they will be reinitialized.
 func (pr *PathRange) SetRange(rg gruid.Range) {
-	org := pr.Rg
 	pr.Rg = rg
 	max := rg.Size()
-	omax := org.Size()
-	if max == omax {
+	if max.X*max.Y <= pr.Capacity {
 		return
 	}
-	*pr = PathRange{}
-	pr.Rg = rg
-	pr.W = pr.Rg.Max.X - pr.Rg.Min.X
+	npr := NewPathRange(rg)
+	*pr = *npr
 }
 
 // Range returns the current PathRange's range of positions.

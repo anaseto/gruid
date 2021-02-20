@@ -30,13 +30,7 @@ import (
 // Astar is the interface that allows to use the A* algorithm used by the
 // AstarPath function.
 type Astar interface {
-	// Neighbors returns the available neighbor positions of a given
-	// position. Implementations may use a cache to avoid allocations.
-	Neighbors(gruid.Point) []gruid.Point
-
-	// Cost represents the cost from one position to an adjacent one. It
-	// should not produce paths with negative costs.
-	Cost(gruid.Point, gruid.Point) int
+	Dijkstra
 
 	// Estimation offers an estimation cost for a path from a position to
 	// another one. The estimation should always give a value lower or
