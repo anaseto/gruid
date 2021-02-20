@@ -180,9 +180,10 @@ func (gd Grid) At(p gruid.Point) Cell {
 	return gd.Ug.Cells[i]
 }
 
-// AtU returns the cell at a given position without checking bounds. If the
-// position is out of range, it may panic or return a value corresponding to
-// the position in the outer grid.
+// AtU returns the cell at a given position without checking the grid slice
+// bounds.  If the position is out of bounds, it returns a value corresponding
+// to the position in the underlying grid, or the zero value if also out
+// of the underlying grid's range.
 //
 // It may be somewhat faster than At in tight loops, but most of the time you
 // can get the same performance using GridIterator or iteration functions
@@ -190,6 +191,9 @@ func (gd Grid) At(p gruid.Point) Cell {
 func (gd Grid) AtU(p gruid.Point) Cell {
 	p = p.Add(gd.Rg.Min)
 	i := p.Y*gd.Ug.Width + p.X
+	if i < 0 || i >= len(gd.Ug.Cells) {
+		return Cell(0)
+	}
 	return gd.Ug.Cells[i]
 }
 
