@@ -186,8 +186,8 @@ func (gd Grid) At(p gruid.Point) Cell {
 // of the underlying grid's range.
 //
 // It may be somewhat faster than At in tight loops, but most of the time you
-// can get the same performance using GridIterator or iteration functions
-// without the risks.
+// can get the same performance using GridIterator or iteration functions,
+// which are less error-prone.
 func (gd Grid) AtU(p gruid.Point) Cell {
 	p = p.Add(gd.Rg.Min)
 	i := p.Y*gd.Ug.Width + p.X
