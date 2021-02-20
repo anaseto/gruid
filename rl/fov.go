@@ -115,7 +115,7 @@ func (fov *FOV) At(p gruid.Point) (int, bool) {
 }
 
 // Visible returns true if the given position is visible according to the
-// previous SCCVisionMap call.
+// last SCCVisionMap call.
 func (fov *FOV) Visible(p gruid.Point) bool {
 	if !p.In(fov.Rg) || fov.ShadowCasting == nil {
 		return false
