@@ -23,16 +23,15 @@ type pathRange struct {
 	AstarNodes          *nodeMap
 	DijkstraNodes       *nodeMap // dijkstra map
 	DijkstraIterNodes   []Node
-	BfMap               []bfNode // breadth first map
-	BfQueue             []Node   // map numbers for caching
-	CC                  []int    // connected components
+	BfMap               []int  // breadth first map
+	BfQueue             []Node // map numbers for caching
+	CC                  []int  // connected components
 	CCStack             []int
 	CCIterCache         []gruid.Point
 	AstarQueue          priorityQueue
 	DijkstraQueue       priorityQueue
 	Rg                  gruid.Range
 	DijkstraUnreachable int
-	BfIdx               int // map number (for caching)
 	BfUnreachable       int // last maxcost + 1
 	BfEnd               int // bf map last index
 	W                   int // path range width

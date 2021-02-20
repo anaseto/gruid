@@ -13,16 +13,11 @@ func (pr *PathRange) BreadthFirstMapAt(p gruid.Point) int {
 	if !p.In(pr.Rg) || pr.BfMap == nil {
 		return pr.BfUnreachable
 	}
-	node := pr.BfMap[pr.idx(p)]
-	if node.Idx != pr.BfIdx {
+	cost := pr.BfMap[pr.idx(p)]
+	if cost == 0 {
 		return pr.BfUnreachable
 	}
-	return node.Cost
-}
-
-type bfNode struct {
-	Idx  int // map number (for caching)
-	Cost int // path cost from source
+	return cost - 1
 }
 
 // BreadthFirstMap efficiently computes a map of minimal distance costs from
@@ -37,17 +32,20 @@ func (pr *PathRange) BreadthFirstMap(nb Pather, sources []gruid.Point, maxCost i
 	max := pr.Rg.Size()
 	w, h := max.X, max.Y
 	if pr.BfMap == nil {
-		pr.BfMap = make([]bfNode, w*h)
+		pr.BfMap = make([]int, w*h)
 		pr.BfQueue = make([]Node, w*h)
+	} else {
+		for i := range pr.BfMap {
+			pr.BfMap[i] = 0
+		}
 	}
-	pr.BfIdx++
 	var qstart, qend int
 	pr.BfUnreachable = maxCost + 1
 	for _, p := range sources {
 		if !p.In(pr.Rg) {
 			continue
 		}
-		pr.BfMap[pr.idx(p)] = bfNode{Idx: pr.BfIdx, Cost: 0}
+		pr.BfMap[pr.idx(p)] = 1
 		pr.BfQueue[qend] = Node{P: p, Cost: 0}
 		qend++
 	}
@@ -58,34 +56,18 @@ func (pr *PathRange) BreadthFirstMap(nb Pather, sources []gruid.Point, maxCost i
 			continue
 		}
 		cidx := pr.idx(n.P)
-		cost := pr.BfMap[cidx].Cost
+		cost := pr.BfMap[cidx]
 		for _, q := range nb.Neighbors(n.P) {
 			if !q.In(pr.Rg) {
 				continue
 			}
 			nidx := pr.idx(q)
-			if pr.BfMap[nidx].Idx != pr.BfIdx {
-				c := 1 + cost
-				pr.BfMap[nidx] = bfNode{Idx: pr.BfIdx, Cost: c}
-				pr.BfQueue[qend] = Node{P: q, Cost: c}
+			if pr.BfMap[nidx] == 0 {
+				pr.BfMap[nidx] = cost + 1
+				pr.BfQueue[qend] = Node{P: q, Cost: cost}
 				qend++
 			}
 		}
 	}
-	pr.checkBfIdx()
 	return pr.BfQueue[0:qend]
-}
-
-func (pr *PathRange) checkBfIdx() {
-	if pr.BfIdx+1 > 0 {
-		return
-	}
-	for i, n := range pr.BfMap {
-		idx := 0
-		if n.Idx == pr.BfIdx {
-			idx = 1
-		}
-		pr.BfMap[i] = bfNode{Cost: n.Cost, Idx: idx}
-	}
-	pr.BfIdx = 1
 }
