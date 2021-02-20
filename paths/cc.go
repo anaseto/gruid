@@ -4,11 +4,6 @@ import (
 	"github.com/anaseto/gruid"
 )
 
-type ccNode struct {
-	Idx int // map number (for caching)
-	ID  int // component identifier
-}
-
 // CCMapAll computes a map of the connected components. It makes the
 // assumption that the paths are bidirectional, allowing for efficient
 // computation. This means, in particular, that the pather should return no
@@ -17,18 +12,19 @@ func (pr *PathRange) CCMapAll(nb Pather) {
 	max := pr.Rg.Size()
 	w, h := max.X, max.Y
 	if pr.CC == nil {
-		pr.CC = make([]ccNode, w*h)
+		pr.CC = make([]int, w*h)
+	} else {
+		for i := range pr.CC {
+			pr.CC[i] = 0
+		}
 	}
-	pr.CCIdx++
-	defer pr.checkCCIdx()
 	pr.CCStack = pr.CCStack[:0]
-	ccid := 0
+	ccid := 1
 	for i := 0; i < len(pr.CC); i++ {
-		if pr.CC[i].Idx == pr.CCIdx {
+		if pr.CC[i] > 0 {
 			continue
 		}
-		pr.CC[i].ID = ccid
-		pr.CC[i].Idx = pr.CCIdx
+		pr.CC[i] = ccid
 		pr.CCStack = append(pr.CCStack, i)
 		for len(pr.CCStack) > 0 {
 			idx := pr.CCStack[len(pr.CCStack)-1]
@@ -39,11 +35,10 @@ func (pr *PathRange) CCMapAll(nb Pather) {
 					continue
 				}
 				nidx := pr.idx(q)
-				if pr.CC[nidx].Idx == pr.CCIdx {
+				if pr.CC[nidx] > 0 {
 					continue
 				}
-				pr.CC[nidx].ID = ccid
-				pr.CC[nidx].Idx = pr.CCIdx
+				pr.CC[nidx] = ccid
 				pr.CCStack = append(pr.CCStack, nidx)
 			}
 		}
@@ -63,22 +58,23 @@ func (pr *PathRange) CCMap(nb Pather, p gruid.Point) []gruid.Point {
 	max := pr.Rg.Size()
 	w, h := max.X, max.Y
 	if pr.CC == nil {
-		pr.CC = make([]ccNode, w*h)
+		pr.CC = make([]int, w*h)
+	} else {
+		for i := range pr.CC {
+			pr.CC[i] = 0
+		}
 	}
-	pr.CCIdx++
-	defer pr.checkCCIdx()
 	if pr.CCIterCache == nil {
 		pr.CCIterCache = make([]gruid.Point, w*h)
 	}
 	pr.CCIterCache = pr.CCIterCache[:0]
 	pr.CCStack = pr.CCStack[:0]
-	ccid := 0
-	if !p.In(pr.Range()) {
+	if !p.In(pr.Rg) {
 		return nil
 	}
 	idx := pr.idx(p)
-	pr.CC[idx].ID = ccid
-	pr.CC[idx].Idx = pr.CCIdx
+	ccid := 1
+	pr.CC[idx] = ccid
 	pr.CCStack = append(pr.CCStack, idx)
 	for len(pr.CCStack) > 0 {
 		idx = pr.CCStack[len(pr.CCStack)-1]
@@ -90,11 +86,10 @@ func (pr *PathRange) CCMap(nb Pather, p gruid.Point) []gruid.Point {
 				continue
 			}
 			nidx := pr.idx(q)
-			if pr.CC[nidx].Idx == pr.CCIdx {
+			if pr.CC[nidx] > 0 {
 				continue
 			}
-			pr.CC[nidx].ID = ccid
-			pr.CC[nidx].Idx = pr.CCIdx
+			pr.CC[nidx] = ccid
 			pr.CCStack = append(pr.CCStack, nidx)
 		}
 	}
@@ -108,25 +103,7 @@ func (pr *PathRange) CCMapAt(p gruid.Point) int {
 	if !p.In(pr.Rg) || pr.CC == nil {
 		return -1
 	}
-	node := pr.CC[pr.idx(p)]
-	if node.Idx != pr.CCIdx {
-		return -1
-	}
-	return node.ID
-}
-
-func (pr *PathRange) checkCCIdx() {
-	if pr.CCIdx+1 > 0 {
-		return
-	}
-	for i, n := range pr.CC {
-		idx := 0
-		if n.Idx == pr.CCIdx {
-			idx = 1
-		}
-		pr.CC[i] = ccNode{ID: n.ID, Idx: idx}
-	}
-	pr.CCIdx = 1
+	return pr.CC[pr.idx(p)] - 1
 }
 
 // idxToPos returns a grid position given an index and the width of the grid.
