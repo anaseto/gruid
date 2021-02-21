@@ -23,7 +23,7 @@ import (
 //
 // 	https://www.albertford.com/shadowcasting/
 //
-// It offers more euclidian-like geometry, less permissive and with expansive
+// It offers more euclidean-like geometry, less permissive and with expansive
 // shadows, while still being symmetric and fast enough.
 //
 // Both algorithms can be combined to obtain a less permissive version of
