@@ -575,20 +575,6 @@ func (pr *PathRange) path(path []gruid.Point, from gruid.Point, n *node) []gruid
 	return path
 }
 
-func abs(x int) int {
-	if x < 0 {
-		return -x
-	}
-	return x
-}
-
-func max(x, y int) int {
-	if x >= y {
-		return x
-	}
-	return y
-}
-
 func (pr *PathRange) estim(x, y int) int {
 	if pr.diags {
 		return max(x, y)
