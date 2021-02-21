@@ -20,7 +20,7 @@ Architecture](https://guide.elm-lang.org/architecture/). The architecture has
 been adapted to be more idiomatic in Go in the context of grid-based
 applications: less functional and more efficient.
 
-You can find examples below in the [Examples section](#examples).
+You can find examples below in the [Examples](#examples) section.
 
 # Overview of packages
 
