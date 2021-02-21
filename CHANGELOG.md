@@ -1,5 +1,14 @@
 This changelog file only lists important changes.
 
+## v0.19.0 - 2020-02-21
+
++ New DistanceManhattan and DistanceChebyshev in paths package.
++ Minor improvements in paths package, such as retaining cached structures in
+  SetRange if the new range is smaller (this was done already for FOV's
+  SetRange).
++ Add at least an underlying grid bound checking to AtU in rl package (this
+  makes At and AtU identical for grids that span the whole underlying grid).
+
 ## v0.18.0 - 2020-02-19
 
 This release moves the drivers packages into their own modules. The rationale
