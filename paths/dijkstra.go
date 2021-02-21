@@ -10,7 +10,7 @@ type Dijkstra interface {
 	Pather
 
 	// Cost represents the cost from one position to an adjacent one. It
-	// should not produce paths with negative costs.
+	// should not produce negative costs.
 	Cost(gruid.Point, gruid.Point) int
 }
 
