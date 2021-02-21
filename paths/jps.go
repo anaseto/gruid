@@ -144,7 +144,7 @@ func (pr *PathRange) straightMax(p, dir gruid.Point) (int, forcedSucc) {
 			fs -= fsRight
 		}
 	case dir.X < 0:
-		max = -pr.Rg.Min.X + p.X
+		max = -pr.Rg.Min.X + p.X + 1
 		if p.Y == 0 {
 			fs -= fsRight
 		}
@@ -160,7 +160,7 @@ func (pr *PathRange) straightMax(p, dir gruid.Point) (int, forcedSucc) {
 			fs -= fsRight
 		}
 	case dir.Y < 0:
-		max = -pr.Rg.Min.Y + p.Y
+		max = -pr.Rg.Min.Y + p.Y + 1
 		if p.X == 0 {
 			fs -= fsRight
 		}
