@@ -1,5 +1,9 @@
 This changelog file only lists important changes.
 
+## v0.20.0 - 2020-02-22
+
++ New SetCursor method for ui.Pager.
+
 ## v0.19.0 - 2020-02-21
 
 + New DistanceManhattan and DistanceChebyshev in paths package.

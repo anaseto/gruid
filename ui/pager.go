@@ -135,6 +135,7 @@ func (pg *Pager) SetCursor(p gruid.Point) {
 	if pg.index <= 0 {
 		pg.index = 0
 	}
+	pg.dirty = true
 }
 
 // SetBox updates the pager surrounding box.

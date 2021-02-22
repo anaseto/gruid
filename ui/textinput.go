@@ -84,6 +84,18 @@ func NewTextInput(cfg TextInputConfig) *TextInput {
 	return ti
 }
 
+// SetCursor updates the position of the cursor.
+func (ti *TextInput) SetCursor(i int) {
+	ti.cursor = i
+	if ti.cursor < 0 {
+		ti.cursor = 0
+	}
+	if ti.cursor > ti.cursorMax() {
+		ti.cursor = ti.cursorMax()
+	}
+	ti.dirty = true
+}
+
 // SetBox updates the text input surrounding box.
 func (ti *TextInput) SetBox(b *Box) {
 	ti.box = b
