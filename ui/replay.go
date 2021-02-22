@@ -166,6 +166,25 @@ func (rep *Replay) updateMsgMouse(msg gruid.MsgMouse) {
 	}
 }
 
+// SetFrame sets the current frame number to be displayed.
+func (rep *Replay) SetFrame(n int) {
+	for rep.fidx < n {
+		rep.decodeNext()
+		if rep.fidx >= len(rep.frames) {
+			break
+		}
+		rep.fidx++
+		rep.next()
+	}
+	for rep.fidx > n {
+		if rep.fidx <= 0 {
+			break
+		}
+		rep.fidx--
+		rep.previous()
+	}
+}
+
 func (rep *Replay) handleAction() {
 	switch rep.action {
 	case replayNext:
@@ -196,29 +215,37 @@ func (rep *Replay) handleAction() {
 	}
 }
 
+func (rep *Replay) next() {
+	frame := rep.frames[rep.fidx-1]
+	rep.undo = append(rep.undo, []gruid.FrameCell{})
+	j := len(rep.undo) - 1
+	max := rep.grid.Size()
+	if frame.Width > max.X || frame.Height > max.Y {
+		rep.grid = rep.grid.Resize(frame.Width, frame.Height)
+	}
+	for _, fc := range frame.Cells {
+		c := rep.grid.At(fc.P)
+		rep.undo[j] = append(rep.undo[j], gruid.FrameCell{Cell: c, P: fc.P})
+		rep.grid.Set(fc.P, fc.Cell)
+	}
+}
+
+func (rep *Replay) previous() {
+	fcells := rep.undo[len(rep.undo)-1]
+	for _, fc := range fcells {
+		rep.grid.Set(fc.P, fc.Cell)
+	}
+	rep.undo = rep.undo[:len(rep.undo)-1]
+}
+
 // The grid state is actually the replay state so we draw the grid on Update
 // instead of Draw.
 func (rep *Replay) draw() {
 	switch rep.action {
 	case replayNext:
-		frame := rep.frames[rep.fidx-1]
-		rep.undo = append(rep.undo, []gruid.FrameCell{})
-		j := len(rep.undo) - 1
-		max := rep.grid.Size()
-		if frame.Width > max.X || frame.Height > max.Y {
-			rep.grid = rep.grid.Resize(frame.Width, frame.Height)
-		}
-		for _, fc := range frame.Cells {
-			c := rep.grid.At(fc.P)
-			rep.undo[j] = append(rep.undo[j], gruid.FrameCell{Cell: c, P: fc.P})
-			rep.grid.Set(fc.P, fc.Cell)
-		}
+		rep.next()
 	case replayPrevious:
-		fcells := rep.undo[len(rep.undo)-1]
-		for _, fc := range fcells {
-			rep.grid.Set(fc.P, fc.Cell)
-		}
-		rep.undo = rep.undo[:len(rep.undo)-1]
+		rep.previous()
 	}
 }
 
