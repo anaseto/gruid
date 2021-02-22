@@ -212,6 +212,7 @@ func (rep *Replay) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
 	case key.In(rep.keys.Backward):
 		rep.action = replayBackward
 	case key.In(rep.keys.Help):
+		rep.dirty = true
 		rep.help = true
 		rep.auto = false
 	}

@@ -2,7 +2,10 @@ This changelog file only lists important changes.
 
 ## v0.20.0 - 2020-02-22
 
-+ New SetCursor method for ui.Pager.
++ New SetCursor method for ui.Pager and ui.TextInput.
++ Add SetFrame and Seek methods for ui.Replay.
++ New forward and backward by 1 minute shortcuts for ui.Replay.
++ Add integrated key bindings help in ui.Replay.
 
 ## v0.19.0 - 2020-02-21
 
