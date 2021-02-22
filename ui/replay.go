@@ -42,6 +42,7 @@ type Replay struct {
 	action  repAction
 	init    bool // Update received MsgInit
 	keys    ReplayKeys
+	dirty   bool
 }
 
 // NewReplay returns a new Replay with a given configuration.
@@ -78,6 +79,7 @@ func NewReplay(cfg ReplayConfig) *Replay {
 	if rep.keys.Backward == nil {
 		rep.keys.Backward = []gruid.Key{gruid.KeyArrowDown, "j"}
 	}
+	rep.dirty = true
 	return rep
 }
 
@@ -197,9 +199,10 @@ func (rep *Replay) SetFrame(n int) {
 		rep.fidx--
 		rep.previous()
 	}
+	rep.dirty = true
 }
 
-// Seek moves replay forwards/backwards by the given duration.
+// Seek moves replay forward/backward by the given duration.
 func (rep *Replay) Seek(d time.Duration) {
 	rep.decodeNext()
 	if len(rep.frames) == 0 {
@@ -229,6 +232,7 @@ func (rep *Replay) Seek(d time.Duration) {
 			rep.previous()
 		}
 	}
+	rep.dirty = true
 }
 
 func (rep *Replay) handleAction() {
@@ -297,11 +301,14 @@ func (rep *Replay) draw() {
 	case replayForward:
 		rep.Seek(time.Minute)
 	}
+	if rep.action != replayNone {
+		rep.dirty = true
+	}
 }
 
 // Draw implements gruid.Model.Draw for Replay.
 func (rep *Replay) Draw() gruid.Grid {
-	if rep.init && rep.action == replayNone {
+	if !rep.dirty {
 		return rep.grid.Slice(gruid.Range{})
 	}
 	return rep.grid
