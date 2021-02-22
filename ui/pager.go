@@ -119,6 +119,24 @@ func NewPager(cfg PagerConfig) *Pager {
 	return pg
 }
 
+// SetCursor updates the pager's position to the given (X, Y) point, where X is
+// the indentation level, and Y the line number of the upper-most line of the
+// view.
+func (pg *Pager) SetCursor(p gruid.Point) {
+	pg.x = p.X
+	if pg.x < 0 {
+		pg.x = 0
+	}
+	nlines := pg.nlines()
+	pg.index = p.Y
+	if pg.index+nlines-1 >= len(pg.lines) {
+		pg.index = len(pg.lines) - nlines
+	}
+	if pg.index <= 0 {
+		pg.index = 0
+	}
+}
+
 // SetBox updates the pager surrounding box.
 func (pg *Pager) SetBox(b *Box) {
 	pg.box = b
