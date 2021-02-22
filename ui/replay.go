@@ -10,12 +10,14 @@ import (
 
 // ReplayKeys contains key bindings configuration for the replay.
 type ReplayKeys struct {
-	Quit      []gruid.Key // quit replay
-	Pause     []gruid.Key // pause replay
-	SpeedMore []gruid.Key // increase replay speed
-	SpeedLess []gruid.Key // decrease replay speed
-	FrameNext []gruid.Key // manually go to next frame
-	FramePrev []gruid.Key // manually go to previous frame
+	Quit      []gruid.Key // quit replay (default: q, Q, esc)
+	Pause     []gruid.Key // pause replay (default: p, P, space)
+	SpeedMore []gruid.Key // increase replay speed (default: +, })
+	SpeedLess []gruid.Key // decrease replay speed (default: -, {)
+	FrameNext []gruid.Key // go to next frame (default: arrow right, l)
+	FramePrev []gruid.Key // go to previous frame (default: arrow left, h)
+	Forward   []gruid.Key // go 1 minute forward (default: arrow down, j)
+	Backward  []gruid.Key // go 1 minute backward (default: arrow up, k)
 }
 
 // ReplayConfig contains replay configuration.
@@ -59,16 +61,22 @@ func NewReplay(cfg ReplayConfig) *Replay {
 		rep.keys.Pause = []gruid.Key{gruid.KeySpace, "P", "p"}
 	}
 	if rep.keys.SpeedMore == nil {
-		rep.keys.SpeedMore = []gruid.Key{"+", ">"}
+		rep.keys.SpeedMore = []gruid.Key{"+", "}"}
 	}
 	if rep.keys.SpeedLess == nil {
-		rep.keys.SpeedLess = []gruid.Key{"-", "<"}
+		rep.keys.SpeedLess = []gruid.Key{"-", "{"}
 	}
 	if rep.keys.FrameNext == nil {
-		rep.keys.FrameNext = []gruid.Key{gruid.KeyArrowRight, gruid.KeyArrowDown, "j", "n", "f"}
+		rep.keys.FrameNext = []gruid.Key{gruid.KeyArrowRight, "l"}
 	}
 	if rep.keys.FramePrev == nil {
-		rep.keys.FramePrev = []gruid.Key{gruid.KeyArrowLeft, gruid.KeyArrowUp, "k", "N", "b"}
+		rep.keys.FramePrev = []gruid.Key{gruid.KeyArrowLeft, "h"}
+	}
+	if rep.keys.Forward == nil {
+		rep.keys.Forward = []gruid.Key{gruid.KeyArrowUp, "k"}
+	}
+	if rep.keys.Backward == nil {
+		rep.keys.Backward = []gruid.Key{gruid.KeyArrowDown, "j"}
 	}
 	return rep
 }
@@ -82,6 +90,8 @@ const (
 	replayTogglePause
 	replaySpeedMore
 	replaySpeedLess
+	replayForward
+	replayBackward
 )
 
 type msgTick int // frame number
@@ -146,6 +156,10 @@ func (rep *Replay) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
 	case key.In(rep.keys.FramePrev):
 		rep.action = replayPrevious
 		rep.auto = false
+	case key.In(rep.keys.Forward):
+		rep.action = replayForward
+	case key.In(rep.keys.Backward):
+		rep.action = replayBackward
 	}
 	return nil
 }
@@ -182,6 +196,38 @@ func (rep *Replay) SetFrame(n int) {
 		}
 		rep.fidx--
 		rep.previous()
+	}
+}
+
+// Seek moves replay forwards/backwards by the given duration.
+func (rep *Replay) Seek(d time.Duration) {
+	rep.decodeNext()
+	if len(rep.frames) == 0 {
+		return
+	}
+	n := rep.fidx - 1
+	if n < 0 || n >= len(rep.frames) {
+		return
+	}
+	var t time.Time
+	t = rep.frames[n].Time.Add(d)
+	if d > 0 {
+		for t.After(rep.frames[rep.fidx-1].Time) {
+			rep.decodeNext()
+			if rep.fidx >= len(rep.frames) {
+				break
+			}
+			rep.fidx++
+			rep.next()
+		}
+	} else {
+		for t.Before(rep.frames[rep.fidx-1].Time) {
+			if rep.fidx <= 1 {
+				break
+			}
+			rep.fidx--
+			rep.previous()
+		}
 	}
 }
 
@@ -246,6 +292,10 @@ func (rep *Replay) draw() {
 		rep.next()
 	case replayPrevious:
 		rep.previous()
+	case replayBackward:
+		rep.Seek(-time.Minute)
+	case replayForward:
+		rep.Seek(time.Minute)
 	}
 }
 
