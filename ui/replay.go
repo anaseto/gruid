@@ -3,6 +3,7 @@
 package ui
 
 import (
+	"strings"
 	"time"
 
 	"github.com/anaseto/gruid"
@@ -18,6 +19,7 @@ type ReplayKeys struct {
 	FramePrev []gruid.Key // go to previous frame (default: arrow left, h)
 	Forward   []gruid.Key // go 1 minute forward (default: arrow down, j)
 	Backward  []gruid.Key // go 1 minute backward (default: arrow up, k)
+	Help      []gruid.Key // key bindings help (default: ?)
 }
 
 // ReplayConfig contains replay configuration.
@@ -43,6 +45,8 @@ type Replay struct {
 	init    bool // Update received MsgInit
 	keys    ReplayKeys
 	dirty   bool
+	help    bool
+	pager   *Pager
 }
 
 // NewReplay returns a new Replay with a given configuration.
@@ -79,8 +83,41 @@ func NewReplay(cfg ReplayConfig) *Replay {
 	if rep.keys.Backward == nil {
 		rep.keys.Backward = []gruid.Key{gruid.KeyArrowDown, "j"}
 	}
+	if rep.keys.Help == nil {
+		rep.keys.Help = []gruid.Key{"?"}
+	}
 	rep.dirty = true
+	max := cfg.Grid.Size()
+	rep.pager = NewPager(PagerConfig{
+		Grid: gruid.NewGrid(max.X, max.Y),
+		Box:  &Box{Title: Text("Help")},
+		Keys: PagerKeys{Quit: []gruid.Key{gruid.KeyEscape, "q", "Q", "x", "X", "?"}},
+	})
+	rep.setPagerLines()
 	return rep
+}
+
+func (rep *Replay) setPagerLines() {
+	lines := []StyledText{}
+	fmtLine := func(title string, keys []gruid.Key) {
+		b := strings.Builder{}
+		for i, k := range keys {
+			b.WriteString(string(k))
+			if i < len(keys)-1 {
+				b.WriteString(" or ")
+			}
+		}
+		lines = append(lines, Textf("%-30s %s", title, b.String()))
+	}
+	fmtLine("Quit", rep.keys.Quit)
+	fmtLine("Pause", rep.keys.Pause)
+	fmtLine("Increase speed", rep.keys.SpeedMore)
+	fmtLine("Decrease speed", rep.keys.SpeedLess)
+	fmtLine("Go to next frame", rep.keys.FrameNext)
+	fmtLine("Go to previous frame", rep.keys.FramePrev)
+	fmtLine("Go 1 minute forward", rep.keys.Forward)
+	fmtLine("Go 1 minute backward", rep.keys.Backward)
+	rep.pager.SetLines(lines)
 }
 
 type repAction int
@@ -114,6 +151,9 @@ func (rep *Replay) decodeNext() {
 // and send a gruid.Quit() command on a quit request.
 func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 	rep.action = replayNone
+	if rep.help {
+		return rep.updateHelp(msg)
+	}
 	switch msg := msg.(type) {
 	case gruid.MsgInit:
 		rep.init = true
@@ -139,6 +179,15 @@ func (rep *Replay) Update(msg gruid.Msg) gruid.Effect {
 	return rep.tick()
 }
 
+func (rep *Replay) updateHelp(msg gruid.Msg) gruid.Effect {
+	rep.pager.Update(msg)
+	switch rep.pager.Action() {
+	case PagerQuit:
+		rep.help = false
+	}
+	return nil
+}
+
 func (rep *Replay) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
 	key := msg.Key
 	switch {
@@ -162,6 +211,9 @@ func (rep *Replay) updateMsgKeyDown(msg gruid.MsgKeyDown) gruid.Effect {
 		rep.action = replayForward
 	case key.In(rep.keys.Backward):
 		rep.action = replayBackward
+	case key.In(rep.keys.Help):
+		rep.help = true
+		rep.auto = false
 	}
 	return nil
 }
@@ -308,6 +360,9 @@ func (rep *Replay) draw() {
 
 // Draw implements gruid.Model.Draw for Replay.
 func (rep *Replay) Draw() gruid.Grid {
+	if rep.help {
+		return rep.pager.Draw()
+	}
 	if rep.init && !rep.dirty {
 		return rep.grid.Slice(gruid.Range{})
 	}
