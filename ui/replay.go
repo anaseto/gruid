@@ -308,7 +308,7 @@ func (rep *Replay) draw() {
 
 // Draw implements gruid.Model.Draw for Replay.
 func (rep *Replay) Draw() gruid.Grid {
-	if !rep.dirty {
+	if rep.init && !rep.dirty {
 		return rep.grid.Slice(gruid.Range{})
 	}
 	return rep.grid
