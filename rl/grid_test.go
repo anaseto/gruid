@@ -1,6 +1,8 @@
 package rl
 
 import (
+	"bytes"
+	"encoding/gob"
 	"math/rand"
 	"testing"
 
@@ -172,6 +174,26 @@ func TestCount(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestGridGob(t *testing.T) {
+	grid := NewGrid(80, 24)
+	grid.Fill(Cell(1))
+	buf := bytes.Buffer{}
+	ge := gob.NewEncoder(&buf)
+	err := ge.Encode(&grid)
+	if err != nil {
+		t.Error(err)
+	}
+	grid = Grid{}
+	gd := gob.NewDecoder(&buf)
+	err = gd.Decode(&grid)
+	if err != nil {
+		t.Error(err)
+	}
+	if grid.Count(Cell(1)) != 80*24 {
+		t.Errorf("bad count: %v", grid.Count(Cell(1)))
 	}
 }
 

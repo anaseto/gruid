@@ -1,6 +1,8 @@
 package rl
 
 import (
+	"bytes"
+	"encoding/gob"
 	"testing"
 
 	"github.com/anaseto/gruid"
@@ -19,6 +21,9 @@ func TestFOV(t *testing.T) {
 	if len(ray) != 6 {
 		t.Errorf("bad ray length: %d", len(ray))
 	}
+	if n, ok := fov.From(lt, gruid.Point{5, 0}); !ok || n.P.X != 4 {
+		t.Errorf("From: bad returned position: %v", n.P)
+	}
 	if ray[2].P.X != 2 {
 		t.Errorf("bad position in ray: %d", ray[2].P.X)
 	}
@@ -26,6 +31,35 @@ func TestFOV(t *testing.T) {
 	lns = fov.LightMap(lt, []gruid.Point{{-5, 0}, {5, 0}})
 	if len(lns) != 2*(2*4+1)*(2*4+1) {
 		t.Errorf("bad length: %d vs %d", len(lns), 2*(2*4+1)*(2*4+1))
+	}
+	count := 0
+	fov.Iter(func(n LightNode) {
+		count++
+	})
+	if count != len(lns) {
+		t.Errorf("bad Iter count: %d", count)
+	}
+}
+
+func TestFOVGob(t *testing.T) {
+	rg := gruid.NewRange(-maxLOS, -maxLOS, maxLOS+2, maxLOS+2)
+	fov := NewFOV(rg)
+	lt := &lighter{max: maxLOS}
+	fov.VisionMap(lt, gruid.Point{0, 0})
+	buf := bytes.Buffer{}
+	ge := gob.NewEncoder(&buf)
+	err := ge.Encode(fov)
+	if err != nil {
+		t.Error(err)
+	}
+	fov = &FOV{}
+	gd := gob.NewDecoder(&buf)
+	err = gd.Decode(fov)
+	if err != nil {
+		t.Error(err)
+	}
+	if fov.Range() != rg {
+		t.Errorf("bad range: %v", fov.Range())
 	}
 }
 
@@ -45,15 +79,46 @@ func TestFOVSSC(t *testing.T) {
 
 func TestFOVSSCNoDiags(t *testing.T) {
 	fov := NewFOV(gruid.NewRange(-maxLOS, -maxLOS, maxLOS+2, maxLOS+2))
-	fov.SSCVisionMap(gruid.Point{0, 0}, maxLOS, func(p gruid.Point) bool { return true }, false)
+	nodes := fov.SSCVisionMap(gruid.Point{0, 0}, maxLOS, func(p gruid.Point) bool { return true }, false)
+	count := 0
+	fov.IterSSC(func(p gruid.Point) {
+		if fov.Visible(p) {
+			count++
+		}
+	})
+	if count != len(nodes) || count != (2*maxLOS+1)*(2*maxLOS+1) {
+		t.Errorf("bad length: %d", count)
+	}
+}
+
+func TestFOVSSCLightMap(t *testing.T) {
+	const maxLight = 3
+	fov := NewFOV(gruid.NewRange(-maxLOS, -maxLOS, maxLOS+2, maxLOS+2))
+	fov.SSCLightMap([]gruid.Point{{-2, -2}, {6, 6}}, maxLight, func(p gruid.Point) bool { return true }, false)
 	count := 0
 	fov.Rg.Iter(func(p gruid.Point) {
 		if fov.Visible(p) {
 			count++
 		}
 	})
-	if count != (2*maxLOS+1)*(2*maxLOS+1) {
-		t.Errorf("bad length: %d vs %d", count, (2*maxLOS+1)*(2*maxLOS+1))
+	if count != 2*(2*maxLight+1)*(2*maxLight+1) {
+		t.Errorf("bad length: %d vs %d", count, 2*(2*maxLight+1)*(2*maxLight+1))
+	}
+}
+
+func TestFOVSetRange(t *testing.T) {
+	rg := gruid.NewRange(0, 0, 10, 15)
+	fov := NewFOV(rg)
+	if fov.Range() != rg {
+		t.Errorf("bad range: %v", fov.Range())
+	}
+	fov.SetRange(rg.Shift(1, 1, -1, -1))
+	if fov.Range() != rg.Shift(1, 1, -1, -1) {
+		t.Errorf("bad range: %v", fov.Range())
+	}
+	fov.SetRange(rg.Shift(0, 0, 1, 2))
+	if fov.Range() != rg.Shift(0, 0, 1, 2) {
+		t.Errorf("bad range: %v", fov.Range())
 	}
 }
 

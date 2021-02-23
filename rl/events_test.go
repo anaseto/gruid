@@ -1,6 +1,8 @@
 package rl
 
 import (
+	"bytes"
+	"encoding/gob"
 	"testing"
 )
 
@@ -94,6 +96,32 @@ func TestEventsQueuePopR(t *testing.T) {
 	eq := NewEventQueue()
 	eq.Push(3, 2)
 	eq.Push(2, 4)
+	n, r := eq.PopR()
+	n = n.(int)
+	if n != 3 {
+		t.Errorf("bad number: %d vs 3", n)
+	}
+	if r != 2 {
+		t.Errorf("bad rank: %d vs 2", r)
+	}
+}
+
+func TestEventQueueGob(t *testing.T) {
+	eq := NewEventQueue()
+	eq.Push(3, 2)
+	eq.Push(2, 4)
+	buf := bytes.Buffer{}
+	ge := gob.NewEncoder(&buf)
+	err := ge.Encode(eq)
+	if err != nil {
+		t.Error(err)
+	}
+	eq = &EventQueue{}
+	gd := gob.NewDecoder(&buf)
+	err = gd.Decode(eq)
+	if err != nil {
+		t.Error(err)
+	}
 	n, r := eq.PopR()
 	n = n.(int)
 	if n != 3 {

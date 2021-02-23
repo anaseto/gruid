@@ -64,9 +64,28 @@ func TestVault(t *testing.T) {
 	}
 }
 
+func TestVaultIter(t *testing.T) {
+	v, err := NewVault(vaultExample)
+	if err != nil {
+		t.Errorf("Parse: %v", err)
+	}
+	count := 0
+	v.Iter(func(p gruid.Point, r rune) {
+		if r == '#' {
+			count++
+		}
+	})
+	if count != 6 {
+		t.Errorf("bad # count: %d (expected 6)", count)
+	}
+}
+
 func TestVaultSetRunes(t *testing.T) {
 	v := &Vault{}
 	v.SetRunes("@")
+	if v.Runes() != "@" {
+		t.Errorf("bad runes: %v", v.Runes())
+	}
 	err := v.Parse(vaultExample)
 	if err == nil {
 		t.Error("incomplete rune check")
