@@ -552,7 +552,8 @@ func (fov *FOV) reveal(qt quadrant, tile gruid.Point) {
 	}
 }
 
-// Symmetric shadow casting algorithm based on algorithm described there:
+// SSCVisionMap implements symmetric shadow casting algorithm based on
+// algorithm described there:
 //
 // 	https://www.albertford.com/shadowcasting/
 //

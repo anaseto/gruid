@@ -24,7 +24,7 @@ func (np npath) Cost(p, q gruid.Point) int {
 	return 2
 }
 
-func (nb npath) Estimation(p, q gruid.Point) int {
+func (np npath) Estimation(p, q gruid.Point) int {
 	r := p.Sub(q)
 	return abs(r.X) + abs(r.Y)
 }
