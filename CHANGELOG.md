@@ -1,5 +1,10 @@
 This changelog file only lists important changes.
 
+## v0.21.0 - 2020-03-03
+
++ New DriverPollMsg interface for drivers whose input system is non-blocking
+  and not thread-safe in all implementations.
+
 ## v0.20.0 - 2020-02-22
 
 + New SetCursor method for ui.Pager and ui.TextInput.
