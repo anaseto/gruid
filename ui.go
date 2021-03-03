@@ -95,215 +95,8 @@ import (
 	"io"
 	"log"
 	"runtime/debug"
+	"time"
 )
-
-// App represents a message and model-driven application with a grid-based user
-// interface.
-type App struct {
-	// CatchPanics ensures that Close is called on the driver before ending
-	// the Start loop. When a panic occurs, it will be recovered, the stack
-	// trace will be printed and an error will be returned. It defaults to
-	// true.
-	CatchPanics bool
-
-	driver Driver
-	model  Model
-	enc    *frameEncoder
-	logger *log.Logger
-
-	grid  Grid
-	frame Frame
-}
-
-// AppConfig contains the configuration options for creating a new App.
-type AppConfig struct {
-	Model  Model  // application state
-	Driver Driver // input and rendering driver
-
-	// FrameWriter is an optional io.Writer for recording frames. They can
-	// be decoded after a successful Start session with a FrameDecoder. If
-	// nil, no frame recording will be done. It is your responsibility to
-	// call Close on the Writer after Start returns.
-	FrameWriter io.Writer
-
-	// Logger is optional and is used to log non-fatal IO errors.
-	Logger *log.Logger
-}
-
-// NewApp creates a new App with the given configuration options.
-func NewApp(cfg AppConfig) *App {
-	app := &App{
-		model:       cfg.Model,
-		driver:      cfg.Driver,
-		logger:      cfg.Logger,
-		CatchPanics: true,
-	}
-	if cfg.FrameWriter != nil {
-		app.enc = newFrameEncoder(cfg.FrameWriter)
-	}
-	return app
-}
-
-// Start initializes the application and runs its main loop. The context
-// argument can be used as a means to prematurely cancel the loop. You can
-// usually use an empty context here.
-func (app *App) Start(ctx context.Context) (err error) {
-	var (
-		effects  = make(chan Effect, 4)
-		msgs     = make(chan Msg, 4)
-		errs     = make(chan error)    // for driver input errors
-		polldone = make(chan struct{}) // PollMsgs subscription finished
-	)
-
-	// frame encoder finalization
-	defer func() {
-		if app.enc != nil {
-			nerr := app.enc.gzw.Close()
-			if err == nil {
-				err = nerr
-			} else if app.logger != nil {
-				app.logger.Printf("error closing gzip encoder: %v", err)
-			}
-		}
-	}()
-
-	// driver and context initialization
-	err = app.driver.Init()
-	if err != nil {
-		return err
-	}
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	ctx, cancel := context.WithCancel(ctx)
-	if app.CatchPanics {
-		defer func() {
-			if r := recover(); r != nil {
-				err = fmt.Errorf("%v", r)
-				cancel()
-				<-polldone
-				app.driver.Close()
-				log.Printf("Caught panic: %v\nStack Trace:\n", r)
-				debug.PrintStack()
-			} else {
-				<-polldone
-				app.driver.Close()
-			}
-		}()
-	} else {
-		defer func() {
-			<-polldone
-			app.driver.Close()
-		}()
-	}
-	defer cancel()
-
-	// initialization message (non-blocking, buffered)
-	msgs <- MsgInit{}
-
-	// input messages queueing
-	go func(ctx context.Context) {
-		defer func() {
-			close(polldone)
-		}()
-		err := app.driver.PollMsgs(ctx, msgs)
-		if err != nil {
-			select {
-			case errs <- err:
-			case <-ctx.Done():
-			}
-		}
-	}(ctx)
-
-	// effect processing
-	go processEffects(ctx, msgs, effects)
-
-	// Update on message then Draw main loop
-	for {
-		select {
-		case <-ctx.Done():
-			return err
-		case err := <-errs:
-			cancel()
-			return err
-		case msg := <-msgs:
-			if msg == nil {
-				continue
-			}
-
-			// Handle quit message
-			if _, ok := msg.(msgEnd); ok {
-				cancel()
-				return err
-			}
-
-			// Process batched effects
-			if batchedEffects, ok := msg.(msgBatch); ok {
-				for _, eff := range batchedEffects {
-					select {
-					case effects <- eff:
-					case <-ctx.Done():
-						break
-					}
-				}
-				continue
-			}
-
-			// force redraw on screen message
-			_, exposed := msg.(MsgScreen)
-
-			eff := app.model.Update(msg)
-			if eff != nil {
-				select {
-				case effects <- eff: // process effect (if any)
-				case <-ctx.Done():
-					continue
-				}
-			}
-
-			gd := app.model.Draw()
-			frame := app.computeFrame(gd, exposed)
-			if len(frame.Cells) > 0 {
-				app.flush(frame)
-			}
-		}
-	}
-}
-
-func (app *App) flush(frame Frame) {
-	app.driver.Flush(frame)
-	if app.enc != nil {
-		err := app.enc.encode(frame)
-		if err != nil && app.logger != nil {
-			app.logger.Printf("frame encoding: %v", err)
-		}
-	}
-}
-
-func processEffects(ctx context.Context, msgs chan Msg, effects chan Effect) {
-	for {
-		select {
-		case eff := <-effects:
-			switch eff := eff.(type) {
-			case Cmd:
-				if eff != nil {
-					go func(ctx context.Context, cmd Cmd) {
-						select {
-						case msgs <- cmd():
-						case <-ctx.Done():
-						}
-					}(ctx, eff)
-				}
-			case Sub:
-				if eff != nil {
-					go eff(ctx, msgs)
-				}
-			}
-		case <-ctx.Done():
-			return
-		}
-	}
-}
 
 // Model contains the application's state.
 type Model interface {
@@ -343,6 +136,18 @@ type Driver interface {
 	// resources. Redundant Close() calls are ignored. After Close() it is
 	// possible to call Init() again.
 	Close()
+}
+
+// DriverPollMsg is an optional interface that can be satisfied by drivers.
+// Such drivers will be run such that the message polling is executed in the
+// same thread as main using a non-blocking polling message method, instead of
+// PollMsgs. This may be necessary with drivers whose input system is not
+// thread safe.
+type DriverPollMsg interface {
+	// The PollMsg returns an input message if any, in a non-blocking way.
+	// If no message can be retrieved, nil should be returned. If a non
+	// recoverable input error happens, an error can be returned.
+	PollMsg() (Msg, error)
 }
 
 // Msg represents an action and triggers the Update function of the model. Note
@@ -403,4 +208,328 @@ func Batch(effs ...Effect) Effect {
 	return Cmd(func() Msg {
 		return msgBatch(effs)
 	})
+}
+
+// App represents a message and model-driven application with a grid-based user
+// interface.
+type App struct {
+	// CatchPanics ensures that Close is called on the driver before ending
+	// the Start loop. When a panic occurs, it will be recovered, the stack
+	// trace will be printed and an error will be returned. It defaults to
+	// true.
+	CatchPanics bool
+
+	driver Driver
+	model  Model
+	enc    *frameEncoder
+	logger *log.Logger
+
+	grid  Grid
+	frame Frame
+
+	effects  chan Effect
+	errs     chan error
+	inputs   chan Msg
+	msgs     chan Msg
+	polldone chan struct{}
+	t        *time.Timer
+}
+
+// AppConfig contains the configuration options for creating a new App.
+type AppConfig struct {
+	Model  Model  // application state
+	Driver Driver // input and rendering driver
+
+	// FrameWriter is an optional io.Writer for recording frames. They can
+	// be decoded after a successful Start session with a FrameDecoder. If
+	// nil, no frame recording will be done. It is your responsibility to
+	// call Close on the Writer after Start returns.
+	FrameWriter io.Writer
+
+	// Logger is optional and is used to log non-fatal IO errors.
+	Logger *log.Logger
+}
+
+// NewApp creates a new App with the given configuration options.
+func NewApp(cfg AppConfig) *App {
+	app := &App{
+		model:       cfg.Model,
+		driver:      cfg.Driver,
+		logger:      cfg.Logger,
+		CatchPanics: true,
+	}
+	if cfg.FrameWriter != nil {
+		app.enc = newFrameEncoder(cfg.FrameWriter)
+	}
+	return app
+}
+
+// Start initializes the application and runs its main loop. The context
+// argument can be used as a means to prematurely cancel the loop. You can
+// usually use an empty context here.
+func (app *App) Start(ctx context.Context) (err error) {
+	app.msgs = make(chan Msg, 4)
+	app.errs = make(chan error)        // for driver input errors
+	app.polldone = make(chan struct{}) // PollMsgs subscription finished
+	app.effects = make(chan Effect, 4)
+
+	pollMsgNonBlocking := false
+	switch app.driver.(type) {
+	case DriverPollMsg:
+		pollMsgNonBlocking = true
+		app.inputs = make(chan Msg, 4)
+	}
+
+	// frame encoder finalization
+	defer func() {
+		if app.enc != nil {
+			nerr := app.enc.gzw.Close()
+			if err == nil {
+				err = nerr
+			} else if app.logger != nil {
+				app.logger.Printf("error closing gzip encoder: %v", err)
+			}
+		}
+	}()
+
+	// driver and context initialization
+	err = app.driver.Init()
+	if err != nil {
+		return err
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx, cancel := context.WithCancel(ctx)
+	if app.CatchPanics {
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("%v", r)
+				cancel()
+				<-app.polldone
+				app.driver.Close()
+				log.Printf("Caught panic: %v\nStack Trace:\n", r)
+				debug.PrintStack()
+			} else {
+				<-app.polldone
+				app.driver.Close()
+			}
+		}()
+	} else {
+		defer func() {
+			<-app.polldone
+			app.driver.Close()
+		}()
+	}
+	defer cancel()
+
+	// initialization message (non-blocking, buffered)
+	app.msgs <- MsgInit{}
+
+	// input messages queueing
+	if pollMsgNonBlocking {
+		go app.startPollMsgSub(ctx)
+	} else {
+		go app.startPollMsgs(ctx)
+	}
+
+	// effect processing
+	go app.processEffects(ctx)
+
+	// start Update on message then Draw main loop
+	if pollMsgNonBlocking {
+		err = app.startWithPollMsg(ctx, cancel)
+	} else {
+		err = app.start(ctx, cancel)
+	}
+	return err
+}
+
+func (app *App) start(ctx context.Context, cancel context.CancelFunc) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case err := <-app.errs:
+			cancel()
+			return err
+		case msg := <-app.msgs:
+			if msg == nil {
+				continue
+			}
+
+			// Handle quit message
+			if _, ok := msg.(msgEnd); ok {
+				cancel()
+				return nil
+			}
+
+			app.handleMsg(ctx, msg)
+		}
+	}
+}
+
+func (app *App) startWithPollMsg(ctx context.Context, cancel context.CancelFunc) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case err := <-app.errs:
+			cancel()
+			return err
+		case msg := <-app.msgs:
+			if msg == nil {
+				continue
+			}
+
+			// Handle quit message
+			if _, ok := msg.(msgEnd); ok {
+				cancel()
+				return nil
+			}
+
+			app.handleMsg(ctx, msg)
+		default:
+			err := app.pollMsg(ctx)
+			if err != nil {
+				cancel()
+				return err
+			}
+		}
+	}
+}
+
+func (app *App) pollMsg(ctx context.Context) error {
+	if len(app.inputs) >= cap(app.inputs) {
+		return nil
+	}
+	dr := app.driver.(DriverPollMsg)
+	msg, err := dr.PollMsg()
+	if err != nil {
+		return err
+	}
+	if msg != nil {
+		select {
+		case app.msgs <- msg:
+			// if there is room
+			return nil
+		default:
+			// otherwise
+			select {
+			case <-ctx.Done():
+			case app.inputs <- msg:
+				return nil
+			}
+		}
+	}
+	if len(app.msgs) > 0 || len(app.inputs) > 0 {
+		return nil
+	}
+	if app.t == nil {
+		app.t = time.NewTimer(2 * time.Millisecond)
+	} else {
+		app.t.Reset(2 * time.Millisecond)
+	}
+	select {
+	case <-ctx.Done():
+	case <-app.t.C:
+	}
+	return nil
+}
+
+func (app *App) startPollMsgSub(ctx context.Context) {
+	defer func() {
+		close(app.polldone)
+	}()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case msg := <-app.inputs:
+			select {
+			case <-ctx.Done():
+			case app.msgs <- msg:
+			}
+		}
+	}
+}
+
+func (app *App) startPollMsgs(ctx context.Context) {
+	defer func() {
+		close(app.polldone)
+	}()
+	err := app.driver.PollMsgs(ctx, app.msgs)
+	if err != nil {
+		select {
+		case app.errs <- err:
+		case <-ctx.Done():
+		}
+	}
+}
+
+func (app *App) handleMsg(ctx context.Context, msg Msg) {
+	// Process batched effects
+	if batchedEffects, ok := msg.(msgBatch); ok {
+		for _, eff := range batchedEffects {
+			select {
+			case app.effects <- eff:
+			case <-ctx.Done():
+				break
+			}
+		}
+		return
+	}
+
+	// force redraw on screen message
+	_, exposed := msg.(MsgScreen)
+
+	eff := app.model.Update(msg)
+	if eff != nil {
+		select {
+		case app.effects <- eff: // process effect (if any)
+		case <-ctx.Done():
+			return
+		}
+	}
+
+	gd := app.model.Draw()
+	frame := app.computeFrame(gd, exposed)
+	if len(frame.Cells) > 0 {
+		app.flush(frame)
+	}
+}
+
+func (app *App) flush(frame Frame) {
+	app.driver.Flush(frame)
+	if app.enc != nil {
+		err := app.enc.encode(frame)
+		if err != nil && app.logger != nil {
+			app.logger.Printf("frame encoding: %v", err)
+		}
+	}
+}
+
+func (app *App) processEffects(ctx context.Context) {
+	for {
+		select {
+		case eff := <-app.effects:
+			switch eff := eff.(type) {
+			case Cmd:
+				if eff != nil {
+					go func(ctx context.Context, cmd Cmd) {
+						select {
+						case app.msgs <- cmd():
+						case <-ctx.Done():
+						}
+					}(ctx, eff)
+				}
+			case Sub:
+				if eff != nil {
+					go eff(ctx, app.msgs)
+				}
+			}
+		case <-ctx.Done():
+			return
+		}
+	}
 }
