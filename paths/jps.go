@@ -46,13 +46,20 @@ func (pr *PathRange) JPSPath(path []gruid.Point, from, to gruid.Point, passable 
 	//}
 	//return gruid.Cell{Rune: '#'}
 	//})
+	//logrid.Set(from, gruid.Cell{Rune: 'O'})
+	//logrid.Set(to, gruid.Cell{Rune: 'G'})
 	for {
 		if (&pr.AstarQueue).Len() == 0 {
 			// There's no path.
+			//if pr.passable(to) && pr.passable(from) {
+			//log.Printf("\n%v\n", logrid)
+			//}
 			return nil
 		}
 		n := pqPop(&pr.AstarQueue)
+		//if n.P != from && n.P != to {
 		//logrid.Set(n.P, gruid.Cell{Rune: 'X'})
+		//}
 		n.Open = false
 		n.Closed = true
 
@@ -154,18 +161,18 @@ func (pr *PathRange) straightMax(p, dir gruid.Point) (int, forcedSucc) {
 	case dir.Y > 0:
 		max = pr.Rg.Max.Y - p.Y
 		if p.X == 0 {
-			fs -= fsLeft
+			fs -= fsRight
 		}
 		if p.X == pr.Rg.Max.X-1 {
-			fs -= fsRight
+			fs -= fsLeft
 		}
 	case dir.Y < 0:
 		max = -pr.Rg.Min.Y + p.Y + 1
 		if p.X == 0 {
-			fs -= fsRight
+			fs -= fsLeft
 		}
 		if p.X == pr.Rg.Max.X-1 {
-			fs -= fsLeft
+			fs -= fsRight
 		}
 	}
 	return max, fs
