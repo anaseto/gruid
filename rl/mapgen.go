@@ -206,9 +206,8 @@ func (mg MapGen) countWalls(p gruid.Point, w Cell, radius int, countOut bool) in
 }
 
 // KeepCC puts walls in all the positions unreachable from p according to last
-// ComputeCC or ComputeCCAll call on pr. Paths are supposed to be
-// bidirectional. It returns the number of cells in the remaining connected
-// component.
+// CCMap or CCMapAll call on pr. Paths are supposed to be bidirectional. It
+// returns the number of cells in the remaining connected component.
 func (mg MapGen) KeepCC(pr *paths.PathRange, p gruid.Point, wall Cell) int {
 	id := pr.CCMapAt(p)
 	if id == -1 {
