@@ -530,6 +530,36 @@ func TestResize(t *testing.T) {
 	})
 }
 
+func TestResize2(t *testing.T) {
+	gd := NewGrid(20, 10)
+	gd2 := gd.Resize(20, 10)
+	if gd != gd2 {
+		t.Error("same dimensions but different")
+	}
+	gd3 := gd.Resize(-20, 10)
+	if !gd3.Range().Empty() {
+		t.Errorf("non empty range: %v", gd3.Range())
+	}
+	var gd4 Grid
+	gd5 := gd4.Resize(20, 10)
+	rg := gd5.Range()
+	if rg.Max.X != 20 || rg.Max.Y != 10 {
+		t.Errorf("bad range: %v", rg)
+	}
+	gd5.Fill(Cell{Rune: '.'})
+	gd6 := gd5.Resize(20, 30)
+	rg = gd6.Range()
+	if rg.Max.X != 20 || rg.Max.Y != 30 {
+		t.Errorf("bad range: %v", rg)
+	}
+	if gd6.At(Point{10, 5}).Rune != '.' {
+		t.Errorf("expected 2")
+	}
+	if gd6.At(Point{10, 25}).Rune != ' ' {
+		t.Errorf("non zero")
+	}
+}
+
 func TestIterator(t *testing.T) {
 	gd := NewGrid(10, 10)
 	slice := gd.Slice(NewRange(2, 2, 5, 5))

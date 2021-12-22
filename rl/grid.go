@@ -145,9 +145,18 @@ func (gd Grid) Resize(w, h int) Grid {
 		gd.Ug = &grid{}
 	}
 	gd.Rg.Max = gd.Rg.Min.Shift(w, h)
-	if w+gd.Rg.Min.X > gd.Ug.Width || h+gd.Rg.Min.Y > gd.Ug.Height {
-		ngd := NewGrid(w+gd.Rg.Min.X, h+gd.Rg.Min.Y)
-		ngd.Copy(Grid{innerGrid{Ug: gd.Ug, Rg: gruid.NewRange(0, 0, gd.Ug.Width, gd.Ug.Height)}})
+	uh := gd.Ug.Height
+	nw := gd.Ug.Width
+	if w+gd.Rg.Min.X > gd.Ug.Width {
+		nw = w + gd.Rg.Min.X
+	}
+	nh := uh
+	if h+gd.Rg.Min.Y > uh {
+		nh = h + gd.Rg.Min.Y
+	}
+	if nw > gd.Ug.Width || nh > uh {
+		ngd := NewGrid(nw, nh)
+		ngd.Copy(Grid{innerGrid{Ug: gd.Ug, Rg: gruid.NewRange(0, 0, gd.Ug.Width, uh)}})
 		*gd.Ug = *ngd.Ug
 	}
 	return gd
