@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/anaseto/gruid"
 	"github.com/anaseto/gruid/paths"
@@ -401,10 +402,12 @@ func (v *Vault) rotate90() {
 // rotate90, but it's just a simple string reversal, so we make a special case
 // for it.
 func (v *Vault) rotate180() {
-	runes := []rune(v.content)
-	for i := 0; i < len(runes)/2; i++ {
-		j := len(runes) - 1 - i
-		runes[i], runes[j] = runes[j], runes[i]
+	s := v.content
+	sb := strings.Builder{}
+	sb.Grow(len(s))
+	for r, size := utf8.DecodeLastRuneInString(s); size > 0; r, size = utf8.DecodeLastRuneInString(s) {
+		sb.WriteRune(r)
+		s = s[:len(s)-size]
 	}
-	v.content = string(runes)
+	v.content = sb.String()
 }
