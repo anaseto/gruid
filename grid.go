@@ -295,7 +295,7 @@ func (rg Range) Iter(fn func(Point)) {
 // represented internally, it is more efficient to iterate whole lines first,
 // as in the following pattern:
 //
-// 	max := gd.Size()
+//	max := gd.Size()
 //	for y := 0; y < max.Y; y++ {
 //		for x := 0; x < max.X; x++ {
 //			p := Point{X: x, Y: y}
@@ -645,10 +645,10 @@ type GridIterator struct {
 // be convenient when more flexibility than the provided by the other iteration
 // functions is needed. It is used as follows:
 //
-// 	it := gd.Iterator()
-// 	for it.Next() {
-// 		// call it.P() or it.Cell() or it.SetCell() as appropriate
-// 	}
+//	it := gd.Iterator()
+//	for it.Next() {
+//		// call it.P() or it.Cell() or it.SetCell() as appropriate
+//	}
 func (gd Grid) Iterator() GridIterator {
 	if gd.Ug == nil {
 		return GridIterator{}
