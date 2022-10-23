@@ -471,10 +471,12 @@ func (app *App) handleMsg(ctx context.Context, msg Msg) {
 	// Process batched effects
 	if batchedEffects, ok := msg.(msgBatch); ok {
 		for _, eff := range batchedEffects {
-			select {
-			case app.effects <- eff:
-			case <-ctx.Done():
-				break
+			if eff != nil {
+				select {
+				case app.effects <- eff:
+				case <-ctx.Done():
+					break
+				}
 			}
 		}
 		return
@@ -515,18 +517,14 @@ func (app *App) processEffects(ctx context.Context) {
 		case eff := <-app.effects:
 			switch eff := eff.(type) {
 			case Cmd:
-				if eff != nil {
-					go func(ctx context.Context, cmd Cmd) {
-						select {
-						case app.msgs <- cmd():
-						case <-ctx.Done():
-						}
-					}(ctx, eff)
-				}
+				go func(ctx context.Context, cmd Cmd) {
+					select {
+					case app.msgs <- cmd():
+					case <-ctx.Done():
+					}
+				}(ctx, eff)
 			case Sub:
-				if eff != nil {
-					go eff(ctx, app.msgs)
-				}
+				go eff(ctx, app.msgs)
 			}
 		case <-ctx.Done():
 			return
